@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -41,13 +42,24 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+I2C_HandleTypeDef hi2c1;
+
+SAI_HandleTypeDef hsai_BlockA2;
+SAI_HandleTypeDef hsai_BlockB2;
+
+UART_HandleTypeDef huart6;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void PeriphCommonClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_I2C1_Init(void);
+static void MX_SAI2_Init(void);
+static void MX_USART6_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -79,12 +91,19 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+/* Configure the peripherals common clocks */
+  PeriphCommonClock_Config();
+
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_I2C1_Init();
+  MX_SAI2_Init();
+  MX_USART6_UART_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -117,12 +136,11 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 12;
   RCC_OscInitStruct.PLL.PLLN = 216;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 9;
@@ -151,6 +169,160 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief Peripherals Common Clock Configuration
+  * @retval None
+  */
+void PeriphCommonClock_Config(void)
+{
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+
+  /** Initializes the peripherals clock
+  */
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SAI2|RCC_PERIPHCLK_CLK48;
+  PeriphClkInitStruct.PLLSAI.PLLSAIN = 96;
+  PeriphClkInitStruct.PLLSAI.PLLSAIQ = 2;
+  PeriphClkInitStruct.PLLSAI.PLLSAIP = RCC_PLLSAIP_DIV2;
+  PeriphClkInitStruct.PLLSAIDivQ = 1;
+  PeriphClkInitStruct.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLLSAI;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.Timing = 0x6000030D;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief SAI2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SAI2_Init(void)
+{
+
+  /* USER CODE BEGIN SAI2_Init 0 */
+
+  /* USER CODE END SAI2_Init 0 */
+
+  /* USER CODE BEGIN SAI2_Init 1 */
+
+  /* USER CODE END SAI2_Init 1 */
+  hsai_BlockA2.Instance = SAI2_Block_A;
+  hsai_BlockA2.Init.AudioMode = SAI_MODEMASTER_TX;
+  hsai_BlockA2.Init.Synchro = SAI_ASYNCHRONOUS;
+  hsai_BlockA2.Init.OutputDrive = SAI_OUTPUTDRIVE_DISABLE;
+  hsai_BlockA2.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;
+  hsai_BlockA2.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+  hsai_BlockA2.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_48K;
+  hsai_BlockA2.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+  hsai_BlockA2.Init.MonoStereoMode = SAI_STEREOMODE;
+  hsai_BlockA2.Init.CompandingMode = SAI_NOCOMPANDING;
+  hsai_BlockA2.Init.TriState = SAI_OUTPUT_NOTRELEASED;
+  if (HAL_SAI_InitProtocol(&hsai_BlockA2, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  hsai_BlockB2.Instance = SAI2_Block_B;
+  hsai_BlockB2.Init.AudioMode = SAI_MODESLAVE_RX;
+  hsai_BlockB2.Init.Synchro = SAI_SYNCHRONOUS;
+  hsai_BlockB2.Init.OutputDrive = SAI_OUTPUTDRIVE_DISABLE;
+  hsai_BlockB2.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_EMPTY;
+  hsai_BlockB2.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+  hsai_BlockB2.Init.MonoStereoMode = SAI_STEREOMODE;
+  hsai_BlockB2.Init.CompandingMode = SAI_NOCOMPANDING;
+  hsai_BlockB2.Init.TriState = SAI_OUTPUT_NOTRELEASED;
+  if (HAL_SAI_InitProtocol(&hsai_BlockB2, SAI_I2S_STANDARD, SAI_PROTOCOL_DATASIZE_16BIT, 2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SAI2_Init 2 */
+
+  /* USER CODE END SAI2_Init 2 */
+
+}
+
+/**
+  * @brief USART6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART6_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART6_Init 0 */
+
+  /* USER CODE END USART6_Init 0 */
+
+  /* USER CODE BEGIN USART6_Init 1 */
+
+  /* USER CODE END USART6_Init 1 */
+  huart6.Instance = USART6;
+  huart6.Init.BaudRate = 115200;
+  huart6.Init.WordLength = UART_WORDLENGTH_8B;
+  huart6.Init.StopBits = UART_STOPBITS_1;
+  huart6.Init.Parity = UART_PARITY_NONE;
+  huart6.Init.Mode = UART_MODE_TX_RX;
+  huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart6.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart6.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart6.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART6_Init 2 */
+
+  /* USER CODE END USART6_Init 2 */
+
 }
 
 /**
@@ -230,14 +402,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF12_FMC;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SAI2_I2C1_SCL_Pin SAI2_I2C1_SDA_Pin */
-  GPIO_InitStruct.Pin = SAI2_I2C1_SCL_Pin|SAI2_I2C1_SDA_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
   /*Configure GPIO pins : ARD_D11_TIM3_CH2_SPI1_MOSI_Pin ARD_D12_SPI1_MISO_Pin */
   GPIO_InitStruct.Pin = ARD_D11_TIM3_CH2_SPI1_MOSI_Pin|ARD_D12_SPI1_MISO_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -311,14 +475,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(SAI2_INT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : SAI2_SD_B_Pin */
-  GPIO_InitStruct.Pin = SAI2_SD_B_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF10_SAI2;
-  HAL_GPIO_Init(SAI2_SD_B_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pins : WIFI_GPIO_2_Pin WIFI_CH_PD_Pin */
   GPIO_InitStruct.Pin = WIFI_GPIO_2_Pin|WIFI_CH_PD_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -348,14 +504,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF10_OTG_FS;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : SAI2_FS_A_Pin SAI2_SD_A_Pin SAI2_SCK_A_Pin SAI2_MCLK_A_Pin */
-  GPIO_InitStruct.Pin = SAI2_FS_A_Pin|SAI2_SD_A_Pin|SAI2_SCK_A_Pin|SAI2_MCLK_A_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF10_SAI2;
-  HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LCD_NE_Pin PSRAM_A15_Pin PSRAM_A14_Pin PSRAM_A13_Pin
                            PSRAM_A12_Pin PSRAM_A11_Pin PSRAM_A10_Pin */
@@ -451,14 +599,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(LCD_TE_INT_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : VCP_RX_Pin VCP_TX_Pin */
-  GPIO_InitStruct.Pin = VCP_RX_Pin|VCP_TX_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF8_USART6;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : ARD_D15_STMOD_I2C2_SCL_Pin ARD_D14_STMOD_I2C2_SDA_Pin */
   GPIO_InitStruct.Pin = ARD_D15_STMOD_I2C2_SCL_Pin|ARD_D14_STMOD_I2C2_SDA_Pin;
@@ -590,14 +730,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(PMOD_RESET_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB14 PB15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_15;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF12_OTG_HS_FS;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
