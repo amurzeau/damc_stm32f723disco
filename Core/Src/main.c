@@ -23,6 +23,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include "init.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,6 +51,8 @@ SAI_HandleTypeDef hsai_BlockB2;
 
 UART_HandleTypeDef huart6;
 
+SRAM_HandleTypeDef hsram1;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -60,6 +64,7 @@ static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_SAI2_Init(void);
 static void MX_USART6_UART_Init(void);
+static void MX_FMC_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -104,7 +109,10 @@ int main(void)
   MX_SAI2_Init();
   MX_USART6_UART_Init();
   MX_USB_DEVICE_Init();
+  MX_FMC_Init();
   /* USER CODE BEGIN 2 */
+
+  k_BspInit();
 
   /* USER CODE END 2 */
 
@@ -325,6 +333,60 @@ static void MX_USART6_UART_Init(void)
 
 }
 
+/* FMC initialization function */
+static void MX_FMC_Init(void)
+{
+
+  /* USER CODE BEGIN FMC_Init 0 */
+
+  /* USER CODE END FMC_Init 0 */
+
+  FMC_NORSRAM_TimingTypeDef Timing = {0};
+
+  /* USER CODE BEGIN FMC_Init 1 */
+
+  /* USER CODE END FMC_Init 1 */
+
+  /** Perform the SRAM1 memory initialization sequence
+  */
+  hsram1.Instance = FMC_NORSRAM_DEVICE;
+  hsram1.Extended = FMC_NORSRAM_EXTENDED_DEVICE;
+  /* hsram1.Init */
+  hsram1.Init.NSBank = FMC_NORSRAM_BANK1;
+  hsram1.Init.DataAddressMux = FMC_DATA_ADDRESS_MUX_DISABLE;
+  hsram1.Init.MemoryType = FMC_MEMORY_TYPE_PSRAM;
+  hsram1.Init.MemoryDataWidth = FMC_NORSRAM_MEM_BUS_WIDTH_16;
+  hsram1.Init.BurstAccessMode = FMC_BURST_ACCESS_MODE_DISABLE;
+  hsram1.Init.WaitSignalPolarity = FMC_WAIT_SIGNAL_POLARITY_LOW;
+  hsram1.Init.WaitSignalActive = FMC_WAIT_TIMING_BEFORE_WS;
+  hsram1.Init.WriteOperation = FMC_WRITE_OPERATION_DISABLE;
+  hsram1.Init.WaitSignal = FMC_WAIT_SIGNAL_DISABLE;
+  hsram1.Init.ExtendedMode = FMC_EXTENDED_MODE_DISABLE;
+  hsram1.Init.AsynchronousWait = FMC_ASYNCHRONOUS_WAIT_DISABLE;
+  hsram1.Init.WriteBurst = FMC_WRITE_BURST_DISABLE;
+  hsram1.Init.ContinuousClock = FMC_CONTINUOUS_CLOCK_SYNC_ONLY;
+  hsram1.Init.WriteFifo = FMC_WRITE_FIFO_ENABLE;
+  hsram1.Init.PageSize = FMC_PAGE_SIZE_NONE;
+  /* Timing */
+  Timing.AddressSetupTime = 15;
+  Timing.AddressHoldTime = 15;
+  Timing.DataSetupTime = 255;
+  Timing.BusTurnAroundDuration = 15;
+  Timing.CLKDivision = 16;
+  Timing.DataLatency = 17;
+  Timing.AccessMode = FMC_ACCESS_MODE_A;
+  /* ExtTiming */
+
+  if (HAL_SRAM_Init(&hsram1, &Timing, NULL) != HAL_OK)
+  {
+    Error_Handler( );
+  }
+
+  /* USER CODE BEGIN FMC_Init 2 */
+
+  /* USER CODE END FMC_Init 2 */
+}
+
 /**
   * @brief GPIO Initialization Function
   * @param None
@@ -369,8 +431,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, USB_OTG_FS_ID_Pin|SYS_LD_USER1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOH, PMOD_GPIO_1_Pin|ARD_D4_GPIO_Pin|USB_OTGHS_PPWR_EN_Pin|CTP_RST_Pin
-                          |LCD_RST_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOH, PMOD_GPIO_1_Pin|ARD_D4_GPIO_Pin|USB_OTGHS_PPWR_EN_Pin|LCD_BL_Pin
+                          |CTP_RST_Pin|LCD_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, USB_OTG_HS_ID_Pin|SYS_LD_USER2_Pin, GPIO_PIN_RESET);
@@ -390,18 +452,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF9_QUADSPI;
   HAL_GPIO_Init(QSPI_D2_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PSRAM_NBL1_Pin PSRAM_NBL0_Pin LCD_PSRAM_D10_Pin LCD_PSRAM_D5_Pin
-                           LCD_PSRAM_D6_Pin LCD_PSRAM_D8_Pin LCD_PSRAM_D11_Pin LCD_PSRAM_D4_Pin
-                           LCD_PSRAM_D7_Pin LCD_PSRAM_D9_Pin LCD_PSRAM_D12_Pin */
-  GPIO_InitStruct.Pin = PSRAM_NBL1_Pin|PSRAM_NBL0_Pin|LCD_PSRAM_D10_Pin|LCD_PSRAM_D5_Pin
-                          |LCD_PSRAM_D6_Pin|LCD_PSRAM_D8_Pin|LCD_PSRAM_D11_Pin|LCD_PSRAM_D4_Pin
-                          |LCD_PSRAM_D7_Pin|LCD_PSRAM_D9_Pin|LCD_PSRAM_D12_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF12_FMC;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
   /*Configure GPIO pins : ARD_D11_TIM3_CH2_SPI1_MOSI_Pin ARD_D12_SPI1_MISO_Pin */
   GPIO_InitStruct.Pin = ARD_D11_TIM3_CH2_SPI1_MOSI_Pin|ARD_D12_SPI1_MISO_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -416,18 +466,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PSRAM_NE1_Pin LCD_PSRAM_D2_Pin LCD_PSRAM_NWE_Pin LCD_PSRAM_D3_Pin
-                           LCD_PSRAM_NWED4_Pin LCD_PSRAM_D1_Pin LCD_PSRAM_D0_Pin PSRAM_A17_Pin
-                           PSRAM_A16_Pin LCD_PSRAM_D15_Pin LCD_PSRAM_D14_Pin LCD_PSRAM_D13_Pin */
-  GPIO_InitStruct.Pin = PSRAM_NE1_Pin|LCD_PSRAM_D2_Pin|LCD_PSRAM_NWE_Pin|LCD_PSRAM_D3_Pin
-                          |LCD_PSRAM_NWED4_Pin|LCD_PSRAM_D1_Pin|LCD_PSRAM_D0_Pin|PSRAM_A17_Pin
-                          |PSRAM_A16_Pin|LCD_PSRAM_D15_Pin|LCD_PSRAM_D14_Pin|LCD_PSRAM_D13_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF12_FMC;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pin : UART_TXD_WIFI_RX_Pin */
   GPIO_InitStruct.Pin = UART_TXD_WIFI_RX_Pin;
@@ -452,14 +490,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF3_TIM9;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : NC1_Pin */
-  GPIO_InitStruct.Pin = NC1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF12_FMC;
-  HAL_GPIO_Init(NC1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : QSPI_NCS_Pin */
   GPIO_InitStruct.Pin = QSPI_NCS_Pin;
@@ -505,16 +535,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF10_OTG_FS;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LCD_NE_Pin PSRAM_A15_Pin PSRAM_A14_Pin PSRAM_A13_Pin
-                           PSRAM_A12_Pin PSRAM_A11_Pin PSRAM_A10_Pin */
-  GPIO_InitStruct.Pin = LCD_NE_Pin|PSRAM_A15_Pin|PSRAM_A14_Pin|PSRAM_A13_Pin
-                          |PSRAM_A12_Pin|PSRAM_A11_Pin|PSRAM_A10_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF12_FMC;
-  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
-
   /*Configure GPIO pins : PMOD_SPI2_MOSI_Pin PMOD_SPI2_MISO_Pin PI10 */
   GPIO_InitStruct.Pin = PMOD_SPI2_MOSI_Pin|PMOD_SPI2_MISO_Pin|GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -537,9 +557,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(UART_RXD_WIFI_TX_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PMOD_SEL_0_Pin PMOD_GPIO_1_Pin ARD_D4_GPIO_Pin USB_OTGHS_PPWR_EN_Pin
-                           CTP_RST_Pin LCD_RST_Pin */
+                           LCD_BL_Pin CTP_RST_Pin LCD_RST_Pin */
   GPIO_InitStruct.Pin = PMOD_SEL_0_Pin|PMOD_GPIO_1_Pin|ARD_D4_GPIO_Pin|USB_OTGHS_PPWR_EN_Pin
-                          |CTP_RST_Pin|LCD_RST_Pin;
+                          |LCD_BL_Pin|CTP_RST_Pin|LCD_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -559,18 +579,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PSRAM_A0_Pin PSRAM_A2_Pin PSRAM_A1_Pin PSRAM_A3_Pin
-                           PSRAM_A4_Pin PSRAM_A5_Pin PSRAM_A7_Pin PSRAM_A6_Pin
-                           PSRAM_A9_Pin PSRAM_A8_Pin */
-  GPIO_InitStruct.Pin = PSRAM_A0_Pin|PSRAM_A2_Pin|PSRAM_A1_Pin|PSRAM_A3_Pin
-                          |PSRAM_A4_Pin|PSRAM_A5_Pin|PSRAM_A7_Pin|PSRAM_A6_Pin
-                          |PSRAM_A9_Pin|PSRAM_A8_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF12_FMC;
-  HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
   /*Configure GPIO pins : STMOD_UART4_TXD_Pin STMOD_UART4_RXD_Pin */
   GPIO_InitStruct.Pin = STMOD_UART4_TXD_Pin|STMOD_UART4_RXD_Pin;
@@ -621,14 +629,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(ARD_A3_ADC3_IN8_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : LCD_BL_Pin */
-  GPIO_InitStruct.Pin = LCD_BL_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF2_TIM5;
-  HAL_GPIO_Init(LCD_BL_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : USB_OTGHS_OVCR_INT_Pin */
   GPIO_InitStruct.Pin = USB_OTGHS_OVCR_INT_Pin;
