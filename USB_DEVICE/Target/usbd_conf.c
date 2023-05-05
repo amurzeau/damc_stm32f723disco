@@ -23,6 +23,7 @@
 #include "stm32f7xx_hal.h"
 #include "usbd_def.h"
 #include "usbd_core.h"
+#include "usbd_audio.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -270,6 +271,17 @@ void HAL_PCD_ResumeCallback(PCD_HandleTypeDef *hpcd)
 }
 
 /**
+  * @brief  OUT token received when endpoint disabled.
+  * @param  hpcd PCD handle
+  * @param  epnum endpoint number
+  * @retval None
+  */
+void HAL_PCD_OutTokenWhileDisabledCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
+{
+  USBD_LL_OutTokenWhileDisabled((USBD_HandleTypeDef*)hpcd->pData, epnum);
+}
+
+/**
   * @brief  ISOOUTIncomplete callback.
   * @param  hpcd: PCD handle
   * @param  epnum: Endpoint number
@@ -348,7 +360,7 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   hpcd_USB_OTG_HS.Init.dev_endpoints = 9;
   hpcd_USB_OTG_HS.Init.dma_enable = DISABLE;
   hpcd_USB_OTG_HS.Init.phy_itface = USB_OTG_HS_EMBEDDED_PHY;
-  hpcd_USB_OTG_HS.Init.Sof_enable = DISABLE;
+  hpcd_USB_OTG_HS.Init.Sof_enable = ENABLE;
   hpcd_USB_OTG_HS.Init.low_power_enable = DISABLE;
   hpcd_USB_OTG_HS.Init.lpm_enable = DISABLE;
   hpcd_USB_OTG_HS.Init.vbus_sensing_enable = DISABLE;
@@ -374,9 +386,16 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   HAL_PCD_RegisterIsoOutIncpltCallback(&hpcd_USB_OTG_HS, PCD_ISOOUTIncompleteCallback);
   HAL_PCD_RegisterIsoInIncpltCallback(&hpcd_USB_OTG_HS, PCD_ISOINIncompleteCallback);
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
-  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_HS, 0x200);
+  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_HS, 0x180);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 0, 0x80);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, 0x174);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, 16);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, (192*2 / 4));
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 3, 16);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 4, (192*2 / 4));
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 5, 16);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 6, (192*2 / 4));
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 7, 16);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 8, (192*2 / 4));
   }
   return USBD_OK;
 }

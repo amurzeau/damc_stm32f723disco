@@ -112,7 +112,7 @@ int main(void)
   MX_FMC_Init();
   /* USER CODE BEGIN 2 */
 
-  k_BspInit();
+  //k_BspInit();
 
   /* USER CODE END 2 */
 

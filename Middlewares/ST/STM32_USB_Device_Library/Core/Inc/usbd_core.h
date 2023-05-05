@@ -112,6 +112,7 @@ USBD_StatusTypeDef USBD_LL_Suspend(USBD_HandleTypeDef *pdev);
 USBD_StatusTypeDef USBD_LL_Resume(USBD_HandleTypeDef *pdev);
 
 USBD_StatusTypeDef USBD_LL_SOF(USBD_HandleTypeDef  *pdev);
+USBD_StatusTypeDef USBD_LL_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_t epnum);
 USBD_StatusTypeDef USBD_LL_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum);
 USBD_StatusTypeDef USBD_LL_IsoOUTIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum);
 

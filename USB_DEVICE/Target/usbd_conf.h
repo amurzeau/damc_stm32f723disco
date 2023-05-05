@@ -62,7 +62,6 @@
   */
 
 /*---------- -----------*/
-#define USBD_MAX_NUM_INTERFACES     1U
 /*---------- -----------*/
 #define USBD_MAX_NUM_CONFIGURATION     1U
 /*---------- -----------*/
@@ -75,6 +74,11 @@
 #define USBD_SELF_POWERED     1U
 /*---------- -----------*/
 #define USBD_AUDIO_FREQ     48000U
+#define USBD_AUDIO_CHANNELS 2
+#define USBD_AUDIO_BYTES_PER_SAMPLE 2
+#define AUDIO_LOOPBACKS_NUMBER 4
+#define USBD_MAX_NUM_INTERFACES     (AUDIO_LOOPBACKS_NUMBER * 2)
+#define USBD_SUPPORT_USER_STRING_DESC 1
 
 /****************************************/
 /* #define for FS and HS identification */

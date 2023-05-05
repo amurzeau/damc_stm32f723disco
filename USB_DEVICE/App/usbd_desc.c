@@ -367,6 +367,7 @@ uint8_t * USBD_HS_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *leng
   return USBD_StrDesc;
 }
 
+
 #if (USBD_LPM_ENABLED == 1)
 /**
   * @brief  Return the BOS descriptor

@@ -954,6 +954,31 @@ USBD_StatusTypeDef USBD_LL_IsoINIncomplete(USBD_HandleTypeDef *pdev,
 }
 
 /**
+  * @brief  USBD_LL_OutTokenWhileDisabled
+  *         Handle OUT token while endpoint disabled event
+  * @param  pdev: device instance
+  * @retval status
+  */
+USBD_StatusTypeDef USBD_LL_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev,
+                                            uint8_t epnum)
+{
+  if (pdev->pClass[pdev->classId] == NULL)
+  {
+    return USBD_FAIL;
+  }
+
+  if (pdev->dev_state == USBD_STATE_CONFIGURED)
+  {
+    if (pdev->pClass[pdev->classId]->OutTokenWhileDisabled != NULL)
+    {
+      (void)pdev->pClass[pdev->classId]->OutTokenWhileDisabled(pdev, epnum);
+    }
+  }
+
+  return USBD_OK;
+}
+
+/**
   * @brief  USBD_LL_IsoOUTIncomplete
   *         Handle iso out incomplete event
   * @param  pdev: device instance

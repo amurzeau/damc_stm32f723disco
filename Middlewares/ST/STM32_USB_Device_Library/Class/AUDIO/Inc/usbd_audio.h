@@ -40,6 +40,7 @@ extern "C" {
 /** @defgroup USBD_AUDIO_Exported_Defines
   * @{
   */
+
 #ifndef USBD_AUDIO_FREQ
 /* AUDIO Class Config */
 #define USBD_AUDIO_FREQ                               48000U
@@ -50,7 +51,7 @@ extern "C" {
 #endif /* USBD_AUDIO_FREQ */
 
 #ifndef AUDIO_HS_BINTERVAL
-#define AUDIO_HS_BINTERVAL                            0x01U
+#define AUDIO_HS_BINTERVAL                            0x04U
 #endif /* AUDIO_HS_BINTERVAL */
 
 #ifndef AUDIO_FS_BINTERVAL
@@ -60,8 +61,8 @@ extern "C" {
 #ifndef AUDIO_OUT_EP
 #define AUDIO_OUT_EP                                  0x01U
 #endif /* AUDIO_OUT_EP */
+#define AUDIO_IN_EP                                   0x82U
 
-#define USB_AUDIO_CONFIG_DESC_SIZ                     0x6DU
 #define AUDIO_INTERFACE_DESC_SIZE                     0x09U
 #define USB_AUDIO_DESC_SIZ                            0x09U
 #define AUDIO_STANDARD_ENDPOINT_DESC_SIZE             0x09U
@@ -89,7 +90,8 @@ extern "C" {
 #define AUDIO_OUTPUT_TERMINAL_DESC_SIZE               0x09U
 #define AUDIO_STREAMING_INTERFACE_DESC_SIZE           0x07U
 
-#define AUDIO_CONTROL_MUTE                            0x0001U
+#define AUDIO_CONTROL_MUTE                            1
+#define AUDIO_CONTROL_VOLUME 2
 
 #define AUDIO_FORMAT_TYPE_I                           0x01U
 #define AUDIO_FORMAT_TYPE_III                         0x03U
@@ -97,7 +99,13 @@ extern "C" {
 #define AUDIO_ENDPOINT_GENERAL                        0x01U
 
 #define AUDIO_REQ_GET_CUR                             0x81U
+#define AUDIO_REQ_GET_MIN                             0x82U
+#define AUDIO_REQ_GET_MAX                             0x83U
+#define AUDIO_REQ_GET_RES                             0x84U
 #define AUDIO_REQ_SET_CUR                             0x01U
+#define AUDIO_REQ_SET_MIN                             0x02U
+#define AUDIO_REQ_SET_MAX                             0x03U
+#define AUDIO_REQ_SET_RES                             0x04U
 
 #define AUDIO_OUT_STREAMING_CTRL                      0x02U
 
@@ -105,14 +113,14 @@ extern "C" {
 #define AUDIO_IN_TC                                   0x02U
 
 
-#define AUDIO_OUT_PACKET                              (uint16_t)(((USBD_AUDIO_FREQ * 2U * 2U) / 1000U))
+#define AUDIO_OUT_PACKET                              (uint16_t)(((USBD_AUDIO_FREQ * USBD_AUDIO_CHANNELS * USBD_AUDIO_BYTES_PER_SAMPLE) / 1000U))
 #define AUDIO_DEFAULT_VOLUME                          70U
 
 /* Number of sub-packets in the audio transfer buffer. You can modify this value but always make sure
   that it is an even number and higher than 3 */
-#define AUDIO_OUT_PACKET_NUM                          80U
+//#define AUDIO_OUT_PACKET_NUM                          80U
 /* Total size of the audio transfer buffer */
-#define AUDIO_TOTAL_BUF_SIZE                          ((uint16_t)(AUDIO_OUT_PACKET * AUDIO_OUT_PACKET_NUM))
+//#define AUDIO_TOTAL_BUF_SIZE                          ((uint16_t)(AUDIO_OUT_PACKET * AUDIO_OUT_PACKET_NUM))
 
 /* Audio Commands enumeration */
 typedef enum
@@ -146,15 +154,39 @@ typedef struct
   uint8_t unit;
 } USBD_AUDIO_ControlTypeDef;
 
+struct history_data {
+	uint32_t cycles;
+	const char* operation;
+	uint32_t DOEPCTL;
+	uint32_t DOEPINT;
+};
+
+typedef struct {
+	uint32_t endpoint_out;
+	uint32_t endpoint_in;
+	uint32_t max_packet_size;
+	uint32_t in_packet_size;
+	uint32_t buffer_size;
+
+	uint32_t current_alternate[2];
+	int32_t next_target_frame[2];
+	uint32_t transfer_in_progress[2];
+	uint32_t incomplete_iso[2];
+	uint32_t complete_iso[2];
+	struct history_data history[256];
+	struct history_data history_on_isoincomplete[256];
+	uint8_t buffer_index;
+	uint8_t history_index;
+	uint8_t history_save_disable;
+	uint8_t dummy;
+	uint8_t buffer[2][AUDIO_OUT_PACKET];
+} USBD_AUDIO_LoopbackDataTypeDef;
+void USBD_AUDIO_trace(USBD_AUDIO_LoopbackDataTypeDef* data, const char* operation);
+extern USBD_AUDIO_LoopbackDataTypeDef loopbackData[AUDIO_LOOPBACKS_NUMBER];
 
 typedef struct
 {
-  uint32_t alt_setting;
-  uint8_t buffer[AUDIO_TOTAL_BUF_SIZE];
-  AUDIO_OffsetTypeDef offset;
-  uint8_t rd_enable;
-  uint16_t rd_ptr;
-  uint16_t wr_ptr;
+  USBD_AUDIO_LoopbackDataTypeDef* loopbackData;
   USBD_AUDIO_ControlTypeDef control;
 } USBD_AUDIO_HandleTypeDef;
 

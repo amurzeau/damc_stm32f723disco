@@ -96,6 +96,8 @@ HAL_StatusTypeDef HAL_PCDEx_SetTxFiFo(PCD_HandleTypeDef *hpcd, uint8_t fifo, uin
       Tx_Offset += (hpcd->Instance->DIEPTXF[i] >> 16);
     }
 
+    assert_param(Tx_Offset < (4096/4));
+
     /* Multiply Tx_Size by 2 to get higher performance */
     hpcd->Instance->DIEPTXF[fifo - 1U] = ((uint32_t)size << 16) | Tx_Offset;
   }
