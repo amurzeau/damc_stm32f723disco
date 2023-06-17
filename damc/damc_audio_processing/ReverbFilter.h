@@ -11,7 +11,7 @@ class ReverbFilter : public OscContainer {
 public:
 	ReverbFilter(OscContainer* parent, const std::string& name);
 	void reset(int depth = 1, unsigned int innerReverberatorCount = 5);
-	void processSamples(float* output, const float* input, size_t count);
+	void processSamples(float* samples, size_t count);
 	float processOneSample(float input);
 
 private:

@@ -13,9 +13,11 @@ void DelayFilter::reset() {
 	std::fill(this->delayedSamples.begin(), this->delayedSamples.end(), 0);
 }
 
-void DelayFilter::processSamples(float* output, const float* input, size_t count) {
-	for(size_t i = 0; i < count; i++) {
-		output[i] = processOneSample(input[i]);
+void DelayFilter::processSamples(float* samples, size_t count) {
+	if(this->delay > 0) {
+		for(size_t i = 0; i < count; i++) {
+			samples[i] = processOneSample(samples[i]);
+		}
 	}
 }
 

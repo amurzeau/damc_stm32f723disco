@@ -20,7 +20,7 @@ public:
 	            OscReadOnlyVariable<int32_t>* oscSampleRate);
 
 	void reset(double fs);
-	void processSamples(float** output, const float** input, size_t numChannel, size_t count);
+	void processSamples(float** samples, size_t numChannel, size_t count);
 	float processSideChannelSample(float input);
 
 	void onFastTimer();

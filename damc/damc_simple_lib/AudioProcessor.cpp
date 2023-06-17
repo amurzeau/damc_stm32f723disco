@@ -52,7 +52,7 @@ void AudioProcessor::processAudioInterleaved(const int16_t* data_input, int16_t*
 		}
 	}
 
-	filterChain.processSamples(channelBuffers, (const float**) channelBuffers, channelNumber, nframes);
+	filterChain.processSamples(channelBuffers, channelNumber, nframes);
 
 	for(uint32_t channel = 0; channel < channelNumber; channel++) {
 		for(uint32_t frame = 0; frame < nframes; frame++) {

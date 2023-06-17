@@ -25,10 +25,10 @@ void ReverbFilter::reset(int depth, unsigned int innerReverberatorCount) {
 	}
 }
 
-void ReverbFilter::processSamples(float* output, const float* input, size_t count) {
+void ReverbFilter::processSamples(float* samples, size_t count) {
 	if(enabled) {
 		for(size_t i = 0; i < count; i++) {
-			output[i] = processOneSample(input[i]);
+			samples[i] = processOneSample(samples[i]);
 		}
 	}
 }

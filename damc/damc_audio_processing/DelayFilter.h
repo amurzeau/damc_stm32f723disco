@@ -8,7 +8,7 @@ public:
 	DelayFilter();
 
 	void reset();
-	void processSamples(float* output, const float* input, size_t count);
+	void processSamples(float* samples, size_t count);
 	float processOneSample(float input);
 
 	void setParameters(unsigned int delay);

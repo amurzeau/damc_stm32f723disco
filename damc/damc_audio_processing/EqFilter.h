@@ -12,7 +12,7 @@ public:
 
 	void init(size_t numChannel);
 	void reset(double fs);
-	void processSamples(float** output, const float** input, size_t count);
+	void processSamples(float** samples, size_t count);
 
 	void setParameters(bool enabled, FilterType filterType, double f0, double gain, double Q);
 	void getParameters(bool& enabled, FilterType& filterType, double& f0, double& gain, double& Q);

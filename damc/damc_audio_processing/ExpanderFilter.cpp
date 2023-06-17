@@ -30,7 +30,7 @@ void ExpanderFilter::reset(double fs) {
 	std::fill_n(previousLevelDetectorOutput.begin(), numChannel, 0);
 }
 
-void ExpanderFilter::processSamples(float** output, const float** input, size_t count) {
+void ExpanderFilter::processSamples(float** samples, size_t count) {
 	if(enable) {
 		float makeUpGain = this->makeUpGain;
 
@@ -38,7 +38,7 @@ void ExpanderFilter::processSamples(float** output, const float** input, size_t 
 			float lowestCompressionDb = -INFINITY;
 
 			for(size_t channel = 0; channel < numChannel; channel++) {
-				float dbGain = doCompression(input[channel][i],
+				float dbGain = doCompression(samples[channel][i],
 				                             previousPartialGainComputerOutput[channel],
 				                             previousLevelDetectorOutput[channel]);
 				if(dbGain > lowestCompressionDb)
@@ -54,14 +54,10 @@ void ExpanderFilter::processSamples(float** output, const float** input, size_t 
 				largerCompressionRatio = 0;
 
 			for(size_t channel = 0; channel < numChannel; channel++) {
-				float value = largerCompressionRatio * input[channel][i];
+				float value = largerCompressionRatio * samples[channel][i];
 
-				output[channel][i] = value;
+				samples[channel][i] = value;
 			}
-		}
-	} else if(output != input) {
-		for(size_t channel = 0; channel < numChannel; channel++) {
-			std::copy_n(input[channel], count, output[channel]);
 		}
 	}
 }

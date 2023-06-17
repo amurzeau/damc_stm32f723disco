@@ -10,7 +10,7 @@ public:
 	ExpanderFilter(OscContainer* parent);
 	void init(size_t numChannel);
 	void reset(double fs);
-	void processSamples(float** output, const float** input, size_t count);
+	void processSamples(float** samples, size_t count);
 
 protected:
 	float doCompression(float sample, float& y1, float& yL);

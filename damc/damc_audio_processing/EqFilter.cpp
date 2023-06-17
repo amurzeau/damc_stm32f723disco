@@ -28,20 +28,16 @@ void EqFilter::reset(double fs) {
 	computeFilter();
 }
 
-void EqFilter::processSamples(float** output, const float** input, size_t count) {
+void EqFilter::processSamples(float** samples, size_t count) {
 	if(enabled) {
 		for(size_t channel = 0; channel < biquadFilters.size(); channel++) {
 			BiquadFilter& biquadFilter = biquadFilters[channel];
-			float* outputChannel = output[channel];
-			const float* inputChannel = input[channel];
+			float* outputChannel = samples[channel];
+			const float* inputChannel = samples[channel];
 
 			for(size_t i = 0; i < count; i++) {
 				outputChannel[i] = biquadFilter.put(inputChannel[i]);
 			}
-		}
-	} else if(output != input) {
-		for(size_t channel = 0; channel < biquadFilters.size(); channel++) {
-			std::copy_n(input[channel], count, output[channel]);
 		}
 	}
 }

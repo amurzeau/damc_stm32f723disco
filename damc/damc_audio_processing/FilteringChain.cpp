@@ -73,7 +73,7 @@ void FilterChain::reset(double fs) {
 	expanderFilter.reset(fs);
 }
 
-void FilterChain::processSamples(float** output, const float** input, size_t numChannel, size_t count) {
+void FilterChain::processSamples(float** samples, size_t numChannel, size_t count) {
 	float* peaks = (float*) alloca(sizeof(float) * numChannel);
 	float masterVolume = this->masterVolume.get();
 
@@ -82,38 +82,38 @@ void FilterChain::processSamples(float** output, const float** input, size_t num
 	}
 
 	for(uint32_t channel = 0; channel < numChannel; channel++) {
-		delayFilters[channel].processSamples(output[channel], input[channel], count);
+		delayFilters[channel].processSamples(samples[channel], count);
 	}
 
 	for(auto& filter : eqFilters) {
-		filter.second->processSamples(output, const_cast<const float**>(output), count);
+		filter.second->processSamples(samples, count);
 	}
 
-	expanderFilter.processSamples(output, const_cast<const float**>(output), count);
-	compressorFilter.processSamples(output, const_cast<const float**>(output), count);
+	expanderFilter.processSamples(samples, count);
+	compressorFilter.processSamples(samples, count);
 
 	for(uint32_t channel = 0; channel < numChannel; channel++) {
-		reverbFilters.at(channel).processSamples(output[channel], output[channel], count);
+		reverbFilters.at(channel).processSamples(samples[channel], count);
 	}
 
 	for(uint32_t channel = 0; channel < numChannel; channel++) {
 		float volume = this->volume.at(channel).get() * masterVolume;
 		float peak = 0;
 		for(size_t i = 0; i < count; i++) {
-			output[channel][i] *= volume;
-			peak = fmaxf(peak, fabsf(output[channel][i]));
+			samples[channel][i] *= volume;
+			peak = fmaxf(peak, fabsf(samples[channel][i]));
 		}
 		peaks[channel] = peak;
 	}
 
 	// for(uint32_t channel = 0; channel < numChannel; channel++) {
-	// 	peakMeter.loudnessMeters[channel].processSamples(output[channel], count);
+	// 	peakMeter.loudnessMeters[channel].processSamples(samples[channel], count);
 	// }
 	peakMeter.processSamples(peaks, numChannel, count);
 
 	if(mute) {
 		for(uint32_t channel = 0; channel < numChannel; channel++) {
-			std::fill_n(output[channel], count, 0);
+			std::fill_n(samples[channel], count, 0);
 		}
 	}
 }

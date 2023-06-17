@@ -32,13 +32,13 @@ void CompressorFilter::reset(double fs) {
 	std::fill_n(perChannelData.begin(), numChannel, PerChannelData{});
 }
 
-void CompressorFilter::processSamples(float** output, const float** input, size_t count) {
+void CompressorFilter::processSamples(float** samples, size_t count) {
 	if(enable) {
 		float staticGain = gainComputer(0) + makeUpGain;
 		for(size_t i = 0; i < count; i++) {
 			float largerCompressionDb = 0;
 			for(size_t channel = 0; channel < numChannel; channel++) {
-				float dbGain = doCompression(input[channel][i], perChannelData[channel]);
+				float dbGain = doCompression(samples[channel][i], perChannelData[channel]);
 				if(dbGain < largerCompressionDb)
 					largerCompressionDb = dbGain;
 			}
@@ -47,12 +47,8 @@ void CompressorFilter::processSamples(float** output, const float** input, size_
 			float largerCompressionRatio = expf(LOG10_VALUE_DIV_20 * (largerCompressionDb + staticGain));
 
 			for(size_t channel = 0; channel < numChannel; channel++) {
-				output[channel][i] = largerCompressionRatio * input[channel][i];
+				samples[channel][i] = largerCompressionRatio * samples[channel][i];
 			}
-		}
-	} else if(output != input) {
-		for(size_t channel = 0; channel < numChannel; channel++) {
-			std::copy_n(input[channel], count, output[channel]);
 		}
 	}
 }
