@@ -24,6 +24,8 @@
 /* USER CODE BEGIN Includes */
 
 #include "init.h"
+#include "usbd_audio.h"
+#include "AudioCApi.h"
 
 /* USER CODE END Includes */
 
@@ -121,7 +123,14 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+	  int i;
+	  for(i = 0; i < AUDIO_LOOPBACKS_NUMBER; i++) {
+		  USBD_AUDIO_LoopbackDataTypeDef* data = &loopbackData[i];
+		  if(data->buffer_state == TS_ReadyToProcess) {
+			  processAudioInterleaved(data->buffer, data->buffer_size / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS);
+			  data->buffer_state = TS_ReadyToTransmit;
+		  }
+	  }
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

@@ -1,0 +1,28 @@
+#pragma once
+
+#include "OscSerialClient.h"
+#include <FilteringChain.h>
+#include <Osc/OscReadOnlyVariable.h>
+#include <OscRoot.h>
+#include <stdint.h>
+
+class AudioProcessor {
+public:
+	AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t maxNframes);
+	~AudioProcessor();
+
+	void processAudioInterleaved(int16_t* data, size_t nframes);
+
+	static AudioProcessor* getInstance();
+
+private:
+	OscRoot oscRoot;
+	OscSerialClient serialClient;
+	OscReadOnlyVariable<int32_t> oscNumChannels;
+	OscReadOnlyVariable<int32_t> oscSampleRate;
+	FilterChain filterChain;
+
+	size_t maxNframes;
+	float** channelBuffers;
+
+};
