@@ -161,12 +161,16 @@ struct history_data {
 	uint32_t DOEPINT;
 };
 
-enum USBD_AUDIO_TransferState {
-	TS_ReadyToReceive,
-	TS_Receiving,
-	TS_ReadyToProcess,
-	TS_ReadyToTransmit,
-	TS_Transmiting,
+enum USBD_AUDIO_RXTransferState {
+	TS_RX_ReadyToReceive,
+	TS_RX_Receiving,
+	TS_RX_ReadyToProcess,
+};
+
+enum USBD_AUDIO_TXTransferState {
+	TS_TX_Empty,
+	TS_TX_ReadyToTransmit,
+	TS_TX_Transmiting,
 };
 
 typedef struct {
@@ -183,11 +187,13 @@ typedef struct {
 	uint32_t complete_iso[2];
 	struct history_data history[256];
 	struct history_data history_on_isoincomplete[256];
-	volatile enum USBD_AUDIO_TransferState buffer_state;
+	volatile enum USBD_AUDIO_RXTransferState buffer_rx_state;
+	volatile enum USBD_AUDIO_TXTransferState buffer_tx_state;
 	uint8_t history_index;
 	uint8_t history_save_disable;
 	uint8_t dummy;
-	uint8_t buffer[AUDIO_OUT_PACKET];
+	uint8_t buffer_rx[AUDIO_OUT_PACKET];
+	uint8_t buffer_tx[AUDIO_OUT_PACKET];
 } USBD_AUDIO_LoopbackDataTypeDef;
 void USBD_AUDIO_trace(USBD_AUDIO_LoopbackDataTypeDef* data, const char* operation);
 extern USBD_AUDIO_LoopbackDataTypeDef loopbackData[AUDIO_LOOPBACKS_NUMBER];

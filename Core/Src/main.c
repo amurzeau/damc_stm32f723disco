@@ -74,6 +74,8 @@ static void MX_FMC_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+static uint8_t dummy_buffer[AUDIO_OUT_PACKET];
+
 /* USER CODE END 0 */
 
 /**
@@ -92,6 +94,8 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+
+  DAMC_init();
 
   /* USER CODE END Init */
 
@@ -128,9 +132,15 @@ int main(void)
 	  int i;
 	  for(i = 0; i < AUDIO_LOOPBACKS_NUMBER; i++) {
 		  USBD_AUDIO_LoopbackDataTypeDef* data = &loopbackData[i];
-		  if(data->buffer_state == TS_ReadyToProcess) {
-			  processAudioInterleaved(data->buffer, data->buffer_size / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS);
-			  data->buffer_state = TS_ReadyToTransmit;
+		  if(data->buffer_rx_state == TS_RX_ReadyToProcess) {
+			  data->buffer_rx_state = TS_RX_ReadyToReceive;
+			  USBD_AUDIO_trace(data, "TS_RX_ReadyToReceive");
+			  //memcpy(data->buffer_tx, data->buffer_rx, sizeof(data->buffer_rx));
+			  DAMC_processAudioInterleaved((int16_t*)data->buffer_rx, (int16_t*)data->buffer_tx, data->buffer_size / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS);
+			  data->buffer_tx_state = TS_TX_ReadyToTransmit;
+			  USBD_AUDIO_trace(data, "TS_TX_ReadyToTransmit");
+		  } else {
+			  //processAudioInterleaved(dummy_buffer, AUDIO_OUT_PACKET / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS);
 		  }
 	  }
   }

@@ -7,8 +7,8 @@
 extern "C" {
 #endif
 
-
-void processAudioInterleaved(int16_t* data, size_t nframes);
+void DAMC_init();
+void DAMC_processAudioInterleaved(const int16_t* data_input, int16_t* data_output, size_t nframes);
 
 
 #ifdef __cplusplus

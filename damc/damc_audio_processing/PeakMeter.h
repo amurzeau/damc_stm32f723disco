@@ -22,7 +22,7 @@ public:
 
 	void onFastTimer();
 
-	std::vector<LoudnessMeter> loudnessMeters;
+	//std::vector<LoudnessMeter> loudnessMeters;
 
 private:
 	OscRoot* oscRoot;

@@ -11,7 +11,7 @@ public:
 	AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t maxNframes);
 	~AudioProcessor();
 
-	void processAudioInterleaved(int16_t* data, size_t nframes);
+	void processAudioInterleaved(const int16_t* data_input, int16_t* data_output, size_t nframes);
 
 	static AudioProcessor* getInstance();
 

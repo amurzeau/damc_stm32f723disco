@@ -19,17 +19,17 @@ PeakMeter::PeakMeter(OscContainer* parent,
 
 		//peakMutex.lock();
 		peaksPerChannel.resize(newValue, 0);
-		loudnessMeters.resize(newValue);
+		//loudnessMeters.resize(newValue);
 		//peakMutex.unlock();
-		for(auto& loudnessMeter : loudnessMeters) {
-			loudnessMeter.reset(this->oscSampleRate->get());
-		}
+//		for(auto& loudnessMeter : loudnessMeters) {
+//			loudnessMeter.reset(this->oscSampleRate->get());
+//		}
 	});
 
 	oscSampleRate->addChangeCallback([this](int32_t newValue) {
-		for(auto& loudnessMeter : loudnessMeters) {
-			loudnessMeter.reset(newValue);
-		}
+//		for(auto& loudnessMeter : loudnessMeters) {
+//			loudnessMeter.reset(newValue);
+//		}
 	});
 }
 
