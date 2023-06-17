@@ -75,8 +75,6 @@ void Error_Handler(void);
 #define WIFI_GPIO_0_GPIO_Port GPIOG
 #define ARD_D12_SPI1_MISO_Pin GPIO_PIN_4
 #define ARD_D12_SPI1_MISO_GPIO_Port GPIOB
-#define SYS_STLINK_JTDO_SWO_Pin GPIO_PIN_3
-#define SYS_STLINK_JTDO_SWO_GPIO_Port GPIOB
 #define PSRAM_NE1_Pin GPIO_PIN_7
 #define PSRAM_NE1_GPIO_Port GPIOD
 #define UART_TXD_WIFI_RX_Pin GPIO_PIN_12

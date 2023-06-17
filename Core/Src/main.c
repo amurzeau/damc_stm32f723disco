@@ -123,6 +123,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
 	  int i;
 	  for(i = 0; i < AUDIO_LOOPBACKS_NUMBER; i++) {
 		  USBD_AUDIO_LoopbackDataTypeDef* data = &loopbackData[i];
@@ -131,7 +133,6 @@ int main(void)
 			  data->buffer_state = TS_ReadyToTransmit;
 		  }
 	  }
-    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
