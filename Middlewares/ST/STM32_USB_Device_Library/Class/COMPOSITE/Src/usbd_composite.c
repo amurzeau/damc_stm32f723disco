@@ -317,7 +317,7 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 
 /* USB AUDIO device Configuration Descriptor */
 #define USB_AUDIO_CONTROL_DESC_SIZ (8 + 2 * AUDIO_LOOPBACKS_NUMBER + (31 * 2) * AUDIO_LOOPBACKS_NUMBER)
-#define USB_AUDIO_CONFIG_DESC_SIZ (9*2 + USB_AUDIO_CONTROL_DESC_SIZ + (52 * 2) * AUDIO_LOOPBACKS_NUMBER)
+#define USB_AUDIO_CONFIG_DESC_SIZ (9 + 8 + 9 + USB_AUDIO_CONTROL_DESC_SIZ + (52 * 2) * AUDIO_LOOPBACKS_NUMBER)
 #define USBD_AUDIO_STR_FIRST_INDEX 10
 
 enum USBD_AUDIO_StringEnum {
@@ -348,6 +348,16 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
 #endif /* USBD_SELF_POWERED */
   USBD_MAX_POWER,                       /* MaxPower (mA) */
   /* 09 byte*/
+
+  /* Interface Association Descriptor */
+  0x08,                                 /* bLength */
+  0x0B,                                 /* bDescriptorType */
+  0x00,                                 /* bFirstInterface */
+  0x09,                                 /* bInterfaceCount */
+  USB_DEVICE_CLASS_AUDIO,               /* bInterfaceClass */
+  AUDIO_SUBCLASS_AUDIOCONTROL,          /* bInterfaceSubClass */
+  AUDIO_PROTOCOL_UNDEFINED,             /* bInterfaceProtocol */
+  0x00,                                 /* iFunction */
 
   /* USB Speaker Standard interface descriptor */
   AUDIO_INTERFACE_DESC_SIZE,            /* bLength */
@@ -403,14 +413,14 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_DeviceQualifierDesc[USB_LEN_DEV_QUAL
 {
   USB_LEN_DEV_QUALIFIER_DESC,
   USB_DESC_TYPE_DEVICE_QUALIFIER,
-  0x00,
-  0x02,
-  0x00,
-  0x00,
-  0x00,
-  0x40,
-  0x01,
-  0x00,
+  0x00, /* bcdUSB */
+  0x02, /* bcdUSB */
+  0x00, /* bDeviceClass */
+  0x00, /* bDeviceSubClass */
+  0x00, /* bDeviceProtocol */
+  0x40, /* bMaxPacketSize0 */
+  0x01, /* idVendor */
+  0x00, /* bDeviceSubClass */
 };
 
 static enum USBD_COMPOSITE_ClassId interface_mapping[] = {
