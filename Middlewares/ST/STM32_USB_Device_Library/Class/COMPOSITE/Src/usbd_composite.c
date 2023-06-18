@@ -3,6 +3,7 @@
 #include "usbd_composite.h"
 #include "usbd_ctlreq.h"
 #include "usbd_audio.h"
+#include "usbd_cdc.h"
 
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
@@ -317,7 +318,7 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 
 /* USB AUDIO device Configuration Descriptor */
 #define USB_AUDIO_CONTROL_DESC_SIZ (8 + 2 * AUDIO_LOOPBACKS_NUMBER + (31 * 2) * AUDIO_LOOPBACKS_NUMBER)
-#define USB_AUDIO_CONFIG_DESC_SIZ (9 + 8 + 9 + USB_AUDIO_CONTROL_DESC_SIZ + (52 * 2) * AUDIO_LOOPBACKS_NUMBER)
+#define USB_AUDIO_CONFIG_DESC_SIZ (9 + 8 + 9 + USB_AUDIO_CONTROL_DESC_SIZ + (52 * 2) * AUDIO_LOOPBACKS_NUMBER + 8 + 58)
 #define USBD_AUDIO_STR_FIRST_INDEX 10
 
 enum USBD_AUDIO_StringEnum {
@@ -338,7 +339,7 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   USB_DESC_TYPE_CONFIGURATION,          /* bDescriptorType */
   LOBYTE(USB_AUDIO_CONFIG_DESC_SIZ),    /* wTotalLength */
   HIBYTE(USB_AUDIO_CONFIG_DESC_SIZ),
-  0x01 + 2 * AUDIO_LOOPBACKS_NUMBER,   /* bNumInterfaces */
+  0x01 + 2 * AUDIO_LOOPBACKS_NUMBER + 2,   /* bNumInterfaces */
   0x01,                                 /* bConfigurationValue */
   0x00,                                 /* iConfiguration */
 #if (USBD_SELF_POWERED == 1U)
@@ -406,6 +407,98 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   DECLARE_ENDPOINT_IN(5, 5, USBD_AUDIO_CHANNELS, AUDIO_PACKET_SZE) /* 52 bytes */
   DECLARE_ENDPOINT_OUT(6, 6, USBD_AUDIO_CHANNELS, AUDIO_PACKET_SZE) /* 52 bytes */
   DECLARE_ENDPOINT_IN(7, 7, USBD_AUDIO_CHANNELS, AUDIO_PACKET_SZE) /* 52 bytes */
+
+
+
+  /*---------------------------------------------------------------------------*/
+
+  /* Interface Association Descriptor */
+  0x08,                                 /* bLength */
+  0x0B,                                 /* bDescriptorType */
+  9,                                 /* bFirstInterface */
+  0x02,                                 /* bInterfaceCount */
+  0x02,                                 /* bInterfaceClass: Communication Interface Class */
+  0x02,                                 /* bInterfaceSubClass: Abstract Control Model */
+  0x01,                                 /* bInterfaceProtocol: Common AT commands */
+  0x00,                                 /* iFunction */
+
+  /* Interface Descriptor */
+  0x09,                                       /* bLength: Interface Descriptor size */
+  USB_DESC_TYPE_INTERFACE,                    /* bDescriptorType: Interface */
+  /* Interface descriptor type */
+  9,                                       /* bInterfaceNumber: Number of Interface */
+  0x00,                                       /* bAlternateSetting: Alternate setting */
+  0x01,                                       /* bNumEndpoints: One endpoint used */
+  0x02,                                       /* bInterfaceClass: Communication Interface Class */
+  0x02,                                       /* bInterfaceSubClass: Abstract Control Model */
+  0x01,                                       /* bInterfaceProtocol: Common AT commands */
+  0x00,                                       /* iInterface */
+
+  /* Header Functional Descriptor */
+  0x05,                                       /* bLength: Endpoint Descriptor size */
+  0x24,                                       /* bDescriptorType: CS_INTERFACE */
+  0x00,                                       /* bDescriptorSubtype: Header Func Desc */
+  0x10,                                       /* bcdCDC: spec release number */
+  0x01,
+
+  /* Call Management Functional Descriptor */
+  0x05,                                       /* bFunctionLength */
+  0x24,                                       /* bDescriptorType: CS_INTERFACE */
+  0x01,                                       /* bDescriptorSubtype: Call Management Func Desc */
+  0x00,                                       /* bmCapabilities: D0+D1 */
+  0x01,                                       /* bDataInterface */
+
+  /* ACM Functional Descriptor */
+  0x04,                                       /* bFunctionLength */
+  0x24,                                       /* bDescriptorType: CS_INTERFACE */
+  0x02,                                       /* bDescriptorSubtype: Abstract Control Management desc */
+  0x02,                                       /* bmCapabilities */
+
+  /* Union Functional Descriptor */
+  0x05,                                       /* bFunctionLength */
+  0x24,                                       /* bDescriptorType: CS_INTERFACE */
+  0x06,                                       /* bDescriptorSubtype: Union func desc */
+  0x00,                                       /* bMasterInterface: Communication class interface */
+  0x01,                                       /* bSlaveInterface0: Data Class Interface */
+
+  /* Endpoint 2 Descriptor */
+  0x07,                                       /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_ENDPOINT,                     /* bDescriptorType: Endpoint */
+  CDC_CMD_EP,                                 /* bEndpointAddress */
+  0x03,                                       /* bmAttributes: Interrupt */
+  LOBYTE(CDC_CMD_PACKET_SIZE),                /* wMaxPacketSize */
+  HIBYTE(CDC_CMD_PACKET_SIZE),
+  CDC_FS_BINTERVAL,                           /* bInterval */
+  /*---------------------------------------------------------------------------*/
+
+  /* Data class interface descriptor */
+  0x09,                                       /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_INTERFACE,                    /* bDescriptorType: */
+  10,                                       /* bInterfaceNumber: Number of Interface */
+  0x00,                                       /* bAlternateSetting: Alternate setting */
+  0x02,                                       /* bNumEndpoints: Two endpoints used */
+  0x0A,                                       /* bInterfaceClass: CDC */
+  0x00,                                       /* bInterfaceSubClass */
+  0x00,                                       /* bInterfaceProtocol */
+  0x00,                                       /* iInterface */
+
+  /* Endpoint OUT Descriptor */
+  0x07,                                       /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_ENDPOINT,                     /* bDescriptorType: Endpoint */
+  CDC_OUT_EP,                                 /* bEndpointAddress */
+  0x02,                                       /* bmAttributes: Bulk */
+  LOBYTE(CDC_DATA_HS_MAX_PACKET_SIZE),        /* wMaxPacketSize */
+  HIBYTE(CDC_DATA_HS_MAX_PACKET_SIZE),
+  0x00,                                       /* bInterval */
+
+  /* Endpoint IN Descriptor */
+  0x07,                                       /* bLength: Endpoint Descriptor size */
+  USB_DESC_TYPE_ENDPOINT,                     /* bDescriptorType: Endpoint */
+  CDC_IN_EP,                                  /* bEndpointAddress */
+  0x02,                                       /* bmAttributes: Bulk */
+  LOBYTE(CDC_DATA_HS_MAX_PACKET_SIZE),        /* wMaxPacketSize */
+  HIBYTE(CDC_DATA_HS_MAX_PACKET_SIZE),
+  0x00                                        /* bInterval */
 };
 
 /* USB Standard Device Descriptor */

@@ -58,7 +58,7 @@ extern "C" {
 #endif /* USBD_MAX_SUPPORTED_CLASS */
 #else
 #ifndef USBD_MAX_SUPPORTED_CLASS
-#define USBD_MAX_SUPPORTED_CLASS                       2U
+#define USBD_MAX_SUPPORTED_CLASS                       3U
 #endif /* USBD_MAX_SUPPORTED_CLASS */
 #endif /* USE_USBD_COMPOSITE */
 
