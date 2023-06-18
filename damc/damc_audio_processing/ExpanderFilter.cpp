@@ -3,10 +3,9 @@
 #include <algorithm>
 #include <math.h>
 #include <string.h>
-#include <fastapprox/fastexp.h>
+#include <MathUtils.h>
 #include <fastapprox/fastlog.h>
-
-const float ExpanderFilter::LOG10_VALUE_DIV_20 = fastlog2(10) / 20;
+#include <fastapprox/fastexp.h>
 
 ExpanderFilter::ExpanderFilter(OscContainer* parent)
     : OscContainer(parent, "expanderFilter"),
@@ -70,7 +69,7 @@ float ExpanderFilter::doCompression(float sample, float& y1, float& yL) {
 	if(sample == 0)
 		return -INFINITY;
 
-	float dbSample = 20 * fastlog2(fabsf(sample)) / LOG10_VALUE_DIV_20;
+	float dbSample = fastlog2(fabsf(sample)) / LOG10_VALUE_DIV_20;
 	levelDetector(gainComputer(dbSample), y1, yL);
 	return -yL;
 }

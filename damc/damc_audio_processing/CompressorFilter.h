@@ -51,6 +51,4 @@ private:
 	OscVariable<float> kneeWidth;
 	uint32_t gainHoldSamples = 48000 / 20;  // 20Hz period
 	OscVariable<bool> useMovingMax;
-
-	static const float LOG10_VALUE_DIV_20;
 };

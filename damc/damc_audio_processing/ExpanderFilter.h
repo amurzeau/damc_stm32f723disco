@@ -33,6 +33,4 @@ private:
 	OscVariable<float> ratio;
 	float gainDiffRatio = 0;
 	OscVariable<float> kneeWidth;
-
-	static const float LOG10_VALUE_DIV_20;
 };

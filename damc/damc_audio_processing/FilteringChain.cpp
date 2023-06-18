@@ -1,11 +1,9 @@
 #include "FilteringChain.h"
 #include <math.h>
 #include <string.h>
-
-#include <fastapprox/fastexp.h>
+#include <MathUtils.h>
 #include <fastapprox/fastlog.h>
-
-static const float LOG10_VALUE_DIV_20 = fastlog2(10) / 20;
+#include <fastapprox/fastexp.h>
 
 float LogScaleFromOsc(float value) {
 	return fastpow2(value * LOG10_VALUE_DIV_20);

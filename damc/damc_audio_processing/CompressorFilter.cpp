@@ -3,10 +3,9 @@
 #include <algorithm>
 #include <math.h>
 #include <string.h>
-#include <fastapprox/fastexp.h>
+#include <MathUtils.h>
 #include <fastapprox/fastlog.h>
-
-const float CompressorFilter::LOG10_VALUE_DIV_20 = fastlog2(10) / 20;
+#include <fastapprox/fastexp.h>
 
 CompressorFilter::CompressorFilter(OscContainer* parent)
     : OscContainer(parent, "compressorFilter"),
