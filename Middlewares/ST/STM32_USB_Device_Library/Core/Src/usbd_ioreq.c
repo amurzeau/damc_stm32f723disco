@@ -140,6 +140,8 @@ USBD_StatusTypeDef USBD_CtlPrepareRx(USBD_HandleTypeDef *pdev,
   pdev->ep_out[0].rem_length = len;
 #endif /* USBD_AVOID_PACKET_SPLIT_MPS */
 
+  pdev->ep0RxClassId = pdev->classId;
+
   /* Start the transfer */
   (void)USBD_LL_PrepareReceive(pdev, 0U, pbuf, len);
 

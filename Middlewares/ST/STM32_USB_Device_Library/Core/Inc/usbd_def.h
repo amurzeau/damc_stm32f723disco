@@ -58,7 +58,7 @@ extern "C" {
 #endif /* USBD_MAX_SUPPORTED_CLASS */
 #else
 #ifndef USBD_MAX_SUPPORTED_CLASS
-#define USBD_MAX_SUPPORTED_CLASS                       1U
+#define USBD_MAX_SUPPORTED_CLASS                       2U
 #endif /* USBD_MAX_SUPPORTED_CLASS */
 #endif /* USE_USBD_COMPOSITE */
 
@@ -380,13 +380,13 @@ typedef struct _USBD_HandleTypeDef
   USBD_SetupReqTypedef    request;
   USBD_DescriptorsTypeDef *pDesc;
   USBD_ClassTypeDef       *pClass[USBD_MAX_SUPPORTED_CLASS];
-  void                    *pClassData;
   void                    *pClassDataCmsit[USBD_MAX_SUPPORTED_CLASS];
   void                    *pUserData[USBD_MAX_SUPPORTED_CLASS];
   void                    *pData;
   void                    *pBosDesc;
   void                    *pConfDesc;
   uint32_t                classId;
+  uint32_t                ep0RxClassId;
   uint32_t                NumClasses;
 #ifdef USE_USBD_COMPOSITE
   USBD_CompositeElementTypeDef tclasslist[USBD_MAX_SUPPORTED_CLASS];

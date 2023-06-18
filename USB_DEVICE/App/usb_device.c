@@ -23,8 +23,7 @@
 #include "usb_device.h"
 #include "usbd_core.h"
 #include "usbd_desc.h"
-#include "usbd_audio.h"
-#include "usbd_audio_if.h"
+#include "usbd_composite.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -72,11 +71,7 @@ void MX_USB_DEVICE_Init(void)
   {
     Error_Handler();
   }
-  if (USBD_RegisterClass(&hUsbDeviceHS, &USBD_AUDIO) != USBD_OK)
-  {
-    Error_Handler();
-  }
-  if (USBD_AUDIO_RegisterInterface(&hUsbDeviceHS, &USBD_AUDIO_fops_HS) != USBD_OK)
+  if (USBD_RegisterClass(&hUsbDeviceHS, &USBD_COMPOSITE) != USBD_OK)
   {
     Error_Handler();
   }
