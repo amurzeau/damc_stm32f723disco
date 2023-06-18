@@ -228,7 +228,7 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 	/* Endpoint 1 - Standard Descriptor */ \
 	AUDIO_STANDARD_ENDPOINT_DESC_SIZE,    /* bLength */ \
 	USB_DESC_TYPE_ENDPOINT,               /* bDescriptorType */ \
-	AUDIO_OUT_EP + bInterfaceNumber,      /* bEndpointAddress 1 out endpoint */ \
+	AUDIO_OUT_EP + (bInterfaceNumber/2),      /* bEndpointAddress 1 out endpoint */ \
 	USBD_EP_TYPE_ISOC,                    /* bmAttributes */ \
 	wMaxPacketSize,                       /* wMaxPacketSize in Bytes (Freq(Samples)*2(Stereo)*2(HalfWord)) */ \
 	AUDIO_HS_BINTERVAL,                   /* bInterval */ \
@@ -297,7 +297,7 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 	/* Endpoint 1 - Standard Descriptor */ \
 	AUDIO_STANDARD_ENDPOINT_DESC_SIZE,    /* bLength */ \
 	USB_DESC_TYPE_ENDPOINT,               /* bDescriptorType */ \
-	AUDIO_IN_EP - 1 + bInterfaceNumber,   /* bEndpointAddress 2 in endpoint */ \
+	AUDIO_IN_EP + (bInterfaceNumber/2),   /* bEndpointAddress 2 in endpoint */ \
 	USBD_EP_TYPE_ISOC,                    /* bmAttributes */ \
 	wMaxPacketSize,                       /* wMaxPacketSize in Bytes (Freq(Samples)*2(Stereo)*2(HalfWord)) */ \
 	AUDIO_HS_BINTERVAL,                   /* bInterval */ \

@@ -388,14 +388,12 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
   HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_HS, 0x180);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 0, 0x80);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, 16);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, (192*2 / 4));
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, (192*2 / 4));
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 3, 16);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 3, (192*2 / 4));
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 4, (192*2 / 4));
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 5, 16);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 6, (192*2 / 4));
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 7, 16);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 8, (192*2 / 4));
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 5, 512U/4);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 6, 16U);
   }
   return USBD_OK;
 }

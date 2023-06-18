@@ -178,7 +178,7 @@ USBD_AUDIO_LoopbackDataTypeDef* USBD_AUDIO_getDataFromEndpoint(USBD_AUDIO_Handle
 	if(epnum < 1 || haudio == NULL)
 		return NULL;
 
-	uint32_t index = ((epnum & 0x0F) - 1) / 2;
+	uint32_t index = (epnum & 0x0F) - 1;
 
 	if(index >= AUDIO_LOOPBACKS_NUMBER)
 		return NULL;
@@ -257,8 +257,8 @@ static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 #endif /* USE_USBD_COMPOSITE */
 
   for(size_t i = 0; i < AUDIO_LOOPBACKS_NUMBER; i++) {
-	  unsigned int out_ep = AUDIO_OUT_EP + i * 2;
-	  unsigned int in_ep = AUDIO_IN_EP + i * 2;
+	  unsigned int out_ep = AUDIO_OUT_EP + i;
+	  unsigned int in_ep = AUDIO_IN_EP + i;
 	  haudio->loopbackData[i].endpoint_out = out_ep;
 	  haudio->loopbackData[i].endpoint_in = in_ep;
 	  haudio->loopbackData[i].max_packet_size = AUDIO_OUT_PACKET;
