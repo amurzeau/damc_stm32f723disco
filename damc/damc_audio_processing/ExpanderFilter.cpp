@@ -3,6 +3,10 @@
 #include <algorithm>
 #include <math.h>
 #include <string.h>
+#include <fastapprox/fastexp.h>
+#include <fastapprox/fastlog.h>
+
+const float ExpanderFilter::LOG10_VALUE_DIV_20 = fastlog2(10) / 20;
 
 ExpanderFilter::ExpanderFilter(OscContainer* parent)
     : OscContainer(parent, "expanderFilter"),
@@ -49,7 +53,7 @@ void ExpanderFilter::processSamples(float** samples, size_t count) {
 			float largerCompressionRatio;
 
 			if(lowestCompressionDb != -INFINITY)
-				largerCompressionRatio = powf(10, (lowestCompressionDb + makeUpGain) / 20);
+				largerCompressionRatio = fastpow2(LOG10_VALUE_DIV_20 * (lowestCompressionDb + makeUpGain));
 			else
 				largerCompressionRatio = 0;
 
@@ -66,7 +70,7 @@ float ExpanderFilter::doCompression(float sample, float& y1, float& yL) {
 	if(sample == 0)
 		return -INFINITY;
 
-	float dbSample = 20 * log10f(fabsf(sample));
+	float dbSample = 20 * fastlog2(fabsf(sample)) / LOG10_VALUE_DIV_20;
 	levelDetector(gainComputer(dbSample), y1, yL);
 	return -yL;
 }

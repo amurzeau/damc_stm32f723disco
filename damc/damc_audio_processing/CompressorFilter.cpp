@@ -3,19 +3,21 @@
 #include <algorithm>
 #include <math.h>
 #include <string.h>
+#include <fastapprox/fastexp.h>
+#include <fastapprox/fastlog.h>
 
-const float CompressorFilter::LOG10_VALUE_DIV_20 = std::log(10) / 20;
+const float CompressorFilter::LOG10_VALUE_DIV_20 = fastlog2(10) / 20;
 
 CompressorFilter::CompressorFilter(OscContainer* parent)
     : OscContainer(parent, "compressorFilter"),
       enable(this, "enable", false),
       attackTime(this, "attackTime", 0),
-      releaseTime(this, "releaseTime", 2000),
+      releaseTime(this, "releaseTime", 2),
       threshold(this, "threshold", -50),
       makeUpGain(this, "makeUpGain", 0),
       ratio(this, "ratio", 1000),
       kneeWidth(this, "kneeWidth", 0),
-      useMovingMax(this, "useMovingMax", true) {
+      useMovingMax(this, "useMovingMax", false) {
 	attackTime.addChangeCallback([this](float oscValue) { alphaA = oscValue != 0 ? expf(-1 / (oscValue * fs)) : 0; });
 	releaseTime.addChangeCallback([this](float oscValue) { alphaR = oscValue != 0 ? expf(-1 / (oscValue * fs)) : 0; });
 	ratio.addChangeCallback([this](float oscValue) { gainDiffRatio = 1 - 1 / oscValue; });
@@ -44,7 +46,7 @@ void CompressorFilter::processSamples(float** samples, size_t count) {
 			}
 
 			// db to ratio
-			float largerCompressionRatio = expf(LOG10_VALUE_DIV_20 * (largerCompressionDb + staticGain));
+			float largerCompressionRatio = fastpow2(LOG10_VALUE_DIV_20 * (largerCompressionDb + staticGain));
 
 			for(size_t channel = 0; channel < numChannel; channel++) {
 				samples[channel][i] = largerCompressionRatio * samples[channel][i];
@@ -57,7 +59,7 @@ float CompressorFilter::doCompression(float sample, PerChannelData& perChannelDa
 	if(sample == 0)
 		return 0;
 
-	float dbSample = logf(fabsf(sample)) / LOG10_VALUE_DIV_20;
+	float dbSample = fastlog2(fabsf(sample)) / LOG10_VALUE_DIV_20;
 	levelDetector(gainComputer(dbSample), perChannelData);
 	return -perChannelData.yL;
 }

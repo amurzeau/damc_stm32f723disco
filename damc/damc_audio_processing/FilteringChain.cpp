@@ -2,12 +2,17 @@
 #include <math.h>
 #include <string.h>
 
+#include <fastapprox/fastexp.h>
+#include <fastapprox/fastlog.h>
+
+static const float LOG10_VALUE_DIV_20 = fastlog2(10) / 20;
+
 float LogScaleFromOsc(float value) {
-	return powf(10, value / 20.0f);
+	return fastpow2(value * LOG10_VALUE_DIV_20);
 }
 
 float LogScaleToOsc(float value) {
-	return 20.0 * log10(value);
+	return fastlog2(value) / LOG10_VALUE_DIV_20;
 }
 
 FilterChain::FilterChain(OscContainer* parent,
