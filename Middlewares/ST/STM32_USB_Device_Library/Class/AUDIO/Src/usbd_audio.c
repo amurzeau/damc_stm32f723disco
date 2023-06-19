@@ -113,9 +113,8 @@ static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epn
 static uint8_t USBD_AUDIO_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static void AUDIO_REQ_GetCurrent(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 static void AUDIO_REQ_GetCtl16(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req, uint16_t value);
-static void AUDIO_REQ_SetCurrent(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
+static void AUDIO_REQ_SetCmd(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 static void *USBD_AUDIO_GetAudioHeaderDesc(uint8_t *pConfDesc);
-static uint8_t* USBD_AUDIO_GetString(const char* str, uint16_t* length);
 
 static uint8_t zero_data[AUDIO_OUT_PACKET];
 static uint8_t dummy_buffer[AUDIO_OUT_PACKET];
@@ -391,14 +390,15 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev,
           break;
 
         case AUDIO_REQ_SET_CUR:
-          AUDIO_REQ_SetCurrent(pdev, req);
+          AUDIO_REQ_SetCmd(pdev, req);
           break;
 
 
         case AUDIO_REQ_SET_MIN:
         case AUDIO_REQ_SET_MAX:
         case AUDIO_REQ_SET_RES:
-        	break;
+          AUDIO_REQ_SetCmd(pdev, req);
+		  break;
 
         default:
           USBD_CtlError(pdev, req);
@@ -884,7 +884,7 @@ static void AUDIO_REQ_GetCtl16(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *r
   * @param  req: setup class request
   * @retval status
   */
-static void AUDIO_REQ_SetCurrent(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
+static void AUDIO_REQ_SetCmd(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
   USBD_AUDIO_HandleTypeDef *haudio;
   haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
@@ -896,7 +896,7 @@ static void AUDIO_REQ_SetCurrent(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef 
 
   if (req->wLength != 0U)
   {
-    haudio->control.cmd = AUDIO_REQ_SET_CUR;     /* Set the request value */
+    haudio->control.cmd = req->bRequest;     /* Set the request value */
     haudio->control.len = (uint8_t)MIN(req->wLength, USB_MAX_EP0_SIZE);  /* Set the request data length */
     haudio->control.unit = HIBYTE(req->wIndex);  /* Set the request target unit */
 
