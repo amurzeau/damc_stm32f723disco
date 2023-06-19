@@ -431,7 +431,7 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   0x01,                                       /* bNumEndpoints: One endpoint used */
   0x02,                                       /* bInterfaceClass: Communication Interface Class */
   0x02,                                       /* bInterfaceSubClass: Abstract Control Model */
-  0x01,                                       /* bInterfaceProtocol: Common AT commands */
+  0x00,                                       /* bInterfaceProtocol: No class specific protocol */
   0x00,                                       /* iInterface */
 
   /* Header Functional Descriptor */
