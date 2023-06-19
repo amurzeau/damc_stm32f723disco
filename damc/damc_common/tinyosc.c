@@ -430,7 +430,7 @@ void tosc_printOscBuffer(const char* buffer, const int len) {
 }
 
 void tosc_printMessage(tosc_message_const* osc) {
-	printf("[%u bytes] %s %s",
+	printf("[%" PRIu32 " bytes] %s %s",
 	       osc->len,              // the number of bytes in the OSC message
 	       tosc_getAddress(osc),  // the OSC address string, e.g. "/button1"
 	       tosc_getFormat(osc));  // the OSC format string, e.g. "f"
