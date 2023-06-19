@@ -387,7 +387,7 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   HAL_PCD_RegisterIsoInIncpltCallback(&hpcd_USB_OTG_HS, PCD_ISOINIncompleteCallback);
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
   HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_HS, 0x180);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 0, 0x80);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 0, 0x60);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, (192*2 / 4));
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, (192*2 / 4));
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 3, (192*2 / 4));
