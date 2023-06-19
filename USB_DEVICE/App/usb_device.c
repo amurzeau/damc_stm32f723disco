@@ -24,6 +24,7 @@
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_composite.h"
+#include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -70,6 +71,10 @@ void MX_USB_DEVICE_Init(void)
   if (USBD_Init(&hUsbDeviceHS, &HS_Desc, DEVICE_HS) != USBD_OK)
   {
     Error_Handler();
+  }
+  if (USBD_CDC_RegisterInterface(&hUsbDeviceHS, &USBD_CDC_IF_fops) != USBD_OK)
+  {
+	Error_Handler();
   }
   if (USBD_RegisterClass(&hUsbDeviceHS, &USBD_COMPOSITE) != USBD_OK)
   {

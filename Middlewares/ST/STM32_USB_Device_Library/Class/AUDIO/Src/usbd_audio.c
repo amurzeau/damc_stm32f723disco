@@ -442,15 +442,15 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev,
         case USB_REQ_GET_INTERFACE:
           if (pdev->dev_state == USBD_STATE_CONFIGURED)
           {
-        	  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromInterface(haudio, req->wIndex);
-        	  if(data == NULL) {
-                  USBD_CtlError(pdev, req);
-                  ret = USBD_FAIL;
-        	  } else if(((req->wIndex - 1) % 2) == 0) {
-        	  	(void) USBD_CtlSendData(pdev, (uint8_t*) &data->current_alternate[0], 1U);
-        	  } else {
-        	  	(void) USBD_CtlSendData(pdev, (uint8_t*) &data->current_alternate[1], 1U);
-        	  }
+            USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromInterface(haudio, req->wIndex);
+            if(data == NULL) {
+                USBD_CtlError(pdev, req);
+                ret = USBD_FAIL;
+            } else if(((req->wIndex - 1) % 2) == 0) {
+              (void) USBD_CtlSendData(pdev, (uint8_t*) &data->current_alternate[0], 1U);
+            } else {
+              (void) USBD_CtlSendData(pdev, (uint8_t*) &data->current_alternate[1], 1U);
+            }
           }
           else
           {
@@ -462,39 +462,30 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev,
         case USB_REQ_SET_INTERFACE:
           if (pdev->dev_state == USBD_STATE_CONFIGURED)
           {
-            if ((uint8_t)(req->wValue) <= USBD_MAX_NUM_INTERFACES)
-            {
-          	  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromInterface(haudio, req->wIndex);
-          	  if(data == NULL) {
-          	  	USBD_CtlError(pdev, req);
-          	  	ret = USBD_FAIL;
-          	  } else if(((req->wIndex - 1) % 2) == 0) {
-				if(req->wValue == 1 && data->current_alternate[0] == 0) {
-					  //PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
-					  //data->next_target_frame[0] = (pcd->FrameNumber + 1) & 0x3FFF;
-				}
-          	  	data->current_alternate[0] = req->wValue;
-          	  	if(req->wValue)
-          	  		USBD_AUDIO_trace(data, "Set Alternate OUT 1");
-          	  	else
-          	  		USBD_AUDIO_trace(data, "Set Alternate OUT 0");
-          	  } else {
-          	  	if(req->wValue == 1 && data->current_alternate[1] == 0) {
-          		  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
-          		  data->next_target_frame[1] = (pcd->FrameNumber + 1) & 0x3FFF;
-          	  	}
-          	  	data->current_alternate[1] = req->wValue;
-          	  	if(req->wValue)
-          	  		USBD_AUDIO_trace(data, "Set Alternate IN 1");
-          	  	else
-          	  		USBD_AUDIO_trace(data, "Set Alternate IN 0");
-          	  }
-            }
-            else
-            {
-              /* Call the error management function (command will be NAKed */
+            USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromInterface(haudio, req->wIndex);
+            if(data == NULL) {
               USBD_CtlError(pdev, req);
               ret = USBD_FAIL;
+            } else if(((req->wIndex - 1) % 2) == 0) {
+              if(req->wValue == 1 && data->current_alternate[0] == 0) {
+                    //PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+                    //data->next_target_frame[0] = (pcd->FrameNumber + 1) & 0x3FFF;
+              }
+              data->current_alternate[0] = req->wValue;
+              if(req->wValue)
+                  USBD_AUDIO_trace(data, "Set Alternate OUT 1");
+              else
+                  USBD_AUDIO_trace(data, "Set Alternate OUT 0");
+            } else {
+              if(req->wValue == 1 && data->current_alternate[1] == 0) {
+                PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+                data->next_target_frame[1] = (pcd->FrameNumber + 1) & 0x3FFF;
+              }
+              data->current_alternate[1] = req->wValue;
+              if(req->wValue)
+                  USBD_AUDIO_trace(data, "Set Alternate IN 1");
+              else
+                  USBD_AUDIO_trace(data, "Set Alternate IN 0");
             }
           }
           else

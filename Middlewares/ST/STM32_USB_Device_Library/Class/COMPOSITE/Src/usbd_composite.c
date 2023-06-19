@@ -415,7 +415,7 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   /* Interface Association Descriptor */
   0x08,                                 /* bLength */
   0x0B,                                 /* bDescriptorType */
-  9,                                 /* bFirstInterface */
+  9,                                    /* bFirstInterface */
   0x02,                                 /* bInterfaceCount */
   0x02,                                 /* bInterfaceClass: Communication Interface Class */
   0x02,                                 /* bInterfaceSubClass: Abstract Control Model */
@@ -426,7 +426,7 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   0x09,                                       /* bLength: Interface Descriptor size */
   USB_DESC_TYPE_INTERFACE,                    /* bDescriptorType: Interface */
   /* Interface descriptor type */
-  9,                                       /* bInterfaceNumber: Number of Interface */
+  9,                                          /* bInterfaceNumber: Number of Interface */
   0x00,                                       /* bAlternateSetting: Alternate setting */
   0x01,                                       /* bNumEndpoints: One endpoint used */
   0x02,                                       /* bInterfaceClass: Communication Interface Class */
@@ -446,7 +446,7 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   0x24,                                       /* bDescriptorType: CS_INTERFACE */
   0x01,                                       /* bDescriptorSubtype: Call Management Func Desc */
   0x00,                                       /* bmCapabilities: D0+D1 */
-  0x01,                                       /* bDataInterface */
+  10,                                         /* bDataInterface */
 
   /* ACM Functional Descriptor */
   0x04,                                       /* bFunctionLength */
@@ -458,8 +458,8 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   0x05,                                       /* bFunctionLength */
   0x24,                                       /* bDescriptorType: CS_INTERFACE */
   0x06,                                       /* bDescriptorSubtype: Union func desc */
-  0x00,                                       /* bMasterInterface: Communication class interface */
-  0x01,                                       /* bSlaveInterface0: Data Class Interface */
+  9,                                          /* bMasterInterface: Communication class interface */
+  10,                                         /* bSlaveInterface0: Data Class Interface */
 
   /* Endpoint 2 Descriptor */
   0x07,                                       /* bLength: Endpoint Descriptor size */
@@ -468,13 +468,13 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   0x03,                                       /* bmAttributes: Interrupt */
   LOBYTE(CDC_CMD_PACKET_SIZE),                /* wMaxPacketSize */
   HIBYTE(CDC_CMD_PACKET_SIZE),
-  CDC_FS_BINTERVAL,                           /* bInterval */
+  CDC_HS_BINTERVAL,                           /* bInterval */
   /*---------------------------------------------------------------------------*/
 
   /* Data class interface descriptor */
   0x09,                                       /* bLength: Endpoint Descriptor size */
   USB_DESC_TYPE_INTERFACE,                    /* bDescriptorType: */
-  10,                                       /* bInterfaceNumber: Number of Interface */
+  10,                                         /* bInterfaceNumber: Number of Interface */
   0x00,                                       /* bAlternateSetting: Alternate setting */
   0x02,                                       /* bNumEndpoints: Two endpoints used */
   0x0A,                                       /* bInterfaceClass: CDC */
@@ -526,6 +526,8 @@ static enum USBD_COMPOSITE_ClassId interface_mapping[] = {
 	[6] = CI_AudioClass,
 	[7] = CI_AudioClass,
 	[8] = CI_AudioClass,
+	[9] = CI_CDCClass,
+	[10] = CI_CDCClass,
 };
 
 static enum USBD_COMPOSITE_ClassId endpoint_mapping[] = {
@@ -533,10 +535,8 @@ static enum USBD_COMPOSITE_ClassId endpoint_mapping[] = {
 	[2] = CI_AudioClass,
 	[3] = CI_AudioClass,
 	[4] = CI_AudioClass,
-	[5] = CI_AudioClass,
-	[6] = CI_AudioClass,
-	[7] = CI_AudioClass,
-	[8] = CI_AudioClass,
+	[5] = CI_CDCClass,
+	[6] = CI_CDCClass,
 };
 
 /**
@@ -591,6 +591,7 @@ static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   pdev->pClassDataCmsit[CI_Composite] = handle;
 
   handle->classes[CI_AudioClass] = &USBD_AUDIO;
+  handle->classes[CI_CDCClass] = &USBD_CDC;
 
   for(int i = 0; i < CI_NUMBER; i++) {
 	if(handle->classes[i]) {
