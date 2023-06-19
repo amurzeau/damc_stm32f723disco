@@ -74,7 +74,6 @@ static void MX_FMC_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-static uint8_t dummy_buffer[AUDIO_OUT_PACKET];
 
 /* USER CODE END 0 */
 
@@ -139,8 +138,6 @@ int main(void)
 			  DAMC_processAudioInterleaved((int16_t*)data->buffer_rx, (int16_t*)data->buffer_tx, data->buffer_size / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS);
 			  data->buffer_tx_state = TS_TX_ReadyToTransmit;
 			  USBD_AUDIO_trace(data, "TS_TX_ReadyToTransmit");
-		  } else {
-			  //processAudioInterleaved(dummy_buffer, AUDIO_OUT_PACKET / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS);
 		  }
 	  }
   }

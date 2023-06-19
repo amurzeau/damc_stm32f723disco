@@ -346,11 +346,11 @@ void BSP_LCD_DisplayChar(uint16_t Xpos, uint16_t Ypos, uint8_t Ascii)
   *            @arg  LEFT_MODE   
   * @retval None
   */
-void BSP_LCD_DisplayStringAt(uint16_t Xpos, uint16_t Ypos, uint8_t *Text, Line_ModeTypdef Mode)
+void BSP_LCD_DisplayStringAt(uint16_t Xpos, uint16_t Ypos, const char *Text, Line_ModeTypdef Mode)
 {
   uint16_t refcolumn = 1, i = 0;
   uint32_t size = 0, xsize = 0; 
-  uint8_t  *ptr = Text;
+  const char  *ptr = Text;
   
   /* Get the text size */
   while (*ptr++) size ++ ;
@@ -411,7 +411,7 @@ void BSP_LCD_DisplayStringAt(uint16_t Xpos, uint16_t Ypos, uint8_t *Text, Line_M
   * @param  ptr: Pointer to string to display on LCD
   * @retval None
   */
-void BSP_LCD_DisplayStringAtLine(uint16_t Line, uint8_t *ptr)
+void BSP_LCD_DisplayStringAtLine(uint16_t Line, const char *ptr)
 {
   BSP_LCD_DisplayStringAt(0, LINE(Line), ptr, LEFT_MODE);
 }
