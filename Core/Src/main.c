@@ -143,10 +143,7 @@ int main(void)
 		  }
 	  }
 
-	  uint32_t size_read = USB_CDC_IF_RX_read(usb_cdc_character, sizeof(usb_cdc_character));
-	  if(size_read) {
-	    USB_CDC_IF_TX_write(usb_cdc_character, size_read);
-	  }
+	  DAMC_mainLoop();
   }
   /* USER CODE END 3 */
 }

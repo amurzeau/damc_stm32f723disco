@@ -5,27 +5,10 @@
 #include <string.h>
 #include "stm32f7xx_hal.h"
 #include <stm32f723e_discovery.h>
+#include "usbd_cdc_if.h"
 
 static UART_HandleTypeDef uart;
 static OscSerialClient* instance;
-
-/**
-  * @brief This function handles USB On The Go HS global interrupt.
-  */
-extern "C" void USART2_IRQHandler(void)
-{
-	HAL_UART_IRQHandler(&uart);
-}
-
-/**
-  * @brief  Rx Transfer completed callback.
-  * @param  huart UART handle.
-  * @retval None
-  */
-extern "C" void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
-{
-	instance->onReceiveItCompleted(Size);
-}
 
 OscSerialClient::OscSerialClient(OscRoot* oscRoot)
     : OscConnector(oscRoot, true) {
@@ -49,15 +32,17 @@ OscSerialClient::OscSerialClient(OscRoot* oscRoot)
 
 
 void OscSerialClient::sendOscData(const uint8_t* data, size_t size) {
-    //HAL_UART_Transmit_IT(&uart, data, size);
+    USB_CDC_IF_TX_write(data, size);
 }
 
-void OscSerialClient::onReceiveItCompleted(uint16_t size) {
-	onOscDataReceived(rx_buffer.data(), size);
-	HAL_UART_Receive_IT(&uart, (uint8_t*) rx_buffer.data(), (uint16_t) rx_buffer.size());
+void OscSerialClient::mainLoop() {
+    size_t read_size = USB_CDC_IF_RX_read(rx_buffer.data(), rx_buffer.size());
+    if(read_size > 0) {
+      onOscDataReceived(rx_buffer.data(), read_size);
+    }
 }
 
 void OscSerialClient::init() {
-	HAL_UARTEx_ReceiveToIdle_IT(&uart, (uint8_t*) tx_buffer.data(), (uint16_t) tx_buffer.size());
 }
+
 void OscSerialClient::stop() {}

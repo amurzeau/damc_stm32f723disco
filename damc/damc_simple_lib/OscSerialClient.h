@@ -12,11 +12,10 @@ public:
     void init();
     void stop();
 	void sendOscData(const uint8_t* buffer, size_t sizeToSend) override;
-	void onReceiveItCompleted(uint16_t size);
+	void mainLoop();
 
 protected:
 
 private:
 	std::array<uint8_t, 256> rx_buffer;
-	std::array<uint8_t, 256> tx_buffer;
 };

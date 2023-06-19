@@ -12,6 +12,7 @@ public:
 	~AudioProcessor();
 
 	void processAudioInterleaved(const int16_t* data_input, int16_t* data_output, size_t nframes);
+	void mainLoop();
 
 	static AudioProcessor* getInstance();
 

@@ -60,3 +60,7 @@ void AudioProcessor::processAudioInterleaved(const int16_t* data_input, int16_t*
 		}
 	}
 }
+
+void AudioProcessor::mainLoop() {
+  serialClient.mainLoop();
+}
