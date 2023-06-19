@@ -63,7 +63,7 @@ EndBSPDependencies */
   * @{
   */
 
-static int8_t USB_CDC_IF_Init(void);
+static int8_t USB_CDC_IF_Init(USBD_HandleTypeDef *pdev);
 static int8_t USB_CDC_IF_DeInit(void);
 static int8_t USB_CDC_IF_Control(uint8_t cmd, uint8_t *pbuf, uint16_t length);
 static int8_t USB_CDC_IF_Receive(uint8_t *pbuf, uint32_t *Len);
@@ -78,7 +78,7 @@ USBD_CDC_ItfTypeDef USBD_CDC_IF_fops =
   USB_CDC_IF_TransmitCplt
 };
 
-USBD_CDC_LineCodingTypeDef linecoding =
+static USBD_CDC_LineCodingTypeDef linecoding =
 {
   115200, /* baud rate*/
   0x00,   /* stop bits-1*/
@@ -86,7 +86,83 @@ USBD_CDC_LineCodingTypeDef linecoding =
   0x08    /* nb. of bits 8*/
 };
 
+struct USBD_CDC_CircularBuffer {
+  uint16_t write_index;
+  uint16_t read_index;
+  uint8_t buffer[4096];
+  uint8_t usb_buffer[CDC_DATA_HS_MAX_PACKET_SIZE];
+  uint8_t usb_busy;
+};
+
+static struct USBD_CDC_CircularBuffer rxBuffer;
+static struct USBD_CDC_CircularBuffer txBuffer;
+static USBD_HandleTypeDef *usb_pdev;
+
 /* Private functions ---------------------------------------------------------*/
+
+static void USB_CDC_IF_BUFFER_write_char(struct USBD_CDC_CircularBuffer* buffer, uint8_t c)
+{
+  uint16_t next_write_index = (buffer->write_index + 1) % sizeof(buffer->buffer);
+  if(next_write_index != buffer->read_index) {
+    // Buffer not full
+    buffer->buffer[buffer->write_index] = c;
+    buffer->write_index = next_write_index;
+  }
+}
+
+static uint8_t USB_CDC_IF_BUFFER_read_char(struct USBD_CDC_CircularBuffer* buffer, uint8_t* c)
+{
+  if(buffer->read_index == buffer->write_index) {
+    // Buffer empty
+    return 0;
+  }
+
+
+  *c = buffer->buffer[buffer->read_index];
+  buffer->read_index = (buffer->read_index + 1) % sizeof(buffer->buffer);
+
+  return 1;
+}
+
+static void USB_CDC_IF_sendPending() {
+  if(txBuffer.usb_busy || !usb_pdev) {
+    return;
+  }
+
+  uint16_t start = txBuffer.read_index;
+  uint16_t end = txBuffer.write_index;
+  uint16_t size = (end - start + sizeof(rxBuffer.buffer)) % sizeof(rxBuffer.buffer);
+
+  if(size > sizeof(txBuffer.usb_buffer)) {
+    size = sizeof(txBuffer.usb_buffer);
+    end = (txBuffer.read_index + size) % sizeof(rxBuffer.buffer);
+  }
+
+  uint16_t total_size = 0;
+
+  if(end < start) {
+    // Copy between start and end of buffer
+    uint16_t first_chunk_size = sizeof(txBuffer.buffer) - start;
+    memcpy(txBuffer.usb_buffer, &txBuffer.buffer[start], first_chunk_size);
+
+    // then between begin of buffer and end
+    memcpy(&txBuffer.usb_buffer[first_chunk_size], &txBuffer.buffer[0], end);
+
+    total_size = first_chunk_size + end;
+  } else {
+    // Copy from start to end
+    memcpy(txBuffer.usb_buffer, &txBuffer.buffer[start], end - start);
+    total_size = end - start;
+  }
+
+  txBuffer.read_index = end;
+
+  if(total_size > 0) {
+    txBuffer.usb_busy = 1;
+    USBD_CDC_SetTxBuffer(usb_pdev, txBuffer.usb_buffer, total_size);
+    USBD_CDC_TransmitPacket(usb_pdev);
+  }
+}
 
 /**
   * @brief  USB_CDC_IF_Init
@@ -94,11 +170,16 @@ USBD_CDC_LineCodingTypeDef linecoding =
   * @param  None
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
-static int8_t USB_CDC_IF_Init(void)
+static int8_t USB_CDC_IF_Init(USBD_HandleTypeDef *pdev)
 {
   /*
      Add your initialization code here
   */
+  usb_pdev = pdev;
+
+  USBD_CDC_SetRxBuffer(pdev, rxBuffer.usb_buffer);
+  USB_CDC_IF_sendPending();
+
   return (0);
 }
 
@@ -206,8 +287,31 @@ static int8_t USB_CDC_IF_Control(uint8_t cmd, uint8_t *pbuf, uint16_t length)
   */
 static int8_t USB_CDC_IF_Receive(uint8_t *Buf, uint32_t *Len)
 {
-  UNUSED(Buf);
-  UNUSED(Len);
+  uint16_t start = rxBuffer.write_index;
+  uint16_t size = *Len;
+  uint16_t max_size = (rxBuffer.read_index - rxBuffer.write_index - 1 + sizeof(rxBuffer.buffer)) % sizeof(rxBuffer.buffer);
+
+  if(size > max_size)
+    size = max_size;
+
+  uint16_t end = (start + size) % sizeof(rxBuffer.buffer);
+
+
+  if(end < start) {
+    // Copy between start and end of buffer
+    uint16_t first_chunk_size = sizeof(rxBuffer.buffer) - start;
+    memcpy(&rxBuffer.buffer[start], rxBuffer.usb_buffer, first_chunk_size);
+
+    // then between begin of buffer and end
+    memcpy(&rxBuffer.buffer[0], &rxBuffer.usb_buffer[first_chunk_size], end);
+  } else {
+    // Copy from start to end
+    memcpy(&rxBuffer.buffer[start], rxBuffer.usb_buffer, end - start);
+  }
+
+  rxBuffer.write_index = end;
+
+  USBD_CDC_ReceivePacket(usb_pdev);
 
   return (0);
 }
@@ -230,8 +334,33 @@ static int8_t USB_CDC_IF_TransmitCplt(uint8_t *Buf, uint32_t *Len, uint8_t epnum
   UNUSED(Len);
   UNUSED(epnum);
 
+  txBuffer.usb_busy = 0;
+
+  USB_CDC_IF_sendPending();
+
   return (0);
 }
+
+
+void USB_CDC_IF_TX_write(const uint8_t *Buf, uint32_t Len)
+{
+  size_t i;
+  for(i = 0; i < Len; i++) {
+    USB_CDC_IF_BUFFER_write_char(&txBuffer, Buf[i]);
+  }
+
+  USB_CDC_IF_sendPending();
+}
+
+uint32_t USB_CDC_IF_RX_read(uint8_t *Buf, uint32_t max_len)
+{
+  size_t i = 0;
+  while(i < max_len && USB_CDC_IF_BUFFER_read_char(&rxBuffer, &Buf[i])) {
+    i++;
+  }
+  return i;
+}
+
 
 /**
   * @}

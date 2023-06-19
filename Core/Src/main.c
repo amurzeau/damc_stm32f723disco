@@ -26,6 +26,7 @@
 #include "init.h"
 #include "usbd_audio.h"
 #include "AudioCApi.h"
+#include "usbd_cdc_if.h"
 
 /* USER CODE END Includes */
 
@@ -54,6 +55,7 @@ SAI_HandleTypeDef hsai_BlockB2;
 UART_HandleTypeDef huart6;
 
 SRAM_HandleTypeDef hsram1;
+uint8_t usb_cdc_character[1024];
 
 /* USER CODE BEGIN PV */
 
@@ -139,6 +141,11 @@ int main(void)
 			  data->buffer_tx_state = TS_TX_ReadyToTransmit;
 			  USBD_AUDIO_trace(data, "TS_TX_ReadyToTransmit");
 		  }
+	  }
+
+	  uint32_t size_read = USB_CDC_IF_RX_read(usb_cdc_character, sizeof(usb_cdc_character));
+	  if(size_read) {
+	    USB_CDC_IF_TX_write(usb_cdc_character, size_read);
 	  }
   }
   /* USER CODE END 3 */

@@ -35,6 +35,9 @@ extern USBD_CDC_ItfTypeDef  USBD_CDC_IF_fops;
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 
+void USB_CDC_IF_TX_write(const uint8_t *Buf, uint32_t Len);
+uint32_t USB_CDC_IF_RX_read(uint8_t *Buf, uint32_t max_len);
+
 #ifdef __cplusplus
 }
 #endif

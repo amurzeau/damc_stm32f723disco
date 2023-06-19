@@ -243,7 +243,7 @@ static uint8_t USBD_CDC_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   hcdc->RxBuffer = NULL;
 
   /* Init  physical Interface components */
-  ((USBD_CDC_ItfTypeDef *)pdev->pUserData[CI_CDCClass])->Init();
+  ((USBD_CDC_ItfTypeDef *)pdev->pUserData[CI_CDCClass])->Init(pdev);
 
   /* Init Xfer states */
   hcdc->TxState = 0U;
