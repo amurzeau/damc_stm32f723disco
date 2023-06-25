@@ -6,18 +6,21 @@
 
 template<typename T> class OscArray : public OscGenericArray<OscVariable<T>> {
 public:
-	OscArray(OscContainer* parent, std::string name, T defaultValue = {});
+	using readonly_type = typename OscVariable<T>::readonly_type;
 
-	void setOscConverters(std::function<T(T)> convertToOsc, std::function<T(T)> convertFromOsc);
-	void addChangeCallback(std::function<void(T)> onChangeCallbacks);
+	OscArray(OscContainer* parent, std::string_view name, readonly_type defaultValue = {});
+
+	void setOscConverters(std::function<readonly_type(readonly_type)> convertToOsc,
+	                      std::function<readonly_type(readonly_type)> convertFromOsc);
+	void addChangeCallback(std::function<void(readonly_type)> onChangeCallbacks);
 
 protected:
 	void initializeItem(OscVariable<T>* item) override;
 
 private:
-	std::function<T(T)> convertToOsc;
-	std::function<T(T)> convertFromOsc;
-	std::vector<std::function<void(T)>> onChangeCallbacks;
+	std::function<readonly_type(readonly_type)> convertToOsc;
+	std::function<readonly_type(readonly_type)> convertFromOsc;
+	std::vector<std::function<void(readonly_type)>> onChangeCallbacks;
 };
 
 EXPLICIT_INSTANCIATE_OSC_VARIABLE(extern template, OscArray)

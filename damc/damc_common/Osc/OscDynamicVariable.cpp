@@ -4,7 +4,7 @@
 EXPLICIT_INSTANCIATE_OSC_VARIABLE(template, OscDynamicVariable)
 
 template<typename T>
-OscDynamicVariable<T>::OscDynamicVariable(OscContainer* parent, std::string name) : OscContainer(parent, name) {}
+OscDynamicVariable<T>::OscDynamicVariable(OscContainer* parent, std::string_view name) : OscContainer(parent, name) {}
 
 template<typename T> std::vector<T> OscDynamicVariable<T>::get() {
 	if(onReadCallback) {

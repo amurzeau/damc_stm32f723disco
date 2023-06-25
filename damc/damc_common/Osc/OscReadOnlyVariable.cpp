@@ -5,13 +5,13 @@
 EXPLICIT_INSTANCIATE_OSC_VARIABLE(template, OscReadOnlyVariable)
 
 template<typename T>
-OscReadOnlyVariable<T>::OscReadOnlyVariable(OscContainer* parent, std::string name, T initialValue)
+OscReadOnlyVariable<T>::OscReadOnlyVariable(OscContainer* parent, std::string_view name, readonly_type initialValue)
     : OscContainer(parent, name), value(initialValue), isDefaultValue(true) {
 	if(getRoot()->isOscValueAuthority())
 		notifyOsc();
 }
 
-template<typename T> void OscReadOnlyVariable<T>::set(T v, bool fromOsc) {
+template<typename T> void OscReadOnlyVariable<T>::set(readonly_type v, bool fromOsc) {
 	if(value != v || isDefaultValue) {
 		bool isDataValid = callCheckCallbacks(v);
 		if(isDataValid) {
@@ -32,7 +32,7 @@ template<typename T> void OscReadOnlyVariable<T>::set(T v, bool fromOsc) {
 	}
 }
 
-template<typename T> void OscReadOnlyVariable<T>::setDefault(T v) {
+template<typename T> void OscReadOnlyVariable<T>::setDefault(readonly_type v) {
 	if(isDefaultValue) {
 		isDefaultValue = false;  // Only notify if the value is different
 		set(v);
@@ -40,13 +40,13 @@ template<typename T> void OscReadOnlyVariable<T>::setDefault(T v) {
 	}
 }
 
-template<typename T> void OscReadOnlyVariable<T>::forceDefault(T v) {
+template<typename T> void OscReadOnlyVariable<T>::forceDefault(readonly_type v) {
 	isDefaultValue = false;  // Only notify if the value is different
 	set(v);
 	isDefaultValue = true;
 }
 
-template<typename T> OscReadOnlyVariable<T>& OscReadOnlyVariable<T>::operator=(const T& v) {
+template<typename T> OscReadOnlyVariable<T>& OscReadOnlyVariable<T>::operator=(readonly_type v) {
 	set(v);
 	return *this;
 }
@@ -57,28 +57,29 @@ template<typename T> OscReadOnlyVariable<T>& OscReadOnlyVariable<T>::operator=(c
 }
 
 template<typename T>
-void OscReadOnlyVariable<T>::setOscConverters(std::function<T(T)> convertToOsc, std::function<T(T)> convertFromOsc) {
+void OscReadOnlyVariable<T>::setOscConverters(std::function<readonly_type(readonly_type)> convertToOsc,
+                                              std::function<readonly_type(readonly_type)> convertFromOsc) {
 	this->convertToOsc = convertToOsc;
 	this->convertFromOsc = convertFromOsc;
 }
 
-template<typename T> void OscReadOnlyVariable<T>::addCheckCallback(std::function<bool(T)> checkCallback) {
+template<typename T> void OscReadOnlyVariable<T>::addCheckCallback(std::function<bool(readonly_type)> checkCallback) {
 	this->checkCallbacks.push_back(checkCallback);
 	checkCallback(this->get());
 }
 
-template<typename T> void OscReadOnlyVariable<T>::addChangeCallback(std::function<void(T)> onChange) {
+template<typename T> void OscReadOnlyVariable<T>::addChangeCallback(std::function<void(readonly_type)> onChange) {
 	this->onChangeCallbacks.push_back(onChange);
 	onChange(this->get());
 }
 
-template<typename T> void OscReadOnlyVariable<T>::callChangeCallbacks(T v) {
+template<typename T> void OscReadOnlyVariable<T>::callChangeCallbacks(readonly_type v) {
 	for(auto& callback : onChangeCallbacks) {
 		callback(v);
 	}
 }
 
-template<typename T> bool OscReadOnlyVariable<T>::callCheckCallbacks(T v) {
+template<typename T> bool OscReadOnlyVariable<T>::callCheckCallbacks(readonly_type v) {
 	bool isDataValid = true;
 	for(auto& callback : checkCallbacks) {
 		isDataValid = isDataValid && callback(v);
@@ -91,14 +92,14 @@ template<typename T> void OscReadOnlyVariable<T>::notifyOsc() {
 	sendMessage(&valueToSend, 1);
 }
 
-template<typename T> T OscReadOnlyVariable<T>::getToOsc() const {
+template<typename T> typename OscReadOnlyVariable<T>::readonly_type OscReadOnlyVariable<T>::getToOsc() const {
 	if(!convertToOsc)
 		return get();
 	else
 		return convertToOsc(get());
 }
 
-template<typename T> void OscReadOnlyVariable<T>::setFromOsc(T value) {
+template<typename T> void OscReadOnlyVariable<T>::setFromOsc(readonly_type value) {
 	if(!convertFromOsc)
 		set(value, true);
 	else

@@ -7,7 +7,7 @@
 EXPLICIT_INSTANCIATE_OSC_VARIABLE(template, OscFlatArray);
 
 template<typename T>
-OscFlatArray<T>::OscFlatArray(OscContainer* parent, std::string name) noexcept : OscContainer(parent, name) {
+OscFlatArray<T>::OscFlatArray(OscContainer* parent, std::string_view name) noexcept : OscContainer(parent, name) {
 	this->getRoot()->addPendingConfigNode(this);
 }
 

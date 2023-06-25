@@ -9,16 +9,17 @@
 template<typename T> class OscReadOnlyVariable : protected OscContainer {
 public:
 	using underlying_type = T;
+	using readonly_type = typename OscReadOnlyType<T>::type;
 
 	using OscContainer::getFullAddress;
 	using OscContainer::getName;
 
-	OscReadOnlyVariable(OscContainer* parent, std::string name, T initialValue = {});
+	OscReadOnlyVariable(OscContainer* parent, std::string_view name, readonly_type initialValue = {});
 	OscReadOnlyVariable(const OscReadOnlyVariable&) = delete;
 
-	void set(T v, bool fromOsc = false);
-	void setDefault(T v);
-	void forceDefault(T v);
+	void set(readonly_type v, bool fromOsc = false);
+	void setDefault(readonly_type v);
+	void forceDefault(readonly_type v);
 
 	T& get() { return value; }
 	const T& get() const { return value; }
@@ -30,7 +31,7 @@ public:
 	void dump() override { notifyOsc(); }
 
 	using OscContainer::operator=;
-	OscReadOnlyVariable& operator=(const T& v);
+	OscReadOnlyVariable& operator=(readonly_type v);
 	OscReadOnlyVariable& operator=(const OscReadOnlyVariable<T>& v);
 
 	template<typename U = T>
@@ -38,27 +39,28 @@ public:
 	bool operator==(const OscReadOnlyVariable<T>& other) { return value == other.value; }
 	bool operator!=(const OscReadOnlyVariable<T>& other) { return !(*this == other); }
 
-	void setOscConverters(std::function<T(T)> convertToOsc, std::function<T(T)> convertFromOsc);
+	void setOscConverters(std::function<readonly_type(readonly_type)> convertToOsc,
+	                      std::function<readonly_type(readonly_type)> convertFromOsc);
 
-	void addCheckCallback(std::function<bool(T)> onChange);
-	void addChangeCallback(std::function<void(T)> onChange);
+	void addCheckCallback(std::function<bool(readonly_type)> onChange);
+	void addChangeCallback(std::function<void(readonly_type)> onChange);
 
-	void callChangeCallbacks(T v);
-	bool callCheckCallbacks(T v);
+	void callChangeCallbacks(readonly_type v);
+	bool callCheckCallbacks(readonly_type v);
 
 protected:
 	void notifyOsc();
 
-	T getToOsc() const;
-	void setFromOsc(T value);
+	readonly_type getToOsc() const;
+	void setFromOsc(readonly_type value);
 
 private:
 	T value{};
 
-	std::function<T(T)> convertToOsc;
-	std::function<T(T)> convertFromOsc;
-	std::vector<std::function<bool(T)>> checkCallbacks;
-	std::vector<std::function<void(T)>> onChangeCallbacks;
+	std::function<readonly_type(readonly_type)> convertToOsc;
+	std::function<readonly_type(readonly_type)> convertFromOsc;
+	std::vector<std::function<bool(readonly_type)>> checkCallbacks;
+	std::vector<std::function<void(readonly_type)>> onChangeCallbacks;
 	bool isDefaultValue;
 };
 

@@ -5,7 +5,11 @@
 
 template<typename T> class OscVariable : public OscReadOnlyVariable<T> {
 public:
-	OscVariable(OscContainer* parent, std::string name, T initialValue = {}, bool fixedSize = false) noexcept;
+	using typename OscReadOnlyVariable<T>::readonly_type;
+	OscVariable(OscContainer* parent,
+	            std::string_view name,
+	            readonly_type initialValue = {},
+	            bool fixedSize = false) noexcept;
 
 	using OscReadOnlyVariable<T>::operator=;
 	OscVariable& operator=(const OscVariable<T>& v);

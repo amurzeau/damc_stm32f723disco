@@ -8,7 +8,7 @@
 
 class EqFilter : public OscContainer {
 public:
-	EqFilter(OscContainer* parent, const std::string& name);
+	EqFilter(OscContainer* parent, const std::string_view& name);
 
 	void init(size_t numChannel);
 	void reset(double fs);

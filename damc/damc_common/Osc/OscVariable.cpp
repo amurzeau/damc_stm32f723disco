@@ -5,14 +5,17 @@
 EXPLICIT_INSTANCIATE_OSC_VARIABLE(template, OscVariable)
 
 template<typename T>
-OscVariable<T>::OscVariable(OscContainer* parent, std::string name, T initialValue, bool fixedSize) noexcept
+OscVariable<T>::OscVariable(OscContainer* parent,
+                            std::string_view name,
+                            readonly_type initialValue,
+                            bool fixedSize) noexcept
     : OscReadOnlyVariable<T>(parent, name, initialValue), fixedSize(fixedSize) {
 	if(fixedSize)
 		return;
 
 	this->getRoot()->addPendingConfigNode(this);
 
-	this->addChangeCallback([this](T) { this->getRoot()->notifyValueChanged(); });
+	this->addChangeCallback([this](readonly_type) { this->getRoot()->notifyValueChanged(); });
 
 	if constexpr(std::is_same_v<T, bool>) {
 		subEndpoint.emplace_back(new OscEndpoint(this, "toggle"))->setCallback([this](auto) {
@@ -60,8 +63,8 @@ template<typename T> void OscVariable<T>::execute(const std::vector<OscArgument>
 	}
 
 	if(!arguments.empty()) {
-		T v;
-		if(this->template getArgumentAs<T>(arguments[0], v)) {
+		typename OscReadOnlyVariable<T>::readonly_type v;
+		if(this->template getArgumentAs<typename OscReadOnlyVariable<T>::readonly_type>(arguments[0], v)) {
 			this->setFromOsc(std::move(v));
 		}
 	}
@@ -72,7 +75,7 @@ template<typename T> std::string OscVariable<T>::getAsString() const {
 		return {};
 
 	if constexpr(std::is_same_v<T, std::string>) {
-		return "\"" + this->getToOsc() + "\"";
+		return "\"" + std::string(this->getToOsc()) + "\"";
 	} else {
 		return std::to_string(this->getToOsc());
 	}

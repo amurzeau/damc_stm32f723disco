@@ -4,7 +4,7 @@
 #include <cmath>
 #include <string.h>
 
-EqFilter::EqFilter(OscContainer* parent, const std::string& name)
+EqFilter::EqFilter(OscContainer* parent, const std::string_view& name)
     : OscContainer(parent, name),
       enabled(this, "enable", false),
       filterType(this, "type", (int32_t) FilterType::None),

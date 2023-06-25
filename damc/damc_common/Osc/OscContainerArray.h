@@ -4,8 +4,9 @@
 
 template<typename T> class OscContainerArray : public OscGenericArray<T> {
 public:
-	OscContainerArray(OscContainer* parent, std::string name);
+	OscContainerArray(OscContainer* parent, std::string_view name);
 };
 
 template<typename T>
-OscContainerArray<T>::OscContainerArray(OscContainer* parent, std::string name) : OscGenericArray<T>(parent, name) {}
+OscContainerArray<T>::OscContainerArray(OscContainer* parent, std::string_view name)
+    : OscGenericArray<T>(parent, name) {}

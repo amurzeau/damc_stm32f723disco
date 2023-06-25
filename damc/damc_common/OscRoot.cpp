@@ -3,6 +3,7 @@
 #include <math.h>
 #include <spdlog/spdlog.h>
 #include <string.h>
+#include <string_view>
 
 OscRoot::OscRoot(bool notifyAtInit) : OscContainer(nullptr, ""), doNotifyOscAtInit(notifyAtInit) {
 	oscOutputMaxSize = 65536;
@@ -36,7 +37,7 @@ void OscRoot::sendMessage(const std::string& address, const OscArgument* argumen
 				    *formatPtr++ = 'i';
 			    } else if constexpr(std::is_same_v<U, float>) {
 				    *formatPtr++ = 'f';
-			    } else if constexpr(std::is_same_v<U, std::string>) {
+			    } else if constexpr(std::is_same_v<U, std::string_view>) {
 				    *formatPtr++ = 's';
 			    } else {
 				    static_assert(always_false_v<U>, "Unhandled type");
@@ -63,8 +64,8 @@ void OscRoot::sendMessage(const std::string& address, const OscArgument* argumen
 				    result = tosc_writeNextInt32(&osc, arg);
 			    } else if constexpr(std::is_same_v<U, float>) {
 				    result = tosc_writeNextFloat(&osc, arg);
-			    } else if constexpr(std::is_same_v<U, std::string>) {
-				    result = tosc_writeNextString(&osc, arg.c_str());
+			    } else if constexpr(std::is_same_v<U, std::string_view>) {
+				    result = tosc_writeNextStringView(&osc, arg.data(), arg.size());
 			    } else {
 				    static_assert(always_false_v<U>, "Unhandled type");
 			    }
@@ -99,13 +100,17 @@ void OscRoot::loadNodeConfig(const std::map<std::string, std::vector<OscArgument
 }
 
 std::string OscRoot::getArgumentVectorAsString(const OscArgument* arguments, size_t number) {
+	using namespace std::literals;
+
 	std::string result = "[";
 
 	for(size_t i = 0; i < number; i++) {
 		std::visit(
 		    [&result](auto&& arg) -> void {
-			    if constexpr(std::is_same_v<decltype(arg), const std::string&>) {
-				    result += " " + arg + ",";
+			    if constexpr(std::is_same_v<decltype(arg), const std::string_view&>) {
+				    result.append(" "sv);
+				    result.append(arg);
+				    result.append(","sv);
 			    } else {
 				    result += " " + std::to_string(arg) + ",";
 			    }
@@ -146,7 +151,7 @@ void OscRoot::executeMessage(tosc_message_const* osc) {
 
 		switch(osc->format[i]) {
 			case 's':
-				argument = std::string(tosc_getNextString(osc));
+				argument = std::string_view(tosc_getNextString(osc));
 				break;
 			case 'f':
 				argument = tosc_getNextFloat(osc);
@@ -232,8 +237,8 @@ void OscRoot::nodeRemoved(OscNode* node) {
 	nodesPendingConfig.erase(node);
 }
 
-void OscRoot::triggerAddress(const std::string& address) {
-	execute(address.c_str() + 1, std::vector<OscArgument>{});
+void OscRoot::triggerAddress(const std::string_view& address) {
+	execute(std::string_view{address.data() + 1, address.size() - 1}, std::vector<OscArgument>{});
 }
 
 void OscRoot::addConnector(OscConnector* connector) {

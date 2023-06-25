@@ -3,7 +3,7 @@
 #include <OscRoot.h>
 #include <spdlog/spdlog.h>
 
-bool OscContainer::osc_node_comparator::operator()(const std::string& x, const std::string& y) const {
+bool OscContainer::osc_node_comparator::operator()(const std::string_view& x, const std::string_view& y) const {
 	bool isXnumber = Utils::isNumber(x);
 	bool isYnumber = Utils::isNumber(y);
 
@@ -13,13 +13,13 @@ bool OscContainer::osc_node_comparator::operator()(const std::string& x, const s
 	else if(isXnumber && !isYnumber)
 		return false;
 	else if(isXnumber && isYnumber)
-		return atoi(x.c_str()) < atoi(y.c_str());
+		return Utils::stringviewToNumber(x) < Utils::stringviewToNumber(y);
 	else {
 		return x < y;
 	}
 }
 
-OscContainer::OscContainer(OscContainer* parent, std::string name) noexcept
+OscContainer::OscContainer(OscContainer* parent, std::string_view name) noexcept
     : OscNode(parent, name), oscDump(this, "dump") {
 	oscDump.setCallback([this](auto) { dump(); });
 }
@@ -39,7 +39,7 @@ void OscContainer::splitAddress(std::string_view address,
 	if(childAddress)
 		*childAddress = address.substr(0, nextSlash);
 
-	if(remainingAddress && nextSlash != std::string::npos && nextSlash + 1 < address.size()) {
+	if(remainingAddress && nextSlash != std::string_view::npos && nextSlash + 1 < address.size()) {
 		*remainingAddress = address.substr(nextSlash + 1);
 	}
 }
@@ -51,18 +51,15 @@ void OscContainer::execute(std::string_view address, const std::vector<OscArgume
 	} else {
 		std::string_view childAddress;
 		std::string_view remainingAddress;
-		std::string childAddressStr;
 
 		splitAddress(address, &childAddress, &remainingAddress);
 
-		childAddressStr = std::string(childAddress);
-
-		if(childAddressStr == "*") {
+		if(childAddress == "*") {
 			// Wildcard
 			for(auto& child : children) {
 				child.second->execute(remainingAddress, arguments);
 			}
-		} else if(childAddressStr == "**") {
+		} else if(childAddress == "**") {
 			// Double Wildcard: for each child, pass the remaining + the current address for recursive wildcard
 
 			// Skip duplicate **
@@ -75,9 +72,9 @@ void OscContainer::execute(std::string_view address, const std::vector<OscArgume
 				child.second->execute(address, arguments);
 			}
 		} else {
-			auto it = children.find(childAddressStr);
+			auto it = children.find(childAddress);
 			if(it == children.end()) {
-				SPDLOG_WARN("Address {} not found from {}", childAddressStr, getFullAddress());
+				SPDLOG_WARN("Address {} not found from {}", childAddress, getFullAddress());
 				return;
 			}
 
@@ -102,8 +99,7 @@ std::string OscContainer::getAsString() const {
 	static size_t depth = 0;
 
 	std::string indent;
-	for(size_t i = 0; i < depth; i++)
-		indent += "\t";
+	indent.resize(depth, '\t');
 
 	if(!children.empty()) {
 		result += "{";
@@ -122,7 +118,7 @@ std::string OscContainer::getAsString() const {
 			} else {
 				result += "\n";
 			}
-			result += indent + "\t\"" + child.first + "\": " + childData;
+			result += indent + "\t\"" + std::string(child.first) + "\": " + childData;
 			processedItems++;
 		}
 		depth -= 1;
@@ -138,13 +134,13 @@ std::string OscContainer::getAsString() const {
 	return result;
 }
 
-void OscContainer::addChild(std::string name, OscNode* child) {
+void OscContainer::addChild(std::string_view name, OscNode* child) {
 	if(children.emplace(name, child).second == false) {
 		SPDLOG_ERROR("Error adding child {} to {}, already existing\n", name, getFullAddress());
 	}
 }
 
-void OscContainer::removeChild(OscNode* node, std::string name) {
+void OscContainer::removeChild(OscNode* node, std::string_view name) {
 	OscRoot* root = getRoot();
 	if(root)
 		root->nodeRemoved(node);

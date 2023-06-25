@@ -4,7 +4,7 @@
 
 template<typename T> class OscFlatArray : protected OscContainer {
 public:
-	OscFlatArray(OscContainer* parent, std::string name) noexcept;
+	OscFlatArray(OscContainer* parent, std::string_view name) noexcept;
 
 	template<class U> bool updateData(const U& lambda, bool fromOsc = false);
 	const std::vector<T>& getData() const;

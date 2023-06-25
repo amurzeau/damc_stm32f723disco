@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <variant>
 #include <vector>
@@ -9,7 +10,9 @@
 template<class T> struct osc_type_name {};
 
 #define DEFINE_OSC_TYPE(type_) \
-	template<> struct osc_type_name<type_> { static constexpr const char* name = #type_; }
+	template<> struct osc_type_name<type_> { \
+		static constexpr const char* name = #type_; \
+	}
 
 DEFINE_OSC_TYPE(bool);
 DEFINE_OSC_TYPE(int32_t);
@@ -24,7 +27,14 @@ DEFINE_OSC_TYPE(std::string);
 	prefix_ class template_name_<float>; \
 	prefix_ class template_name_<std::string>;
 
-using OscArgument = std::variant<bool, int32_t, float, std::string>;
+template<typename T> struct OscReadOnlyType {
+	typedef T type;
+};
+template<> struct OscReadOnlyType<std::string> {
+	typedef std::string_view type;
+};
+
+using OscArgument = std::variant<bool, int32_t, float, std::string_view>;
 
 template<typename T> inline constexpr bool always_false_v = false;
 
@@ -58,16 +68,16 @@ class OscRoot;
 
 class OscNode {
 public:
-	OscNode(OscContainer* parent, std::string name) noexcept;
+	OscNode(OscContainer* parent, std::string_view name) noexcept;
 	OscNode(const OscNode&) = delete;
 	OscNode& operator=(OscNode const&) = delete;
 	virtual ~OscNode();
 
-	template<typename T> bool getArgumentAs(const OscArgument& argument, T& v);
+	template<typename T> static bool getArgumentAs(const OscArgument& argument, T& v);
 
 	void setOscParent(OscContainer* parent);
-	const std::string& getFullAddress() const { return fullAddress; }
-	const std::string& getName() const { return name; }
+	const std::string& getFullAddress() const;
+	const std::string_view& getName() const { return name; }
 	virtual void dump() {}
 
 	virtual bool visit(const std::function<bool(OscNode*)>* nodeVisitorFunction);
@@ -82,6 +92,9 @@ public:
 
 protected:
 	friend class OscRoot;  // OscRoot calls execute on loadConfig
+
+	size_t constructFullName(std::string* outputString) const;
+
 	// Called by the public execute to really execute the action on this node (rather than descending through the tree
 	// of nodes)
 	virtual void execute(const std::vector<OscArgument>&) {}
@@ -89,12 +102,12 @@ protected:
 	static constexpr const char* KEYS_NODE = "keys";
 
 private:
-	std::string name;
-	std::string fullAddress;
+	std::string_view name;
+	mutable std::string fullAddress;
 	OscContainer* parent;
 };
 
 extern template bool OscNode::getArgumentAs<bool>(const OscArgument& argument, bool& v);
 extern template bool OscNode::getArgumentAs<int32_t>(const OscArgument& argument, int32_t& v);
 extern template bool OscNode::getArgumentAs<float>(const OscArgument& argument, float& v);
-extern template bool OscNode::getArgumentAs<std::string>(const OscArgument& argument, std::string& v);
+extern template bool OscNode::getArgumentAs<std::string_view>(const OscArgument& argument, std::string_view& v);

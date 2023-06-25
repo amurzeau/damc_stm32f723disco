@@ -7,7 +7,7 @@ template<typename T> class OscDynamicVariable : public OscContainer {
 public:
 	using underlying_type = T;
 
-	OscDynamicVariable(OscContainer* parent, std::string name);
+	OscDynamicVariable(OscContainer* parent, std::string_view name);
 	OscDynamicVariable(const OscDynamicVariable&) = delete;
 
 	std::vector<T> get();

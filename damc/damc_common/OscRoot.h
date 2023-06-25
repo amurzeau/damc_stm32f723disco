@@ -22,7 +22,7 @@ public:
 	void onOscPacketReceived(const uint8_t* data, size_t size);
 
 	void printAllNodes();
-	void triggerAddress(const std::string& address);
+	void triggerAddress(const std::string_view& address);
 
 	void addConnector(OscConnector* connector);
 	void removeConnector(OscConnector* connector);

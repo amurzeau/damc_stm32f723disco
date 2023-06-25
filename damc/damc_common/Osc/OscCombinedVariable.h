@@ -18,10 +18,10 @@ public:
 	OscSourceTemplatedVariable(OscReadOnlyVariable<T>* variable) : variable(variable) {}
 	bool isDefault() const override { return variable->isDefault(); };
 	void addCheckCallback(std::function<bool()> callback) override {
-		variable->addCheckCallback([callback](T) -> bool { return callback(); });
+		variable->addCheckCallback([callback](auto) -> bool { return callback(); });
 	}
 	void addChangeCallback(std::function<void()> callback) override {
-		variable->addChangeCallback([callback](T) { callback(); });
+		variable->addChangeCallback([callback](auto) { callback(); });
 	}
 	void callChangeCallback() override { variable->callChangeCallbacks(variable->get()); }
 

@@ -4,7 +4,7 @@
 #include <math.h>
 #include <string.h>
 
-ReverbFilter::ReverbFilter(OscContainer* parent, const std::string& name)
+ReverbFilter::ReverbFilter(OscContainer* parent, const std::string_view& name)
     : OscContainer(parent, name),
       enabled(this, "enabled", false),
       delay(this, "delay", 1440),

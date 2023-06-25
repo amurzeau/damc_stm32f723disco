@@ -13,7 +13,7 @@ public:
 	using OscFactoryFunction = std::function<T*(OscContainer*, int32_t)>;
 
 public:
-	OscGenericArray(OscContainer* parent, std::string name) noexcept;
+	OscGenericArray(OscContainer* parent, std::string_view name) noexcept;
 
 	void setFactory(OscFactoryFunction factoryFunction);
 
@@ -55,7 +55,7 @@ private:
 };
 
 template<typename T>
-OscGenericArray<T>::OscGenericArray(OscContainer* parent, std::string name) noexcept
+OscGenericArray<T>::OscGenericArray(OscContainer* parent, std::string_view name) noexcept
     : OscContainer(parent, name), keys(this, "keys"), nextKey(0) {
 	keys.addChangeCallback([this](const std::vector<int32_t>& oldKeys, const std::vector<int32_t>& newKeys) {
 		std::vector<int32_t> keysToKeep;
@@ -141,7 +141,7 @@ void OscGenericArray<T>::execute(std::string_view address, const std::vector<Osc
 	splitAddress(address, &childAddress, nullptr);
 
 	if(!childAddress.empty() && Utils::isNumber(childAddress)) {
-		int32_t key = atoi(std::string(childAddress).c_str());
+		int32_t key = Utils::stringviewToNumber(childAddress);
 
 		if(value.count(key) == 0) {
 			SPDLOG_DEBUG("{}: detect new key {} by direct access", this->getFullAddress(), key);

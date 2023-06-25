@@ -261,7 +261,11 @@ uint32_t tosc_writeNextDouble(tosc_message* o, double value) {
 }
 
 uint32_t tosc_writeNextString(tosc_message* o, const char* value) {
-	int s_len = strlen(value);
+	return tosc_writeNextStringView(o, value, strlen(value));
+}
+
+uint32_t tosc_writeNextStringView(tosc_message* o, const char* value, int size) {
+	int s_len = size;
 	int padded_len = (4 + s_len) & ~0x3;
 
 	if(o->marker + padded_len > o->buffer_end)

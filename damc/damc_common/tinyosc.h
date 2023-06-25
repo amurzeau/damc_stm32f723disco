@@ -177,6 +177,8 @@ uint32_t tosc_writeNextDouble(tosc_message* o, double value);
 
 uint32_t tosc_writeNextString(tosc_message* o, const char* value);
 
+uint32_t tosc_writeNextStringView(tosc_message* o, const char* value, int size);
+
 uint32_t tosc_writeNextBlob(tosc_message* o, const char* buffer, int len);
 
 uint32_t tosc_writeNextMidi(tosc_message* o, const unsigned char value[4]);

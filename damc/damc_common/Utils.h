@@ -5,7 +5,10 @@
 
 namespace Utils {
 
+int32_t stringviewToNumber(std::string_view s);
 bool isNumber(std::string_view s);
+
+std::string_view toString(uint32_t value);
 
 #define SPDLOG_LOG_WITH_LEVEL(level, ...) SPDLOG_LOGGER_CALL(spdlog::default_logger_raw(), level, __VA_ARGS__)
 
