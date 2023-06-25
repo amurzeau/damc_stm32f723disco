@@ -160,6 +160,8 @@ USBD_ClassTypeDef USBD_AUDIO =
   */
 extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 void USBD_AUDIO_trace(USBD_AUDIO_LoopbackDataTypeDef* data, const char* operation) {
+  if(data < loopbackData || data >= &loopbackData[AUDIO_LOOPBACKS_NUMBER])
+    return;
   data->history_index++;
   data->history[data->history_index].cycles = DWT->CYCCNT;
   data->history[data->history_index].operation = operation;
@@ -592,7 +594,7 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
   for(size_t i = 0; i < AUDIO_LOOPBACKS_NUMBER; i++) {
 	  USBD_AUDIO_LoopbackDataTypeDef* data = &haudio->loopbackData[i];
 
-	  USBD_AUDIO_trace(data, "SOF");
+	  //USBD_AUDIO_trace(data, "SOF");
 
 	  if(data->current_alternate[1] && data->next_target_frame[1] == frameNumber) {
 		  while(data->transfer_in_progress[1] > 0);
