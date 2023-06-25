@@ -89,7 +89,7 @@ static USBD_CDC_LineCodingTypeDef linecoding =
 struct USBD_CDC_CircularBuffer {
   uint16_t write_index;
   uint16_t read_index;
-  uint8_t buffer[4096];
+  uint8_t buffer[16384];
   uint8_t usb_buffer[CDC_DATA_HS_MAX_PACKET_SIZE];
   uint8_t usb_busy;
 };
