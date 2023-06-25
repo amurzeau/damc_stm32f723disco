@@ -87,6 +87,9 @@ static USBD_CDC_LineCodingTypeDef linecoding =
 };
 
 struct USBD_CDC_CircularBuffer {
+  uint32_t sentinel;
+  uint32_t max_write_size;
+  uint32_t current_theorical_size; // Size without counting discarded data
   uint16_t write_index;
   uint16_t read_index;
   uint8_t buffer[16384];
@@ -168,10 +171,14 @@ static void USB_CDC_IF_sendPending() {
 
   txBuffer.read_index = end;
 
+
   if(total_size > 0) {
     txBuffer.usb_busy = 1;
+    txBuffer.current_theorical_size -= total_size;
     USBD_CDC_SetTxBuffer(usb_pdev, txBuffer.usb_buffer, total_size);
     USBD_CDC_TransmitPacket(usb_pdev);
+  } else {
+    txBuffer.current_theorical_size = 0;
   }
 }
 
@@ -302,6 +309,10 @@ static int8_t USB_CDC_IF_Receive(uint8_t *Buf, uint32_t *Len)
   uint16_t size = *Len;
   uint16_t max_size = (rxBuffer.read_index - rxBuffer.write_index - 1 + sizeof(rxBuffer.buffer)) % sizeof(rxBuffer.buffer);
 
+  rxBuffer.current_theorical_size += size;
+  if(rxBuffer.max_write_size < rxBuffer.current_theorical_size)
+    rxBuffer.max_write_size = rxBuffer.current_theorical_size;
+
   if(size > max_size)
     size = max_size;
 
@@ -364,6 +375,10 @@ void USB_CDC_IF_TX_write(const uint8_t *Buf, uint32_t Len)
     USB_CDC_IF_BUFFER_write_char(&txBuffer, Buf[i]);
   }
 
+  txBuffer.current_theorical_size += Len;
+  if(txBuffer.max_write_size < txBuffer.current_theorical_size)
+    txBuffer.max_write_size = txBuffer.current_theorical_size;
+
   USB_CDC_IF_sendPending();
 }
 
@@ -373,6 +388,12 @@ uint32_t USB_CDC_IF_RX_read(uint8_t *Buf, uint32_t max_len)
   while(i < max_len && USB_CDC_IF_BUFFER_read_char(&rxBuffer, &Buf[i])) {
     i++;
   }
+  if(rxBuffer.read_index == rxBuffer.write_index) {
+    rxBuffer.current_theorical_size = 0;
+  } else {
+    rxBuffer.current_theorical_size -= i;
+  }
+
   return i;
 }
 
