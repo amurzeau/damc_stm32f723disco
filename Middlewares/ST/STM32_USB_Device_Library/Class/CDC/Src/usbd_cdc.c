@@ -341,7 +341,7 @@ static uint8_t USBD_CDC_Setup(USBD_HandleTypeDef *pdev,
       {
         if ((req->bmRequest & 0x80U) != 0U)
         {
-          ((USBD_CDC_ItfTypeDef *)pdev->pUserData[CI_CDCClass])->Control(req->bRequest,
+          ((USBD_CDC_ItfTypeDef *)pdev->pUserData[CI_CDCClass])->Control(req,
                                                                            (uint8_t *)hcdc->data,
                                                                            req->wLength);
 
@@ -350,7 +350,7 @@ static uint8_t USBD_CDC_Setup(USBD_HandleTypeDef *pdev,
         }
         else if (req->wLength != 0U)
         {
-          hcdc->CmdOpCode = req->bRequest;
+          hcdc->CmdReq = *req;
           hcdc->CmdLength = (uint8_t)MIN(req->wLength, USB_MAX_EP0_SIZE);
 
           (void)USBD_CtlPrepareRx(pdev, (uint8_t *)hcdc->data, hcdc->CmdLength);
@@ -358,7 +358,7 @@ static uint8_t USBD_CDC_Setup(USBD_HandleTypeDef *pdev,
       }
       else
       {
-        ((USBD_CDC_ItfTypeDef *)pdev->pUserData[CI_CDCClass])->Control(req->bRequest,
+        ((USBD_CDC_ItfTypeDef *)pdev->pUserData[CI_CDCClass])->Control(req,
                                                                          (uint8_t *)req, 0U);
       }
       break;
@@ -500,12 +500,12 @@ static uint8_t USBD_CDC_EP0_RxReady(USBD_HandleTypeDef *pdev)
     return (uint8_t)USBD_FAIL;
   }
 
-  if ((pdev->pUserData[CI_CDCClass] != NULL) && (hcdc->CmdOpCode != 0xFFU))
+  if ((pdev->pUserData[CI_CDCClass] != NULL) && (hcdc->CmdReq.bRequest != 0xFFU))
   {
-    ((USBD_CDC_ItfTypeDef *)pdev->pUserData[CI_CDCClass])->Control(hcdc->CmdOpCode,
+    ((USBD_CDC_ItfTypeDef *)pdev->pUserData[CI_CDCClass])->Control(&hcdc->CmdReq,
                                                                      (uint8_t *)hcdc->data,
                                                                      (uint16_t)hcdc->CmdLength);
-    hcdc->CmdOpCode = 0xFFU;
+    hcdc->CmdReq.bRequest = 0xFFU;
   }
 
   return (uint8_t)USBD_OK;

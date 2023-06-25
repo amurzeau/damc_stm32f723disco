@@ -65,7 +65,7 @@ EndBSPDependencies */
 
 static int8_t USB_CDC_IF_Init(USBD_HandleTypeDef *pdev);
 static int8_t USB_CDC_IF_DeInit(void);
-static int8_t USB_CDC_IF_Control(uint8_t cmd, uint8_t *pbuf, uint16_t length);
+static int8_t USB_CDC_IF_Control(USBD_SetupReqTypedef *req, uint8_t *pbuf, uint16_t length);
 static int8_t USB_CDC_IF_Receive(uint8_t *pbuf, uint32_t *Len);
 static int8_t USB_CDC_IF_TransmitCplt(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
 
@@ -227,11 +227,11 @@ static int8_t USB_CDC_IF_DeInit(void)
   * @param  Len: Number of data to be sent (in bytes)
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
-static int8_t USB_CDC_IF_Control(uint8_t cmd, uint8_t *pbuf, uint16_t length)
+static int8_t USB_CDC_IF_Control(USBD_SetupReqTypedef *req, uint8_t *pbuf, uint16_t length)
 {
   UNUSED(length);
 
-  switch (cmd)
+  switch (req->bRequest)
   {
     case CDC_SEND_ENCAPSULATED_COMMAND:
       /* Add your code here */
@@ -276,6 +276,11 @@ static int8_t USB_CDC_IF_Control(uint8_t cmd, uint8_t *pbuf, uint16_t length)
       break;
 
     case CDC_SET_CONTROL_LINE_STATE:
+      if((req->wValue & 0x03) != 0) {
+        // Start transmission, reset fifos here
+        txBuffer.write_index = txBuffer.read_index = 0;
+        rxBuffer.write_index = rxBuffer.read_index = 0;
+      }
       /* Add your code here */
       break;
 
