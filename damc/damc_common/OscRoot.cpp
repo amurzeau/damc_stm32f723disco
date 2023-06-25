@@ -259,7 +259,7 @@ static constexpr uint8_t SLIP_ESC_END = 0xDC;
 static constexpr uint8_t SLIP_ESC_ESC = 0xDD;
 
 OscConnector::OscConnector(OscRoot* oscRoot, bool useSlipProtocol)
-    : oscRoot(oscRoot), useSlipProtocol(useSlipProtocol), oscIsEscaping(false) {
+    : oscRoot(oscRoot), useSlipProtocol(useSlipProtocol), oscIsEscaping(false), discardNextMessage(false) {
 	if(oscRoot)
 		oscRoot->addConnector(this);
 
@@ -316,8 +316,10 @@ void OscConnector::onOscDataReceived(const uint8_t* data, size_t size) {
 					continue;
 				} else if(c == SLIP_END) {
 					if(!oscInputBuffer.empty()) {
-						oscRoot->onOscPacketReceived(oscInputBuffer.data(), oscInputBuffer.size());
+						if(!discardNextMessage)
+							oscRoot->onOscPacketReceived(oscInputBuffer.data(), oscInputBuffer.size());
 						oscInputBuffer.clear();
+						discardNextMessage = false;
 					}
 					continue;
 				}
@@ -331,7 +333,10 @@ void OscConnector::onOscDataReceived(const uint8_t* data, size_t size) {
 				// else this is an error, escaped character doesn't need to be escaped
 			}
 			oscIsEscaping = false;
-			oscInputBuffer.push_back(c);
+			if(oscInputBuffer.size() < 128)
+				oscInputBuffer.push_back(c);
+			else
+				discardNextMessage = true;
 		}
 	} else {
 		oscRoot->onOscPacketReceived(data, size);

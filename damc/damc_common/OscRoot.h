@@ -72,4 +72,5 @@ private:
 	bool oscIsEscaping;
 	std::vector<uint8_t> oscInputBuffer;
 	std::vector<uint8_t> oscOutputBuffer;
+	bool discardNextMessage;
 };
