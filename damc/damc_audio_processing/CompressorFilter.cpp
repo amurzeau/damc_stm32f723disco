@@ -1,11 +1,11 @@
 #include "CompressorFilter.h"
 
+#include <MathUtils.h>
 #include <algorithm>
+#include <fastapprox/fastexp.h>
+#include <fastapprox/fastlog.h>
 #include <math.h>
 #include <string.h>
-#include <MathUtils.h>
-#include <fastapprox/fastlog.h>
-#include <fastapprox/fastexp.h>
 
 CompressorFilter::CompressorFilter(OscContainer* parent)
     : OscContainer(parent, "compressorFilter"),
@@ -29,7 +29,7 @@ void CompressorFilter::init(size_t numChannel) {
 
 void CompressorFilter::reset(double fs) {
 	this->fs = fs;
-	gainHoldSamples = (uint32_t)(fs / 20);
+	gainHoldSamples = (uint32_t) (fs / 20);
 	std::fill_n(perChannelData.begin(), numChannel, PerChannelData{});
 }
 

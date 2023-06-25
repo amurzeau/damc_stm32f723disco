@@ -2,7 +2,7 @@
 
 #include <LoudnessMeter.h>
 #include <Osc/OscVariable.h>
-//#include <mutex>
+// #include <mutex>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -22,14 +22,14 @@ public:
 
 	void onFastTimer();
 
-	//std::vector<LoudnessMeter> loudnessMeters;
+	// std::vector<LoudnessMeter> loudnessMeters;
 
 private:
 	OscRoot* oscRoot;
 	OscReadOnlyVariable<int32_t>* oscSampleRate;
 
 	std::vector<float> levelsDb;
-	//std::mutex peakMutex;
+	// std::mutex peakMutex;
 	int samplesInPeaks;
 	std::vector<float> peaksPerChannel;
 	std::string oscPeakGlobalPath;

@@ -1,9 +1,9 @@
 #include "FilteringChain.h"
+#include <MathUtils.h>
+#include <fastapprox/fastexp.h>
+#include <fastapprox/fastlog.h>
 #include <math.h>
 #include <string.h>
-#include <MathUtils.h>
-#include <fastapprox/fastlog.h>
-#include <fastapprox/fastexp.h>
 
 float LogScaleFromOsc(float value) {
 	return fastpow2(value * LOG10_VALUE_DIV_20);
@@ -17,7 +17,7 @@ FilterChain::FilterChain(OscContainer* parent,
                          OscReadOnlyVariable<int32_t>* oscNumChannel,
                          OscReadOnlyVariable<int32_t>* oscSampleRate)
     : OscContainer(parent, "filterChain"),
-      reverbFilters(this, "reverbFilter"),
+      // reverbFilters(this, "reverbFilter"),
       eqFilters(this, "eqFilters"),
       compressorFilter(this),
       expanderFilter(this),
@@ -27,8 +27,8 @@ FilterChain::FilterChain(OscContainer* parent,
       masterVolume(this, "volume", 1.0f),
       mute(this, "mute", false),
       reverseAudioSignal(this, "reverseAudioSignal", false) {
-	reverbFilters.setFactory(
-	    [](OscContainer* parent, int name) { return new ReverbFilter(parent, std::to_string(name)); });
+	//	reverbFilters.setFactory(
+	//	    [](OscContainer* parent, int name) { return new ReverbFilter(parent, std::to_string(name)); });
 	eqFilters.setFactory([](OscContainer* parent, int name) { return new EqFilter(parent, std::to_string(name)); });
 
 	delay.addChangeCallback([this](int32_t newValue) {
@@ -47,7 +47,7 @@ FilterChain::FilterChain(OscContainer* parent,
 
 void FilterChain::updateNumChannels(size_t numChannel) {
 	delayFilters.resize(numChannel + 1);  // +1 for side channel
-	reverbFilters.resize(numChannel);
+	// reverbFilters.resize(numChannel);
 	volume.resize(numChannel);
 
 	eqFilters.resize(6);
@@ -64,9 +64,9 @@ void FilterChain::reset(double fs) {
 	for(DelayFilter& delayFilter : delayFilters) {
 		delayFilter.reset();
 	}
-	for(auto& reverbFilter : reverbFilters) {
-		reverbFilter.second->reset();
-	}
+	//	for(auto& reverbFilter : reverbFilters) {
+	//		reverbFilter.second->reset();
+	//	}
 
 	for(auto& filter : eqFilters) {
 		filter.second->reset(fs);
@@ -95,9 +95,9 @@ void FilterChain::processSamples(float** samples, size_t numChannel, size_t coun
 	expanderFilter.processSamples(samples, count);
 	compressorFilter.processSamples(samples, count);
 
-	for(uint32_t channel = 0; channel < numChannel; channel++) {
-		reverbFilters.at(channel).processSamples(samples[channel], count);
-	}
+	//	for(uint32_t channel = 0; channel < numChannel; channel++) {
+	//		reverbFilters.at(channel).processSamples(samples[channel], count);
+	//	}
 
 	for(uint32_t channel = 0; channel < numChannel; channel++) {
 		float volume = this->volume.at(channel).get() * masterVolume;

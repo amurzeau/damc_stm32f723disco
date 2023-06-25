@@ -30,7 +30,7 @@ protected:
 
 private:
 	std::vector<DelayFilter> delayFilters;
-	OscContainerArray<ReverbFilter> reverbFilters;
+	// OscContainerArray<ReverbFilter> reverbFilters;
 	OscContainerArray<EqFilter> eqFilters;
 	CompressorFilter compressorFilter;
 	ExpanderFilter expanderFilter;

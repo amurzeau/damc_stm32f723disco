@@ -11,6 +11,5 @@ void DAMC_processAudioInterleaved(const int16_t* data_input, int16_t* data_outpu
 }
 
 void DAMC_mainLoop() {
-    AudioProcessor::getInstance()->mainLoop();
+	AudioProcessor::getInstance()->mainLoop();
 }
-

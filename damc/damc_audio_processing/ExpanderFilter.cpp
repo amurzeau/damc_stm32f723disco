@@ -1,11 +1,11 @@
 #include "ExpanderFilter.h"
 
+#include <MathUtils.h>
 #include <algorithm>
+#include <fastapprox/fastexp.h>
+#include <fastapprox/fastlog.h>
 #include <math.h>
 #include <string.h>
-#include <MathUtils.h>
-#include <fastapprox/fastlog.h>
-#include <fastapprox/fastexp.h>
 
 ExpanderFilter::ExpanderFilter(OscContainer* parent)
     : OscContainer(parent, "expanderFilter"),

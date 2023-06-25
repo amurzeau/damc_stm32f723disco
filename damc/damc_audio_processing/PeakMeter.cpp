@@ -17,31 +17,31 @@ PeakMeter::PeakMeter(OscContainer* parent,
 	oscNumChannel->addChangeCallback([this](int32_t newValue) {
 		levelsDb.resize(newValue, -192);
 
-		//peakMutex.lock();
+		// peakMutex.lock();
 		peaksPerChannel.resize(newValue, 0);
-		//loudnessMeters.resize(newValue);
-		//peakMutex.unlock();
-//		for(auto& loudnessMeter : loudnessMeters) {
-//			loudnessMeter.reset(this->oscSampleRate->get());
-//		}
+		// loudnessMeters.resize(newValue);
+		// peakMutex.unlock();
+		//		for(auto& loudnessMeter : loudnessMeters) {
+		//			loudnessMeter.reset(this->oscSampleRate->get());
+		//		}
 	});
 
 	oscSampleRate->addChangeCallback([this](int32_t newValue) {
-//		for(auto& loudnessMeter : loudnessMeters) {
-//			loudnessMeter.reset(newValue);
-//		}
+		//		for(auto& loudnessMeter : loudnessMeters) {
+		//			loudnessMeter.reset(newValue);
+		//		}
 	});
 }
 
 PeakMeter::~PeakMeter() {}
 
 void PeakMeter::processSamples(const float* peaks, size_t numChannels, size_t samplesInPeaks) {
-	//peakMutex.lock();
+	// peakMutex.lock();
 	this->samplesInPeaks += samplesInPeaks;
 	for(size_t i = 0; i < numChannels; i++) {
 		this->peaksPerChannel[i] = fmaxf(peaks[i], this->peaksPerChannel[i]);
 	}
-	//peakMutex.unlock();
+	// peakMutex.unlock();
 }
 
 void PeakMeter::onFastTimer() {
@@ -49,11 +49,11 @@ void PeakMeter::onFastTimer() {
 	int32_t sampleRate = oscSampleRate->get();
 	std::vector<float> peaks(this->peaksPerChannel.size(), 0);
 
-	//peakMutex.lock();
+	// peakMutex.lock();
 	samples = this->samplesInPeaks;
 	peaks.swap(this->peaksPerChannel);
 	this->samplesInPeaks = 0;
-	//peakMutex.unlock();
+	// peakMutex.unlock();
 
 	if(sampleRate == 0)
 		return;
