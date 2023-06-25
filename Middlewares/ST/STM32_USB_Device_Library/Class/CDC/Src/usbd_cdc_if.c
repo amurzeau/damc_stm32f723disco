@@ -195,6 +195,8 @@ static int8_t USB_CDC_IF_Init(USBD_HandleTypeDef *pdev)
   */
   usb_pdev = pdev;
 
+  txBuffer.usb_busy = 0;
+
   USBD_CDC_SetRxBuffer(pdev, rxBuffer.usb_buffer);
   USB_CDC_IF_sendPending();
 
@@ -212,6 +214,7 @@ static int8_t USB_CDC_IF_DeInit(void)
   /*
      Add your deinitialization code here
   */
+  usb_pdev = NULL;
   return (0);
 }
 
@@ -370,6 +373,9 @@ static int8_t USB_CDC_IF_TransmitCplt(uint8_t *Buf, uint32_t *Len, uint8_t epnum
 
 void USB_CDC_IF_TX_write(const uint8_t *Buf, uint32_t Len)
 {
+  if(!usb_pdev)
+    return;
+
   size_t i;
   for(i = 0; i < Len; i++) {
     USB_CDC_IF_BUFFER_write_char(&txBuffer, Buf[i]);
