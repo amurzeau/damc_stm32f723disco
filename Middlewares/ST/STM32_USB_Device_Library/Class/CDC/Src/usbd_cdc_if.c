@@ -102,10 +102,14 @@ static USBD_HandleTypeDef *usb_pdev;
 
 static void USB_CDC_IF_BUFFER_write_char(struct USBD_CDC_CircularBuffer* buffer, uint8_t c)
 {
+  assert(buffer->write_index < sizeof(buffer->buffer));
+  assert(buffer->read_index < sizeof(buffer->buffer));
+
   uint16_t next_write_index = (buffer->write_index + 1) % sizeof(buffer->buffer);
   if(next_write_index != buffer->read_index) {
     // Buffer not full
     buffer->buffer[buffer->write_index] = c;
+    assert(next_write_index < sizeof(buffer->buffer));
     buffer->write_index = next_write_index;
   }
 }
@@ -117,6 +121,7 @@ static uint8_t USB_CDC_IF_BUFFER_read_char(struct USBD_CDC_CircularBuffer* buffe
     return 0;
   }
 
+  assert(buffer->read_index < sizeof(buffer->buffer));
 
   *c = buffer->buffer[buffer->read_index];
   buffer->read_index = (buffer->read_index + 1) % sizeof(buffer->buffer);
@@ -131,12 +136,16 @@ static void USB_CDC_IF_sendPending() {
 
   uint16_t start = txBuffer.read_index;
   uint16_t end = txBuffer.write_index;
-  uint16_t size = (end - start + sizeof(rxBuffer.buffer)) % sizeof(rxBuffer.buffer);
+  uint16_t size = (end - start + sizeof(txBuffer.buffer)) % sizeof(txBuffer.buffer);
+
+  assert(start < sizeof(txBuffer.buffer));
+  assert(end < sizeof(txBuffer.buffer));
 
   if(size > sizeof(txBuffer.usb_buffer)) {
     size = sizeof(txBuffer.usb_buffer);
-    end = (txBuffer.read_index + size) % sizeof(rxBuffer.buffer);
+    end = (txBuffer.read_index + size) % sizeof(txBuffer.buffer);
   }
+  assert(end < sizeof(txBuffer.buffer));
 
   uint16_t total_size = 0;
 
@@ -149,10 +158,12 @@ static void USB_CDC_IF_sendPending() {
     memcpy(&txBuffer.usb_buffer[first_chunk_size], &txBuffer.buffer[0], end);
 
     total_size = first_chunk_size + end;
+    assert(total_size <= sizeof(txBuffer.usb_buffer));
   } else {
     // Copy from start to end
     memcpy(txBuffer.usb_buffer, &txBuffer.buffer[start], end - start);
     total_size = end - start;
+    assert(total_size <= sizeof(txBuffer.usb_buffer));
   }
 
   txBuffer.read_index = end;
@@ -296,6 +307,9 @@ static int8_t USB_CDC_IF_Receive(uint8_t *Buf, uint32_t *Len)
 
   uint16_t end = (start + size) % sizeof(rxBuffer.buffer);
 
+  assert(start < sizeof(rxBuffer.buffer));
+  assert(end < sizeof(rxBuffer.buffer));
+
 
   if(end < start) {
     // Copy between start and end of buffer
@@ -309,6 +323,7 @@ static int8_t USB_CDC_IF_Receive(uint8_t *Buf, uint32_t *Len)
     memcpy(&rxBuffer.buffer[start], rxBuffer.usb_buffer, end - start);
   }
 
+  assert(end < sizeof(rxBuffer.buffer));
   rxBuffer.write_index = end;
 
   USBD_CDC_ReceivePacket(usb_pdev);
