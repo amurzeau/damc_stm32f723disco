@@ -28,7 +28,7 @@ OscContainer::~OscContainer() {
 	auto childrenToDetach = std::move(children);
 
 	for(auto& child : childrenToDetach) {
-		child.second->setOscParent(nullptr);
+		child->setOscParent(nullptr);
 	}
 }
 
@@ -57,7 +57,7 @@ void OscContainer::execute(std::string_view address, const std::vector<OscArgume
 		if(childAddress == "*") {
 			// Wildcard
 			for(auto& child : children) {
-				child.second->execute(remainingAddress, arguments);
+				child->execute(remainingAddress, arguments);
 			}
 		} else if(childAddress == "**") {
 			// Double Wildcard: for each child, pass the remaining + the current address for recursive wildcard
@@ -69,16 +69,17 @@ void OscContainer::execute(std::string_view address, const std::vector<OscArgume
 			execute(remainingAddress, arguments);
 
 			for(auto& child : children) {
-				child.second->execute(address, arguments);
+				child->execute(address, arguments);
 			}
 		} else {
-			auto it = children.find(childAddress);
-			if(it == children.end()) {
-				SPDLOG_WARN("Address {} not found from {}", childAddress, getFullAddress());
-				return;
+			for(auto& child : children) {
+				if(child->getName() == childAddress) {
+					child->execute(remainingAddress, arguments);
+					return;
+				}
 			}
 
-			it->second->execute(remainingAddress, arguments);
+			SPDLOG_WARN("Address {} not found from {}", childAddressStr, getFullAddress());
 		}
 	}
 }
@@ -88,7 +89,7 @@ bool OscContainer::visit(const std::function<bool(OscNode*)>* nodeVisitorFunctio
 		return false;
 
 	for(auto& child : children) {
-		child.second->visit(nodeVisitorFunction);
+		child->visit(nodeVisitorFunction);
 	}
 
 	return true;
@@ -107,7 +108,7 @@ std::string OscContainer::getAsString() const {
 		depth += 1;
 		size_t processedItems = 0;
 		for(const auto& child : children) {
-			std::string childData = child.second->getAsString();
+			std::string childData = child->getAsString();
 
 			if(childData.empty()) {
 				continue;
@@ -118,7 +119,7 @@ std::string OscContainer::getAsString() const {
 			} else {
 				result += "\n";
 			}
-			result += indent + "\t\"" + std::string(child.first) + "\": " + childData;
+			result += indent + "\t\"" + std::string(child->getName()) + "\": " + childData;
 			processedItems++;
 		}
 		depth -= 1;
@@ -135,14 +136,18 @@ std::string OscContainer::getAsString() const {
 }
 
 void OscContainer::addChild(std::string_view name, OscNode* child) {
-	if(children.emplace(name, child).second == false) {
-		SPDLOG_ERROR("Error adding child {} to {}, already existing\n", name, getFullAddress());
-	}
+	children.push_back(child);
 }
 
 void OscContainer::removeChild(OscNode* node, std::string_view name) {
 	OscRoot* root = getRoot();
 	if(root)
 		root->nodeRemoved(node);
-	children.erase(name);
+
+	for(size_t i = 0; i < children.size(); i++) {
+		if(children[i]->getName() == name) {
+			children.erase(children.begin() + i);
+			return;
+		}
+	}
 }

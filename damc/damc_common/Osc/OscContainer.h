@@ -2,7 +2,7 @@
 
 #include "OscEndpoint.h"
 #include "OscNode.h"
-#include <map>
+#include <vector>
 
 class OscContainer : public OscNode {
 public:
@@ -17,8 +17,6 @@ public:
 	void addChild(std::string_view name, OscNode* child);
 	void removeChild(OscNode* node, std::string_view name);
 
-	std::map<std::string_view, OscNode*, osc_node_comparator>& getChildren() { return children; }
-	const std::map<std::string_view, OscNode*, osc_node_comparator>& getChildren() const { return children; }
 	void splitAddress(std::string_view address, std::string_view* childAddress, std::string_view* remainingAddress);
 
 	using OscNode::execute;
@@ -28,6 +26,6 @@ public:
 	std::string getAsString() const override;
 
 private:
-	std::map<std::string_view, OscNode*, osc_node_comparator> children;
+	std::vector<OscNode*> children;
 	OscEndpoint oscDump;
 };
