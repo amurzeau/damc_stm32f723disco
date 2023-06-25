@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ChannelStrip.h"
 #include "OscSerialClient.h"
 #include <FilteringChain.h>
 #include <Osc/OscReadOnlyVariable.h>
@@ -11,7 +12,7 @@ public:
 	AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t maxNframes);
 	~AudioProcessor();
 
-	void processAudioInterleaved(const int16_t* data_input, int16_t* data_output, size_t nframes);
+	void processAudioInterleaved(int16_t index, const int16_t* data_input, int16_t* data_output, size_t nframes);
 	void mainLoop();
 
 	static AudioProcessor* getInstance();
@@ -19,11 +20,6 @@ public:
 private:
 	OscRoot oscRoot;
 	OscSerialClient serialClient;
-	OscReadOnlyVariable<int32_t> oscNumChannels;
-	OscReadOnlyVariable<int32_t> oscSampleRate;
-	FilterChain filterChain;
-
-	size_t maxNframes;
-	float** channelBuffers;
-
+	OscContainerArray<ChannelStrip> strips;
+	uint32_t previousTick;
 };

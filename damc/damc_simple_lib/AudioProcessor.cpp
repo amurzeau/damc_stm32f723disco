@@ -6,61 +6,48 @@
 
 #include <spdlog/spdlog.h>
 
+#include <stm32f7xx_hal.h>
+#include <usbd_conf.h>
+
 AudioProcessor* AudioProcessor::getInstance() {
 	static AudioProcessor instance(2, 48000, 48);
 	return &instance;
 }
 
+volatile uint32_t variable = sizeof(ChannelStrip);
+
 AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t maxNframes)
-    : oscRoot(true),
-      serialClient(&oscRoot),
-      oscNumChannels(&oscRoot, "numChannels", numChannels),
-      oscSampleRate(&oscRoot, "sampleRate", sampleRate),
-      filterChain(&oscRoot, &oscNumChannels, &oscSampleRate),
-      maxNframes(maxNframes) {
+    : oscRoot(true), serialClient(&oscRoot), strips(&oscRoot, "strip") {
+	strips.setFactory([this, numChannels, sampleRate, maxNframes](OscContainer* parent, int name) {
+		return new ChannelStrip(parent, name, numChannels, sampleRate, maxNframes);
+	});
 
-	oscNumChannels.addCheckCallback([](int32_t value) -> bool { return false; });
-	oscSampleRate.addCheckCallback([](int32_t value) -> bool { return false; });
-
-	channelBuffers = new float*[numChannels];
-
-	for(size_t i = 0; i < numChannels; i++) {
-		channelBuffers[i] = new float[maxNframes];
-	}
+	strips.resize(AUDIO_LOOPBACKS_NUMBER);
 
 	serialClient.init();
 }
 
-AudioProcessor::~AudioProcessor() {
-	for(int i = 0; i < oscNumChannels.get(); i++) {
-		delete[] channelBuffers[i];
-	}
-	delete[] channelBuffers;
-	channelBuffers = nullptr;
-}
+AudioProcessor::~AudioProcessor() {}
 
-void AudioProcessor::processAudioInterleaved(const int16_t* data_input, int16_t* data_output, size_t nframes) {
-	uint32_t channelNumber = (uint32_t) oscNumChannels.get();
-
-	if(nframes > maxNframes) {
-		return;
-	}
-
-	for(uint32_t channel = 0; channel < channelNumber; channel++) {
-		for(uint32_t frame = 0; frame < nframes; frame++) {
-			channelBuffers[channel][frame] = data_input[frame * channelNumber + channel] / 32768.f;
-		}
-	}
-
-	filterChain.processSamples(channelBuffers, channelNumber, nframes);
-
-	for(uint32_t channel = 0; channel < channelNumber; channel++) {
-		for(uint32_t frame = 0; frame < nframes; frame++) {
-			data_output[frame * channelNumber + channel] = static_cast<int16_t>(channelBuffers[channel][frame] * 32768.f);
-		}
+void AudioProcessor::processAudioInterleaved(int16_t index,
+                                             const int16_t* data_input,
+                                             int16_t* data_output,
+                                             size_t nframes) {
+	if(index < AUDIO_LOOPBACKS_NUMBER)
+		strips.at(index).processAudioInterleaved(data_input, data_output, nframes);
+	else {
+		memcpy(data_output, data_input, nframes * USBD_AUDIO_BYTES_PER_SAMPLE * USBD_AUDIO_CHANNELS);
 	}
 }
 
 void AudioProcessor::mainLoop() {
-  serialClient.mainLoop();
+	serialClient.mainLoop();
+	uint32_t currentTick = HAL_GetTick();
+	if(currentTick >= previousTick + 100) {
+		// Every 100ms
+		previousTick = currentTick;
+		for(auto& strip : strips) {
+			strip.second->onFastTimer();
+		}
+	}
 }

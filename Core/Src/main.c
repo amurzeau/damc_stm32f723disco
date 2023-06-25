@@ -137,7 +137,7 @@ int main(void)
 			  data->buffer_rx_state = TS_RX_ReadyToReceive;
 			  USBD_AUDIO_trace(data, "TS_RX_ReadyToReceive");
 			  //memcpy(data->buffer_tx, data->buffer_rx, sizeof(data->buffer_rx));
-			  DAMC_processAudioInterleaved((int16_t*)data->buffer_rx, (int16_t*)data->buffer_tx, data->buffer_size / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS);
+			  DAMC_processAudioInterleaved(i, (int16_t*)data->buffer_rx, (int16_t*)data->buffer_tx, data->buffer_size / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS);
 			  data->buffer_tx_state = TS_TX_ReadyToTransmit;
 			  USBD_AUDIO_trace(data, "TS_TX_ReadyToTransmit");
 		  }
