@@ -6,7 +6,7 @@
 #include <string_view>
 
 OscRoot::OscRoot(bool notifyAtInit) : OscContainer(nullptr, ""), doNotifyOscAtInit(notifyAtInit) {
-	oscOutputMaxSize = 65536;
+	oscOutputMaxSize = 128;
 	oscOutputMessage.reset(new uint8_t[oscOutputMaxSize]);
 }
 
@@ -262,6 +262,8 @@ OscConnector::OscConnector(OscRoot* oscRoot, bool useSlipProtocol)
     : oscRoot(oscRoot), useSlipProtocol(useSlipProtocol), oscIsEscaping(false) {
 	if(oscRoot)
 		oscRoot->addConnector(this);
+
+	oscInputBuffer.reserve(128);
 }
 
 OscConnector::~OscConnector() {

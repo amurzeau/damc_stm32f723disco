@@ -14,7 +14,7 @@ protected:
 		float yL;
 
 		size_t compressionHistoryPtr;
-		std::array<float, 1024> compressionHistory;
+		std::array<float, 128> compressionHistory;
 		std::deque<size_t> compressionMovingMaxDeque;
 
 		float speed;
