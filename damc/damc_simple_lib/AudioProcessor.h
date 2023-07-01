@@ -4,6 +4,7 @@
 #include "OscSerialClient.h"
 #include <FilteringChain.h>
 #include <Osc/OscReadOnlyVariable.h>
+#include <Osc/OscDynamicVariable.h>
 #include <OscRoot.h>
 #include <stdint.h>
 
@@ -21,5 +22,15 @@ private:
 	OscRoot oscRoot;
 	OscSerialClient serialClient;
 	OscContainerArray<ChannelStrip> strips;
-	uint32_t previousTick;
+
+	OscReadOnlyVariable<int32_t> timeMeasureUsbInterrupt;
+	OscReadOnlyVariable<int32_t> timeMeasureAudioProcessing;
+	OscReadOnlyVariable<int32_t> timeMeasureFastTimer;
+	OscReadOnlyVariable<int32_t> timeMeasureOscInput;
+	OscDynamicVariable<int32_t> memoryAvailable;
+	OscDynamicVariable<int32_t> memoryUsed;
+
+	uint32_t fastTimerPreviousTick;
+	uint32_t nextTimerStripIndex;
+	uint32_t slowTimerPreviousTick;
 };

@@ -1,5 +1,6 @@
 #include "OscSerialClient.h"
 #include <spdlog/spdlog.h>
+#include "TimeMeasure.h"
 
 #include "stm32f7xx_hal.h"
 #include "usbd_cdc_if.h"
@@ -34,7 +35,9 @@ void OscSerialClient::sendOscData(const uint8_t* data, size_t size) {
 void OscSerialClient::mainLoop() {
 	size_t read_size = USB_CDC_IF_RX_read(rx_buffer.data(), rx_buffer.size());
 	if(read_size > 0) {
+		TimeMeasure::timeMeasureOscInput.beginMeasure();
 		onOscDataReceived(rx_buffer.data(), read_size);
+		TimeMeasure::timeMeasureOscInput.endMeasure();
 	}
 }
 

@@ -22,6 +22,7 @@
 #include "stm32f7xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "AudioCApi.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,6 +57,7 @@
 
 /* External variables --------------------------------------------------------*/
 extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
+extern TIM_HandleTypeDef htim2;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -199,18 +201,33 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+  * @brief This function handles TIM2 global interrupt.
+  */
+void TIM2_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM2_IRQn 0 */
+  return;
+  /* USER CODE END TIM2_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim2);
+  /* USER CODE BEGIN TIM2_IRQn 1 */
+
+  /* USER CODE END TIM2_IRQn 1 */
+}
+
+/**
   * @brief This function handles USB On The Go HS global interrupt.
   */
 void OTG_HS_IRQHandler(void)
 {
   /* USER CODE BEGIN OTG_HS_IRQn 0 */
-
-	SYS_LD_USER2_GPIO_Port->BSRR = SYS_LD_USER2_Pin << 16;
+  DAMC_usbInterruptBeginMeasure();
+  SYS_LD_USER2_GPIO_Port->BSRR = SYS_LD_USER2_Pin << 16;
 
   /* USER CODE END OTG_HS_IRQn 0 */
   HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
   /* USER CODE BEGIN OTG_HS_IRQn 1 */
-	SYS_LD_USER2_GPIO_Port->BSRR = SYS_LD_USER2_Pin;
+  SYS_LD_USER2_GPIO_Port->BSRR = SYS_LD_USER2_Pin;
+  DAMC_usbInterruptEndMeasure();
 
   /* USER CODE END OTG_HS_IRQn 1 */
 }
