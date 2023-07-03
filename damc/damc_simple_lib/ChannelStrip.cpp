@@ -10,7 +10,7 @@
 
 ChannelStrip::ChannelStrip(
     OscContainer* parent, int index, uint32_t numChannels, uint32_t sampleRate, size_t maxNframes)
-    : OscContainer(parent, Utils::toString(index)),
+    : OscContainer(parent, Utils::toString(index), 10),
       oscEnable(this, "enable", true),
       oscType(this, "_type", 0),
       oscName(this, "name", Utils::toString(index)),

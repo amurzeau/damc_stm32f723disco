@@ -32,6 +32,7 @@ private:
 	// std::mutex peakMutex;
 	int samplesInPeaks;
 	std::vector<float> peaksPerChannel;
+	std::vector<float> peaksPerChannelToSend;
 	std::string oscPeakGlobalPath;
 	std::string oscPeakPerChannelPath;
 	std::vector<OscArgument> oscPeakPerChannelArguments;

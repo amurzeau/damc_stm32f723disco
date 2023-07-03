@@ -88,12 +88,12 @@ OscGenericArray<T>::OscGenericArray(OscContainer* parent, std::string_view name)
 		}
 
 		if(mustUpdateKeys)
-			keys.setData(keysToKeep);
+			keys.setData(std::move(keysToKeep));
 	});
 }
 
 template<typename T> void OscGenericArray<T>::setFactory(OscFactoryFunction factoryFunction) {
-	this->factoryFunction = factoryFunction;
+	this->factoryFunction = std::move(factoryFunction);
 }
 
 template<typename T> bool OscGenericArray<T>::contains(size_t index) const {
@@ -140,6 +140,7 @@ template<typename T> void OscGenericArray<T>::resize(size_t newSize) {
 			erase(Utils::stringviewToNumber((*value.rbegin())->getName()));
 		}
 	} else {
+		keys.reserve(newSize);
 		value.reserve(newSize);
 		while(value.size() < newSize) {
 			push_back();

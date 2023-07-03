@@ -4,6 +4,15 @@
 #include "OscNode.h"
 #include <vector>
 
+template<typename T>
+class PreallocatedVector : public std::vector<T> {
+public:
+	using std::vector<T>::vector;
+	PreallocatedVector(size_t reserveSize) {
+		this->reserve(reserveSize);
+	}
+};
+
 class OscContainer : public OscNode {
 public:
 	struct osc_node_comparator {
@@ -11,7 +20,7 @@ public:
 	};
 
 public:
-	OscContainer(OscContainer* parent, std::string_view name) noexcept;
+	OscContainer(OscContainer* parent, std::string_view name, size_t reserveSize = 6) noexcept;
 	~OscContainer() override;
 
 	void addChild(std::string_view name, OscNode* child);
@@ -26,6 +35,6 @@ public:
 	std::string getAsString() const override;
 
 private:
-	std::vector<OscNode*> children;
+	PreallocatedVector<OscNode*> children;
 	OscEndpoint oscDump;
 };

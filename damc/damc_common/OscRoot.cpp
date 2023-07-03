@@ -230,7 +230,7 @@ void OscRoot::notifyValueChanged() {
 
 void OscRoot::addPendingConfigNode(OscNode* node) {
 	SPDLOG_DEBUG("Adding node {} as pending configuration", node->getFullAddress());
-	nodesPendingConfig.insert(node);
+	//nodesPendingConfig.insert(node);
 }
 
 void OscRoot::nodeRemoved(OscNode* node) {
@@ -264,6 +264,7 @@ OscConnector::OscConnector(OscRoot* oscRoot, bool useSlipProtocol)
 		oscRoot->addConnector(this);
 
 	oscInputBuffer.reserve(128);
+	oscOutputBuffer.reserve(128);
 }
 
 OscConnector::~OscConnector() {

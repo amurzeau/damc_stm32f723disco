@@ -8,7 +8,7 @@
 #include <string.h>
 
 CompressorFilter::CompressorFilter(OscContainer* parent)
-    : OscContainer(parent, "compressorFilter"),
+    : OscContainer(parent, "compressorFilter", 9),
       enable(this, "enable", false),
       attackTime(this, "attackTime", 0),
       releaseTime(this, "releaseTime", 2),

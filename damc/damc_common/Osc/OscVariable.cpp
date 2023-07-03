@@ -26,6 +26,7 @@ OscVariable<T>::OscVariable(OscContainer* parent,
 		// No toggle/increment/decrement
 	} else {
 		incrementAmount = (T) 1;
+		subEndpoint.reserve(2);
 		subEndpoint.emplace_back(new OscEndpoint(this, "increment"))
 		    ->setCallback([this](const std::vector<OscArgument>& arguments) {
 			    T amount = incrementAmount;

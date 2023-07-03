@@ -19,6 +19,7 @@ PeakMeter::PeakMeter(OscContainer* parent,
 
 		// peakMutex.lock();
 		peaksPerChannel.resize(newValue, 0);
+		peaksPerChannelToSend.resize(newValue, 0);
 		// loudnessMeters.resize(newValue);
 		// peakMutex.unlock();
 		//		for(auto& loudnessMeter : loudnessMeters) {
@@ -47,11 +48,12 @@ void PeakMeter::processSamples(const float* peaks, size_t numChannels, size_t sa
 void PeakMeter::onFastTimer() {
 	int samples;
 	int32_t sampleRate = oscSampleRate->get();
-	std::vector<float> peaks(this->peaksPerChannel.size(), 0);
+
+	std::fill(peaksPerChannelToSend.begin(), peaksPerChannelToSend.end(), 0);
 
 	// peakMutex.lock();
 	samples = this->samplesInPeaks;
-	peaks.swap(this->peaksPerChannel);
+	peaksPerChannelToSend.swap(this->peaksPerChannel);
 	this->samplesInPeaks = 0;
 	// peakMutex.unlock();
 
@@ -61,9 +63,9 @@ void PeakMeter::onFastTimer() {
 	float deltaT = (float) samples / sampleRate;
 	float maxLevel = 0;
 
-	for(size_t channel = 0; channel < peaks.size(); channel++) {
+	for(size_t channel = 0; channel < peaksPerChannelToSend.size(); channel++) {
 		// float peakDb = this->loudnessMeters[channel].getLoudness();
-		float peakDb = peaks[channel] != 0 ? 20.0 * log10(peaks[channel]) : -INFINITY;
+		float peakDb = peaksPerChannelToSend[channel] != 0 ? 20.0 * log10(peaksPerChannelToSend[channel]) : -INFINITY;
 
 		float decayAmount = 11.76470588235294 * deltaT;  // -20dB / 1.7s
 		// float levelDb = peakDb;

@@ -8,7 +8,7 @@
 #include <string.h>
 
 ExpanderFilter::ExpanderFilter(OscContainer* parent)
-    : OscContainer(parent, "expanderFilter"),
+    : OscContainer(parent, "expanderFilter", 8),
       enable(this, "enable", false),
       attackTime(this, "attackTime", 0),
       releaseTime(this, "releaseTime", 8000),

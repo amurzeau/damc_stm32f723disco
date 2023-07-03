@@ -19,7 +19,7 @@ float LogScaleToOsc(float value) {
 FilterChain::FilterChain(OscContainer* parent,
                          OscReadOnlyVariable<int32_t>* oscNumChannel,
                          OscReadOnlyVariable<int32_t>* oscSampleRate)
-    : OscContainer(parent, "filterChain"),
+    : OscContainer(parent, "filterChain", 10),
       // reverbFilters(this, "reverbFilter"),
       eqFilters(this, "eqFilters"),
       compressorFilter(this),

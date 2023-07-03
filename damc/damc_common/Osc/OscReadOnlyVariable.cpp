@@ -69,6 +69,8 @@ template<typename T> void OscReadOnlyVariable<T>::addCheckCallback(std::function
 }
 
 template<typename T> void OscReadOnlyVariable<T>::addChangeCallback(std::function<void(readonly_type)> onChange) {
+	if(this->onChangeCallbacks.empty())
+		this->onChangeCallbacks.reserve(2);
 	this->onChangeCallbacks.push_back(onChange);
 	onChange(this->get());
 }

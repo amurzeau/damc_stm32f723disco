@@ -19,8 +19,8 @@ bool OscContainer::osc_node_comparator::operator()(const std::string_view& x, co
 	}
 }
 
-OscContainer::OscContainer(OscContainer* parent, std::string_view name) noexcept
-    : OscNode(parent, name), oscDump(this, "dump") {
+OscContainer::OscContainer(OscContainer* parent, std::string_view name, size_t reserveSize) noexcept
+    : OscNode(parent, name), children(reserveSize), oscDump(this, "dump") {
 	oscDump.setCallback([this](auto) { dump(); });
 }
 

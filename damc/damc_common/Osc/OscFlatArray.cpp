@@ -11,6 +11,11 @@ OscFlatArray<T>::OscFlatArray(OscContainer* parent, std::string_view name) noexc
 	this->getRoot()->addPendingConfigNode(this);
 }
 
+template<typename T>
+void OscFlatArray<T>:: reserve(size_t reserveSize) {
+	values.reserve(reserveSize);
+}
+
 template<typename T> const std::vector<T>& OscFlatArray<T>::getData() const {
 	return values;
 }
@@ -63,6 +68,8 @@ template<typename T> void OscFlatArray<T>::addCheckCallback(std::function<bool(c
 
 template<typename T>
 void OscFlatArray<T>::addChangeCallback(std::function<void(const std::vector<T>&, const std::vector<T>&)> onChange) {
+	if(this->onChangeCallbacks.empty())
+		this->onChangeCallbacks.reserve(2);
 	this->onChangeCallbacks.push_back(onChange);
 	onChange({}, values);
 }
@@ -76,12 +83,14 @@ template<typename T> bool OscFlatArray<T>::callCheckCallbacks(const std::vector<
 }
 
 template<typename T> void OscFlatArray<T>::notifyOsc() {
-	std::vector<OscArgument> valueToSend;
-	valueToSend.reserve(values.size());
-	for(const auto& v : values) {
-		valueToSend.push_back(v);
+	//std::vector<OscArgument> valueToSend;
+	size_t size = values.size();
+	OscArgument valueToSend[size];
+
+	for(size_t i = 0; i < size; i++) {
+		valueToSend[i] = values[i];
 	}
-	sendMessage(&valueToSend[0], valueToSend.size());
+	sendMessage(&valueToSend[0], size);
 }
 
 template<typename T> bool OscFlatArray<T>::checkData(const std::vector<T>& savedValues, bool fromOsc) {
