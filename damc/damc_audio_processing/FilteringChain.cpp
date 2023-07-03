@@ -11,7 +11,9 @@ float LogScaleFromOsc(float value) {
 }
 
 float LogScaleToOsc(float value) {
-	return fastlog2(value) / LOG10_VALUE_DIV_20;
+	float logValue = fastlog2(value) / LOG10_VALUE_DIV_20;
+	logValue = roundf(logValue*100.f)/100.f;
+	return logValue;
 }
 
 FilterChain::FilterChain(OscContainer* parent,
