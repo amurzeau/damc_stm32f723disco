@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <math.h>
 #include <string.h>
+#include <Utils.h>
 
 ReverbFilter::ReverbFilter(OscContainer* parent, const std::string_view& name)
     : OscContainer(parent, name),
@@ -11,7 +12,7 @@ ReverbFilter::ReverbFilter(OscContainer* parent, const std::string_view& name)
       gain(this, "gain", 0.893),
       reverberators(this, "innerReverberators") {
 	reverberators.setFactory(
-	    [](OscContainer* parent, int name) { return new ReverbFilter(parent, std::to_string(name)); });
+	    [](OscContainer* parent, int name) { return new ReverbFilter(parent, Utils::toString(name)); });
 	delay.addChangeCallback([this](int32_t oscValue) { delayFilter.setParameters(oscValue); });
 }
 

@@ -4,6 +4,7 @@
 #include <fastapprox/fastlog.h>
 #include <math.h>
 #include <string.h>
+#include <Utils.h>
 
 float LogScaleFromOsc(float value) {
 	return fastpow2(value * LOG10_VALUE_DIV_20);
@@ -28,8 +29,8 @@ FilterChain::FilterChain(OscContainer* parent,
       mute(this, "mute", false),
       reverseAudioSignal(this, "reverseAudioSignal", false) {
 	//	reverbFilters.setFactory(
-	//	    [](OscContainer* parent, int name) { return new ReverbFilter(parent, std::to_string(name)); });
-	eqFilters.setFactory([](OscContainer* parent, int name) { return new EqFilter(parent, std::to_string(name)); });
+	//	    [](OscContainer* parent, int name) { return new ReverbFilter(parent, Utils::toString(name)); });
+	eqFilters.setFactory([](OscContainer* parent, int name) { return new EqFilter(parent, Utils::toString(name)); });
 
 	delay.addChangeCallback([this](int32_t newValue) {
 		for(DelayFilter& filter : delayFilters) {
