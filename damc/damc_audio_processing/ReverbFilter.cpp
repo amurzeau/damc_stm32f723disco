@@ -22,7 +22,7 @@ void ReverbFilter::reset(int depth, unsigned int innerReverberatorCount) {
 	if(depth > 0) {
 		reverberators.resize(innerReverberatorCount);
 		for(auto& filter : reverberators)
-			filter.second->reset(depth - 1, innerReverberatorCount);
+			filter->reset(depth - 1, innerReverberatorCount);
 	}
 }
 
@@ -38,7 +38,7 @@ float ReverbFilter::processOneSample(float input) {
 	float delayedSample = delayFilter.processOneSample(input + previousDelayOutput * gain);
 
 	for(auto& reverberator : reverberators)
-		delayedSample = reverberator.second->processOneSample(delayedSample);
+		delayedSample = reverberator->processOneSample(delayedSample);
 
 	previousDelayOutput = delayedSample;
 

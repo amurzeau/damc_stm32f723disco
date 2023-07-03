@@ -56,7 +56,7 @@ void FilterChain::updateNumChannels(size_t numChannel) {
 	eqFilters.resize(6);
 
 	for(auto& filter : eqFilters) {
-		filter.second->init(numChannel);
+		filter->init(numChannel);
 	}
 
 	compressorFilter.init(numChannel);
@@ -72,7 +72,7 @@ void FilterChain::reset(double fs) {
 	//	}
 
 	for(auto& filter : eqFilters) {
-		filter.second->reset(fs);
+		filter->reset(fs);
 	}
 
 	compressorFilter.reset(fs);
@@ -92,7 +92,7 @@ void FilterChain::processSamples(float** samples, size_t numChannel, size_t coun
 	}
 
 	for(auto& filter : eqFilters) {
-		filter.second->processSamples(samples, count);
+		filter->processSamples(samples, count);
 	}
 
 	expanderFilter.processSamples(samples, count);

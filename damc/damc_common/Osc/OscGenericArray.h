@@ -3,7 +3,7 @@
 #include "OscContainer.h"
 #include "OscFlatArray.h"
 #include "Utils.h"
-#include <map>
+#include <vector>
 #include <memory>
 #include <set>
 #include <spdlog/spdlog.h>
@@ -23,6 +23,7 @@ public:
 	T& at(size_t index) { return *value.at(index); }
 	const T& at(size_t index) const { return *value.at(index); }
 	bool contains(size_t index) const;
+	bool containsStr(std::string_view indexStr) const;
 
 	int32_t getNextKey();
 	void push_back();
@@ -49,7 +50,7 @@ protected:
 
 private:
 	OscFlatArray<int32_t> keys;
-	std::map<int32_t, std::unique_ptr<T>> value;
+	std::vector<std::unique_ptr<T>> value;
 	OscFactoryFunction factoryFunction;
 	int32_t nextKey;
 };
@@ -60,6 +61,8 @@ OscGenericArray<T>::OscGenericArray(OscContainer* parent, std::string_view name)
 	keys.addChangeCallback([this](const std::vector<int32_t>& oldKeys, const std::vector<int32_t>& newKeys) {
 		std::vector<int32_t> keysToKeep;
 		bool mustUpdateKeys = false;
+
+		keysToKeep.reserve(newKeys.size());
 
 		for(size_t i = 0; i < newKeys.size(); i++) {
 			int32_t key = newKeys[i];
@@ -78,7 +81,6 @@ OscGenericArray<T>::OscGenericArray(OscContainer* parent, std::string_view name)
 			}
 		}
 
-		std::vector<int32_t> keyToRemove;
 		for(int32_t key : oldKeys) {
 			if(std::count(keysToKeep.begin(), keysToKeep.end(), key) == 0) {
 				eraseValue(key);
@@ -95,7 +97,17 @@ template<typename T> void OscGenericArray<T>::setFactory(OscFactoryFunction fact
 }
 
 template<typename T> bool OscGenericArray<T>::contains(size_t index) const {
-	return value.count(index) > 0;
+	std::string_view indexStr = Utils::toString(index);
+	return containsStr(indexStr);
+}
+
+template<typename T> bool OscGenericArray<T>::containsStr(std::string_view indexStr) const {
+	for(const auto& item : value) {
+		if(item->getName() == indexStr) {
+			return true;
+		}
+	}
+	return false;
 }
 
 template<typename T> int32_t OscGenericArray<T>::getNextKey() {
@@ -125,9 +137,10 @@ template<typename T> void OscGenericArray<T>::resize(size_t newSize) {
 
 	if(newSize < value.size()) {
 		while(value.size() > newSize) {
-			erase(value.rbegin()->first);
+			erase(Utils::stringviewToNumber((*value.rbegin())->getName()));
 		}
 	} else {
+		value.reserve(newSize);
 		while(value.size() < newSize) {
 			push_back();
 		}
@@ -141,9 +154,8 @@ void OscGenericArray<T>::execute(std::string_view address, const std::vector<Osc
 	splitAddress(address, &childAddress, nullptr);
 
 	if(!childAddress.empty() && Utils::isNumber(childAddress)) {
-		int32_t key = Utils::stringviewToNumber(childAddress);
-
-		if(value.count(key) == 0) {
+		if(containsStr(childAddress) == 0) {
+			int32_t key = Utils::stringviewToNumber(childAddress);
 			SPDLOG_DEBUG("{}: detect new key {} by direct access", this->getFullAddress(), key);
 			insert(key);
 		}
@@ -154,9 +166,10 @@ void OscGenericArray<T>::execute(std::string_view address, const std::vector<Osc
 
 template<typename T> void OscGenericArray<T>::updateNextKeyToMaxKey() {
 	int32_t maxKey = 0;
-	for(auto it = value.begin(); it != value.end(); ++it) {
-		if(it->first + 1 > maxKey || it == value.begin())
-			maxKey = it->first + 1;
+	for(const auto& item : value) {
+		int32_t key = Utils::stringviewToNumber(item->getName());
+		if(key + 1 > maxKey)
+			maxKey = key + 1;
 	}
 
 	nextKey = maxKey;
@@ -168,18 +181,18 @@ template<typename T> void OscGenericArray<T>::insertValue(int32_t key) {
 	T* newValue = factoryFunction(this, key);
 
 	initializeItem(newValue);
-	value.insert(std::make_pair(key, std::unique_ptr<T>(newValue)));
+	value.emplace_back(newValue);
 }
 
 template<typename T> void OscGenericArray<T>::eraseValue(int32_t key) {
 	SPDLOG_INFO("{}: removing item {}", this->getFullAddress(), key);
 
-	for(auto it = value.begin(); it != value.end();) {
-		if(it->first == key) {
-			value.erase(it);
-			break;
-		} else {
-			++it;
+	std::string_view name = Utils::toString(key);
+
+	for(size_t i = 0; i < value.size(); i++) {
+		if(value[i]->getName() == name) {
+			value.erase(value.begin() + i);
+			return;
 		}
 	}
 
