@@ -64,9 +64,9 @@
 
 #define USBD_VID     1155
 #define USBD_LANGID_STRING     1033
-#define USBD_MANUFACTURER_STRING     "STMicroelectronics"
+#define USBD_MANUFACTURER_STRING     "Alexis Murzeau"
 #define USBD_PID_HS     22336
-#define USBD_PRODUCT_STRING_HS     "STM32 Audio Class"
+#define USBD_PRODUCT_STRING_HS     "DAMC STM32 Audio"
 #define USBD_CONFIGURATION_STRING_HS     "AUDIO Config"
 #define USBD_INTERFACE_STRING_HS     "AUDIO Interface"
 
