@@ -12,7 +12,7 @@ public:
 	void init();
 	void stop();
 	void sendOscData(const uint8_t* buffer, size_t sizeToSend) override;
-	void mainLoop();
+	bool mainLoop();
 
 protected:
 private:

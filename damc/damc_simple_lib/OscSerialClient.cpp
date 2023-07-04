@@ -32,13 +32,16 @@ void OscSerialClient::sendOscData(const uint8_t* data, size_t size) {
 	USB_CDC_IF_TX_write(data, size);
 }
 
-void OscSerialClient::mainLoop() {
+bool OscSerialClient::mainLoop() {
 	size_t read_size = USB_CDC_IF_RX_read(rx_buffer.data(), rx_buffer.size());
 	if(read_size > 0) {
 		TimeMeasure::timeMeasureOscInput.beginMeasure();
 		onOscDataReceived(rx_buffer.data(), read_size);
 		TimeMeasure::timeMeasureOscInput.endMeasure();
+		return true;
 	}
+
+	return false;
 }
 
 void OscSerialClient::init() {}

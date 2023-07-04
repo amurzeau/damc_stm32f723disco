@@ -24,8 +24,16 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
 	  timeMeasureAudioProcessing(&oscRoot, "timeAudioProc"),
 	  timeMeasureFastTimer(&oscRoot, "timeFastTimer"),
 	  timeMeasureOscInput(&oscRoot, "timeOscInput"),
+	  timeMeasureMaxPerLoopUsbInterrupt(&oscRoot, "timePerLoopUsbInterrupt"),
+	  timeMeasureMaxPerLoopAudioProcessing(&oscRoot, "timePerLoopAudioProc"),
+	  timeMeasureMaxPerLoopFastTimer(&oscRoot, "timePerLoopFastTimer"),
+	  timeMeasureMaxPerLoopOscInput(&oscRoot, "timePerLoopOscInput"),
 	  memoryAvailable(&oscRoot, "memoryAvailable"),
-	  memoryUsed(&oscRoot, "memoryUsed")
+	  memoryUsed(&oscRoot, "memoryUsed"),
+	  fastTimerPreviousTick(0),
+	  nextTimerStripIndex(0),
+	  slowTimerPreviousTick(0),
+	  slowTimerIndex(0)
 {
 	strips.setFactory([this, numChannels, sampleRate, maxNframes](OscContainer* parent, int name) {
 		return new ChannelStrip(parent, name, numChannels, sampleRate, maxNframes);
@@ -53,37 +61,63 @@ void AudioProcessor::processAudioInterleaved(int16_t index,
 	TimeMeasure::timeMeasureAudioProcessing.endMeasure();
 }
 
-extern "C" uint8_t *__sbrk_heap_end;
-extern "C" uint8_t _end;
-extern "C" uint8_t _estack;
-extern "C" uint8_t _Min_Stack_Size;
+extern "C" uint8_t *__sbrk_heap_end; // end of heap
+extern "C" uint8_t _end; // end of static data in RAM (start of heap)
+extern "C" uint8_t _estack; // start of RAM (end of RAM as stack grows backward)
+extern "C" uint8_t _Min_Stack_Size; // minimal stack size
 void AudioProcessor::mainLoop() {
-	serialClient.mainLoop();
+	// Do at most one thing to avoid taking too much time here
+	if(serialClient.mainLoop())
+		return;
 
 	uint32_t currentTick = HAL_GetTick();
 	// Do onFastTimer every 100ms
 	// Process one strip at a time to avoid taking too much time
 	if(currentTick >= fastTimerPreviousTick + (100/AUDIO_LOOPBACKS_NUMBER)) {
 		TimeMeasure::timeMeasureFastTimer.beginMeasure();
+
 		fastTimerPreviousTick = currentTick;
 		strips.at(nextTimerStripIndex).onFastTimer();
 		nextTimerStripIndex++;
 		if(nextTimerStripIndex >= AUDIO_LOOPBACKS_NUMBER)
 			nextTimerStripIndex = 0;
+
+		TimeMeasure::timeMeasureFastTimer.endMeasure();
+	} else if(currentTick >= slowTimerPreviousTick + 1000/3) {
+		TimeMeasure::timeMeasureFastTimer.beginMeasure();
+
+		slowTimerPreviousTick = currentTick;
+
+		switch(slowTimerIndex) {
+		case 0:
+			timeMeasureUsbInterrupt.set(TimeMeasure::timeMeasureUsbInterrupt.getCumulatedTimeUsAndReset());
+			timeMeasureAudioProcessing.set(TimeMeasure::timeMeasureAudioProcessing.getCumulatedTimeUsAndReset());
+			timeMeasureFastTimer.set(TimeMeasure::timeMeasureFastTimer.getCumulatedTimeUsAndReset());
+			timeMeasureOscInput.set(TimeMeasure::timeMeasureOscInput.getCumulatedTimeUsAndReset());
+			break;
+		case 1:
+			timeMeasureMaxPerLoopUsbInterrupt.set(TimeMeasure::timeMeasureUsbInterrupt.getMaxTimeUsAndReset());
+			timeMeasureMaxPerLoopAudioProcessing.set(TimeMeasure::timeMeasureAudioProcessing.getMaxTimeUsAndReset());
+			timeMeasureMaxPerLoopFastTimer.set(TimeMeasure::timeMeasureFastTimer.getMaxTimeUsAndReset());
+			timeMeasureMaxPerLoopOscInput.set(TimeMeasure::timeMeasureOscInput.getMaxTimeUsAndReset());
+			break;
+		case 2:
+			OscArgument used_memory = static_cast<int32_t>((uint32_t)__sbrk_heap_end - (uint32_t)&_end);
+			memoryUsed.sendMessage(&used_memory, 1);
+
+			OscArgument available_memory = static_cast<int32_t>((uint32_t)&_estack - (uint32_t)&_Min_Stack_Size - (uint32_t)__sbrk_heap_end);
+			memoryAvailable.sendMessage(&available_memory, 1);
+			break;
+		}
+		slowTimerIndex++;
+		if(slowTimerIndex > 2)
+			slowTimerIndex = 0;
+
 		TimeMeasure::timeMeasureFastTimer.endMeasure();
 	}
 
-	currentTick = HAL_GetTick();
-	if(currentTick >= slowTimerPreviousTick + 1000) {
-		slowTimerPreviousTick = currentTick;
-		timeMeasureUsbInterrupt.set(TimeMeasure::timeMeasureUsbInterrupt.getCumulatedTimeUsAndReset());
-		timeMeasureAudioProcessing.set(TimeMeasure::timeMeasureAudioProcessing.getCumulatedTimeUsAndReset());
-		timeMeasureFastTimer.set(TimeMeasure::timeMeasureFastTimer.getCumulatedTimeUsAndReset());
-		timeMeasureOscInput.set(TimeMeasure::timeMeasureOscInput.getCumulatedTimeUsAndReset());
-
-		OscArgument used_memory = static_cast<int32_t>((uint32_t)__sbrk_heap_end - (uint32_t)&_end);
-		OscArgument available_memory = static_cast<int32_t>((uint32_t)&_estack - (uint32_t)&_Min_Stack_Size - (uint32_t)__sbrk_heap_end);
-		memoryUsed.sendMessage(&used_memory, 1);
-		memoryAvailable.sendMessage(&available_memory, 1);
-	}
+	TimeMeasure::timeMeasureUsbInterrupt.endAudioLoop();
+	TimeMeasure::timeMeasureAudioProcessing.endAudioLoop();
+	TimeMeasure::timeMeasureFastTimer.endAudioLoop();
+	TimeMeasure::timeMeasureOscInput.endAudioLoop();
 }

@@ -27,10 +27,17 @@ private:
 	OscReadOnlyVariable<int32_t> timeMeasureAudioProcessing;
 	OscReadOnlyVariable<int32_t> timeMeasureFastTimer;
 	OscReadOnlyVariable<int32_t> timeMeasureOscInput;
+
+	OscReadOnlyVariable<int32_t> timeMeasureMaxPerLoopUsbInterrupt;
+	OscReadOnlyVariable<int32_t> timeMeasureMaxPerLoopAudioProcessing;
+	OscReadOnlyVariable<int32_t> timeMeasureMaxPerLoopFastTimer;
+	OscReadOnlyVariable<int32_t> timeMeasureMaxPerLoopOscInput;
+
 	OscDynamicVariable<int32_t> memoryAvailable;
 	OscDynamicVariable<int32_t> memoryUsed;
 
 	uint32_t fastTimerPreviousTick;
 	uint32_t nextTimerStripIndex;
 	uint32_t slowTimerPreviousTick;
+	uint32_t slowTimerIndex;
 };
