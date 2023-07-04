@@ -159,6 +159,8 @@ USBD_ClassTypeDef USBD_AUDIO =
   * @}
   */
 extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
+
+#ifdef USB_AUDIO_ENABLE_HISTORY
 void USBD_AUDIO_trace(USBD_AUDIO_LoopbackDataTypeDef* data, const char* operation) {
   if(data < loopbackData || data >= &loopbackData[AUDIO_LOOPBACKS_NUMBER])
     return;
@@ -172,6 +174,7 @@ void USBD_AUDIO_trace(USBD_AUDIO_LoopbackDataTypeDef* data, const char* operatio
   data->history[data->history_index].DOEPINT = USBx_OUTEP(5)->DOEPINT;
   //data->history[data->history_index].frame = (USBx_DEVICE->DSTS & USB_OTG_DSTS_FNSOF) >> USB_OTG_DSTS_FNSOF_Pos;
 }
+#endif
 
 USBD_AUDIO_LoopbackDataTypeDef* USBD_AUDIO_getDataFromEndpoint(USBD_AUDIO_HandleTypeDef* haudio,
                                                              uint8_t epnum)
@@ -716,7 +719,7 @@ static uint8_t USBD_AUDIO_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_
 
   USBD_AUDIO_trace(data, "OutTokenWhileDisabled");
 
-
+#ifdef USB_AUDIO_ENABLE_HISTORY
   if(data->history_save_disable == 1) {
 	  uint8_t history_index = data->history_index + 1;
 	  memcpy(data->history_on_isoincomplete, &data->history[history_index], (256 - history_index)*sizeof(struct history_data));
@@ -725,6 +728,7 @@ static uint8_t USBD_AUDIO_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_
   if(data->history_save_disable > 0) {
 	  data->history_save_disable--;
   }
+#endif
 
   if(data->current_alternate[0] && data->transfer_in_progress[0] == 0) {
 	  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;

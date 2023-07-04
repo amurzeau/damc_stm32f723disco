@@ -20,6 +20,8 @@
 #ifndef __USB_AUDIO_H
 #define __USB_AUDIO_H
 
+//#define USB_AUDIO_ENABLE_HISTORY
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -191,17 +193,27 @@ typedef struct {
 	uint32_t transfer_in_progress[2];
 	uint32_t incomplete_iso[2];
 	uint32_t complete_iso[2];
+#ifdef USB_AUDIO_ENABLE_HISTORY
 	struct history_data history[256];
 	struct history_data history_on_isoincomplete[256];
+#endif
 	volatile enum USBD_AUDIO_RXTransferState buffer_rx_state;
 	volatile enum USBD_AUDIO_TXTransferState buffer_tx_state;
+#ifdef USB_AUDIO_ENABLE_HISTORY
 	uint8_t history_index;
 	uint8_t history_save_disable;
 	uint8_t dummy;
+#endif
 	uint8_t buffer_rx[AUDIO_OUT_PACKET];
 	uint8_t buffer_tx[AUDIO_OUT_PACKET];
 } USBD_AUDIO_LoopbackDataTypeDef;
+
+#ifdef USB_AUDIO_ENABLE_HISTORY
 void USBD_AUDIO_trace(USBD_AUDIO_LoopbackDataTypeDef* data, const char* operation);
+#else
+#define USBD_AUDIO_trace(...) ((void)0)
+#endif
+
 extern USBD_AUDIO_LoopbackDataTypeDef loopbackData[AUDIO_LOOPBACKS_NUMBER];
 
 typedef struct
