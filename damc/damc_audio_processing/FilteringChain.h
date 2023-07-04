@@ -19,7 +19,7 @@ public:
 	            OscReadOnlyVariable<int32_t>* oscNumChannel,
 	            OscReadOnlyVariable<int32_t>* oscSampleRate);
 
-	void reset(double fs);
+	void reset(float fs);
 	void processSamples(float** samples, size_t numChannel, size_t count);
 	float processSideChannelSample(float input);
 

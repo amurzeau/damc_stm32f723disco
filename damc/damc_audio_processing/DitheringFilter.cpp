@@ -11,21 +11,21 @@ DitheringFilter::DitheringFilter() : dither1(0, 1), dither2(-1, 0) {
 	bitRatio = 0;
 }
 
-void DitheringFilter::reset(double) {
+void DitheringFilter::reset(float) {
 	previousRandom = 0;
 	previousQuantizationError = 0;
 }
 
 void DitheringFilter::processSamples(float* samples, size_t count) {
 	if(bitReduction) {
-		double quantizationError = previousQuantizationError;
+		float quantizationError = previousQuantizationError;
 		for(size_t i = 0; i < count; i++) {
-			double r = (dither1(randGenerator) - 0.5) / bitRatio;
-			double dither = previousRandom - r;
+			float r = (dither1(randGenerator) - 0.5) / bitRatio;
+			float dither = previousRandom - r;
 			previousRandom = r;
 			if(scale == 0)
 				dither = 0;
-			double nonQuantizedOutput = samples[i] - dither /*+ scale * quantizationError*/;
+			float nonQuantizedOutput = samples[i] - dither /*+ scale * quantizationError*/;
 			samples[i] = floor(nonQuantizedOutput * bitRatio) / bitRatio;
 			quantizationError = samples[i] - nonQuantizedOutput;
 		}
@@ -33,7 +33,7 @@ void DitheringFilter::processSamples(float* samples, size_t count) {
 	}
 }
 
-void DitheringFilter::setParameters(double scale, int bitReduction) {
+void DitheringFilter::setParameters(float scale, int bitReduction) {
 	this->scale = scale;
 	this->bitReduction = bitReduction;
 	if(bitReduction > 0)

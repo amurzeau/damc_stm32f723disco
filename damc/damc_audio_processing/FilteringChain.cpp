@@ -63,7 +63,7 @@ void FilterChain::updateNumChannels(size_t numChannel) {
 	expanderFilter.init(numChannel);
 }
 
-void FilterChain::reset(double fs) {
+void FilterChain::reset(float fs) {
 	for(DelayFilter& delayFilter : delayFilters) {
 		delayFilter.reset();
 	}

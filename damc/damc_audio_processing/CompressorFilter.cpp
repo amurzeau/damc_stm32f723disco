@@ -27,7 +27,7 @@ void CompressorFilter::init(size_t numChannel) {
 	perChannelData.resize(numChannel);
 }
 
-void CompressorFilter::reset(double fs) {
+void CompressorFilter::reset(float fs) {
 	this->fs = fs;
 	gainHoldSamples = (uint32_t) (fs / 20);
 	std::fill_n(perChannelData.begin(), numChannel, PerChannelData{});

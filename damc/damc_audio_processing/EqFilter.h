@@ -11,13 +11,10 @@ public:
 	EqFilter(OscContainer* parent, const std::string_view& name);
 
 	void init(size_t numChannel);
-	void reset(double fs);
+	void reset(float fs);
 	void processSamples(float** samples, size_t count);
 
-	void setParameters(bool enabled, FilterType filterType, double f0, double gain, double Q);
-	void getParameters(bool& enabled, FilterType& filterType, double& f0, double& gain, double& Q);
-
-	std::complex<double> getResponse(double f0);
+	std::complex<float> getResponse(float f0);
 
 private:
 	OscVariable<bool> enabled;

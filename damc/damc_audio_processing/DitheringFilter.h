@@ -8,22 +8,22 @@ class DitheringFilter {
 public:
 	DitheringFilter();
 
-	void reset(double fs);
+	void reset(float fs);
 	void processSamples(float* samples, size_t count);
 
-	void setParameters(double scale, int bitReduction);
-	void getParameters(double& scale, int& bitReduction) {
+	void setParameters(float scale, int bitReduction);
+	void getParameters(float& scale, int& bitReduction) {
 		scale = this->scale;
 		bitReduction = this->bitReduction;
 	}
 
 private:
-	double scale;
+	float scale;
 	int bitReduction;
-	double bitRatio;
-	double previousQuantizationError;
-	double previousRandom;
-	std::uniform_real_distribution<double> dither1;
-	std::uniform_real_distribution<double> dither2;
+	float bitRatio;
+	float previousQuantizationError;
+	float previousRandom;
+	std::uniform_real_distribution<float> dither1;
+	std::uniform_real_distribution<float> dither2;
 	std::mt19937_64 randGenerator;
 };

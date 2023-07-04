@@ -23,7 +23,7 @@ void EqFilter::init(size_t numChannel) {
 	biquadFilters.resize(numChannel);
 }
 
-void EqFilter::reset(double fs) {
+void EqFilter::reset(float fs) {
 	this->fs = fs;
 	computeFilter();
 }
@@ -42,33 +42,16 @@ void EqFilter::processSamples(float** samples, size_t count) {
 	}
 }
 
-std::complex<double> EqFilter::getResponse(double f0) {
+std::complex<float> EqFilter::getResponse(float f0) {
 	return biquadFilters.front().getResponse(f0, fs);
 }
 
 void EqFilter::computeFilter() {
-	double a_coefs[3];
-	double b_coefs[3];
+	float a_coefs[3];
+	float b_coefs[3];
 
 	BiquadFilter::computeFilter(enabled, (FilterType) filterType.get(), f0, fs, gain, Q, a_coefs, b_coefs);
 
 	for(BiquadFilter& biquadFilter : biquadFilters)
 		biquadFilter.update(a_coefs, b_coefs);
-}
-
-void EqFilter::setParameters(bool enabled, FilterType filterType, double f0, double gain, double Q) {
-	this->enabled = enabled;
-	this->filterType = (int32_t) filterType;
-	this->f0 = f0;
-	this->gain = gain;
-	this->Q = Q;
-	computeFilter();
-}
-
-void EqFilter::getParameters(bool& enabled, FilterType& filterType, double& f0, double& gain, double& Q) {
-	enabled = this->enabled;
-	filterType = (FilterType) this->filterType.get();
-	f0 = this->f0;
-	gain = this->gain;
-	Q = this->Q;
 }

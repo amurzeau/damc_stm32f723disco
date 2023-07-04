@@ -26,7 +26,7 @@ protected:
 public:
 	CompressorFilter(OscContainer* parent);
 	void init(size_t numChannel);
-	void reset(double fs);
+	void reset(float fs);
 	void processSamples(float** samples, size_t count);
 
 protected:
@@ -39,7 +39,7 @@ private:
 	std::vector<PerChannelData> perChannelData;
 
 	OscVariable<bool> enable;
-	double fs = 48000;
+	float fs = 48000;
 	float alphaR;
 	float alphaA;
 	OscVariable<float> attackTime;

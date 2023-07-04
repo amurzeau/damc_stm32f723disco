@@ -27,7 +27,7 @@ void ExpanderFilter::init(size_t numChannel) {
 	previousLevelDetectorOutput.resize(numChannel);
 }
 
-void ExpanderFilter::reset(double fs) {
+void ExpanderFilter::reset(float fs) {
 	this->fs = fs;
 	std::fill_n(previousPartialGainComputerOutput.begin(), numChannel, 0);
 	std::fill_n(previousLevelDetectorOutput.begin(), numChannel, 0);
