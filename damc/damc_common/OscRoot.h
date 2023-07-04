@@ -29,7 +29,7 @@ public:
 	void setOnOscValueChanged(std::function<void()> onOscValueChanged);
 
 	// Called by nodes
-	void sendMessage(const std::string& address, const OscArgument* argument, size_t number);
+	void sendMessage(const OscNode* node, const OscArgument* argument, size_t number);
 	bool isOscValueAuthority();
 	void notifyValueChanged();
 
@@ -45,6 +45,7 @@ protected:
 
 private:
 	std::set<OscConnector*> connectors;
+	std::string nodeFullAddress;
 	std::unique_ptr<uint8_t[]> oscOutputMessage;
 	size_t oscOutputMaxSize;
 	std::function<void()> onOscValueChanged;

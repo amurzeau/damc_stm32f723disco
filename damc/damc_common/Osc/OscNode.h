@@ -76,7 +76,7 @@ public:
 	template<typename T> static bool getArgumentAs(const OscArgument& argument, T& v);
 
 	void setOscParent(OscContainer* parent);
-	const std::string& getFullAddress() const;
+	void getFullAddress(std::string* output) const;
 	const std::string_view& getName() const { return name; }
 	virtual void dump() {}
 
@@ -103,7 +103,6 @@ protected:
 
 private:
 	std::string_view name;
-	mutable std::string fullAddress;
 	OscContainer* parent;
 };
 

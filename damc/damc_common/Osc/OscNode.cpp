@@ -77,12 +77,10 @@ size_t OscNode::constructFullName(std::string* outputString) const {
 	return fullNameSize;
 }
 
-const std::string& OscNode::getFullAddress() const {
-	if(fullAddress.empty()) {
-		fullAddress.reserve(constructFullName(nullptr));
-		constructFullName(&fullAddress);
-	}
-	return fullAddress;
+void OscNode::getFullAddress(std::string* output) const {
+	output->clear();
+	output->reserve(constructFullName(nullptr));
+	constructFullName(output);
 }
 
 bool OscNode::visit(const std::function<bool(OscNode*)>* nodeVisitorFunction) {
@@ -96,7 +94,7 @@ bool OscNode::visit(const std::function<bool(OscNode*)>* nodeVisitorFunction) {
 }
 
 void OscNode::sendMessage(const OscArgument* arguments, size_t number) {
-	getRoot()->sendMessage(getFullAddress(), arguments, number);
+	getRoot()->sendMessage(this, arguments, number);
 }
 
 void OscNode::execute(std::string_view address, const std::vector<OscArgument>& arguments) {

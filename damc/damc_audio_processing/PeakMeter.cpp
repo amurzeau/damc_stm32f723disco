@@ -9,13 +9,14 @@ PeakMeter::PeakMeter(OscContainer* parent,
                      OscReadOnlyVariable<int32_t>* oscSampleRate)
     : oscRoot(parent->getRoot()),
       oscSampleRate(oscSampleRate),
+	  oscPeakGlobal(parent, "meter"),
+	  oscPeakPerChannel(parent, "meter_per_channel"),
       samplesInPeaks(0),
       oscEnablePeakUpdate(parent, "meter_enable_per_channel", false) {
-	oscPeakGlobalPath = parent->getFullAddress() + "/meter";
-	oscPeakPerChannelPath = parent->getFullAddress() + "/meter_per_channel";
 
 	oscNumChannel->addChangeCallback([this](int32_t newValue) {
 		levelsDb.resize(newValue, -192);
+		oscPeakPerChannelArguments.reserve(levelsDb.size());
 
 		// peakMutex.lock();
 		peaksPerChannel.resize(newValue, 0);
@@ -77,13 +78,12 @@ void PeakMeter::onFastTimer() {
 
 	if(oscEnablePeakUpdate.get()) {
 		OscArgument argument = maxLevel;
-		oscRoot->sendMessage(oscPeakGlobalPath, &argument, 1);
+		oscPeakGlobal.sendMessage(&argument, 1);
 	}
 
 	oscPeakPerChannelArguments.clear();
-	oscPeakPerChannelArguments.reserve(levelsDb.size());
 	for(auto v : levelsDb) {
 		oscPeakPerChannelArguments.emplace_back(v);
 	}
-	oscRoot->sendMessage(oscPeakPerChannelPath, oscPeakPerChannelArguments.data(), oscPeakPerChannelArguments.size());
+	oscPeakPerChannel.sendMessage(oscPeakPerChannelArguments.data(), oscPeakPerChannelArguments.size());
 }

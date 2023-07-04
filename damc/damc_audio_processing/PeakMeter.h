@@ -2,6 +2,7 @@
 
 #include <LoudnessMeter.h>
 #include <Osc/OscVariable.h>
+#include <Osc/OscDynamicVariable.h>
 // #include <mutex>
 #include <stdint.h>
 #include <string>
@@ -27,6 +28,8 @@ public:
 private:
 	OscRoot* oscRoot;
 	OscReadOnlyVariable<int32_t>* oscSampleRate;
+	OscDynamicVariable<float> oscPeakGlobal;
+	OscDynamicVariable<float> oscPeakPerChannel;
 
 	std::vector<float> levelsDb;
 	// std::mutex peakMutex;

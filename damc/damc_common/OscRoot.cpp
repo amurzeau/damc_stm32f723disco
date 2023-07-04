@@ -16,10 +16,12 @@ void OscRoot::printAllNodes() {
 	SPDLOG_INFO("Nodes:\n{}", getAsString().c_str());
 }
 
-void OscRoot::sendMessage(const std::string& address, const OscArgument* arguments, size_t number) {
+void OscRoot::sendMessage(const OscNode* node, const OscArgument* arguments, size_t number) {
 	tosc_message osc;
 	char format[256] = ",";
 	char* formatPtr = format + 1;
+
+	node->getFullAddress(&nodeFullAddress);
 
 	if(number > sizeof(format) - 2) {
 		SPDLOG_ERROR("Too many arguments, can't send OSC message: {}", number);
@@ -47,7 +49,7 @@ void OscRoot::sendMessage(const std::string& address, const OscArgument* argumen
 	}
 	*formatPtr++ = '\0';
 
-	if(tosc_writeMessageHeader(&osc, address.c_str(), format, (char*) oscOutputMessage.get(), oscOutputMaxSize) != 0) {
+	if(tosc_writeMessageHeader(&osc, nodeFullAddress.c_str(), format, (char*) oscOutputMessage.get(), oscOutputMaxSize) != 0) {
 		SPDLOG_ERROR("failed to write OSC message");
 		return;
 	}
@@ -78,7 +80,7 @@ void OscRoot::sendMessage(const std::string& address, const OscArgument* argumen
 		}
 	}
 
-	SPDLOG_TRACE("Sending OSC message {} {}", address, getArgumentVectorAsString(arguments, number));
+	SPDLOG_TRACE("Sending OSC message {} {}", nodeFullAddress, getArgumentVectorAsString(arguments, number));
 	for(OscConnector* connector : connectors) {
 		connector->sendOscMessage(oscOutputMessage.get(), tosc_getMessageLength(&osc));
 	}
@@ -87,12 +89,16 @@ void OscRoot::sendMessage(const std::string& address, const OscArgument* argumen
 void OscRoot::loadNodeConfig(const std::map<std::string, std::vector<OscArgument>>& configValues) {
 	SPDLOG_DEBUG("Traversing OscNode to assign configuration values");
 
+	std::string nodeAddress;
+
 	while(!nodesPendingConfig.empty()) {
 		auto nextNodeIt = nodesPendingConfig.begin();
 		OscNode* node = *nextNodeIt;
 		nodesPendingConfig.erase(nextNodeIt);
 
-		auto it = configValues.find(node->getFullAddress());
+		node->getFullAddress(&nodeAddress);
+
+		auto it = configValues.find(nodeAddress);
 		if(it != configValues.end()) {
 			node->execute(it->second);
 		}
