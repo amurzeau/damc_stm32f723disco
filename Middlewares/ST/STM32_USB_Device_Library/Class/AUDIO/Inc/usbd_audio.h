@@ -202,10 +202,9 @@ typedef struct {
 #ifdef USB_AUDIO_ENABLE_HISTORY
 	uint8_t history_index;
 	uint8_t history_save_disable;
-	uint8_t dummy;
 #endif
-	uint8_t buffer_rx[AUDIO_OUT_PACKET];
-	uint8_t buffer_tx[AUDIO_OUT_PACKET];
+	uint8_t buffer_rx[AUDIO_OUT_PACKET] __attribute__((aligned(4)));
+	uint8_t buffer_tx[AUDIO_OUT_PACKET] __attribute__((aligned(4)));
 } USBD_AUDIO_LoopbackDataTypeDef;
 
 #ifdef USB_AUDIO_ENABLE_HISTORY
