@@ -23,7 +23,7 @@ void CodecAudio::start() {
 
 void CodecAudio::processAudioInterleaved(const int16_t* data_input, int16_t* data_output, size_t nframes) {
 	writeOutBuffer((uint32_t*)data_output, nframes);
-	//readInBuffer((uint32_t*)data_output, nframes);
+	readInBuffer((uint32_t*)data_output, nframes);
 }
 
 volatile uint32_t diff_dma;
@@ -42,7 +42,7 @@ void CodecAudio::writeOutBuffer(const uint32_t* data, size_t nframes) {
   if(dma_pos < min_dma_pos)
 	  min_dma_pos = dma_pos;
 
-  uint16_t dma_read_offset = out_buffer.size() - ((dma_pos)/2);
+  uint16_t dma_read_offset = out_buffer.size() - ((dma_pos+1)/2);
   uint16_t max_size = (dma_read_offset - out_write_offset - 1 + out_buffer.size()) % out_buffer.size();
 
   diff_dma_out = (out_buffer.size() + CodecAudio::instance.out_write_offset - dma_read_offset) % out_buffer.size();
@@ -78,17 +78,28 @@ void CodecAudio::writeOutBuffer(const uint32_t* data, size_t nframes) {
   out_write_offset = end;
 }
 
-void CodecAudio::readInBuffer(uint32_t* data, size_t word_size) {
+volatile uint32_t in_max_dma_pos = 5;
+volatile uint32_t in_min_dma_pos = 5;
+volatile uint32_t in_dma_pos = 5;
+void CodecAudio::readInBuffer(uint32_t* data, size_t nframes) {
   uint16_t start = in_read_offset;
-  uint16_t dma_write_offset = in_buffer.size() - ((BSP_AUDIO_IN_GetRemainingCount())/2);
+
+  uint32_t dma_pos = BSP_AUDIO_IN_GetRemainingCount();
+  if(dma_pos > in_max_dma_pos)
+	  in_max_dma_pos = dma_pos;
+  if(dma_pos < in_min_dma_pos)
+	  in_min_dma_pos = dma_pos;
+  in_dma_pos = dma_pos;
+
+  uint16_t dma_write_offset = in_buffer.size() - ((dma_pos+1)/2);
   uint16_t end = dma_write_offset;
   uint16_t size = (end - start + in_buffer.size()) % in_buffer.size();
 
   assert(start < in_buffer.size());
   assert(end < in_buffer.size());
 
-  if(size > word_size) {
-	size = word_size;
+  if(size > nframes) {
+	size = nframes;
 	end = (in_read_offset + size) % in_buffer.size();
   }
   assert(end < in_buffer.size());
@@ -106,19 +117,26 @@ void CodecAudio::readInBuffer(uint32_t* data, size_t word_size) {
 	memcpy(&data[first_chunk_size], &in_buffer[0], end * sizeof(in_buffer[0]));
 
 	total_size = first_chunk_size + end;
-	assert(total_size <= word_size);
+	assert(total_size <= nframes);
   } else {
 	// Copy from start to end
 	memcpy(data, &in_buffer[start], (end - start) * sizeof(in_buffer[0]));
 	total_size = end - start;
-	assert(total_size <= word_size);
+	assert(total_size <= nframes);
+  }
+
+  // If not enough data to fill the buffer, add samples using
+  // the same value as the last one.
+  uint32_t fill_sample = total_size > 0 ? data[total_size-1] : 0;
+  for(size_t i = total_size; i < nframes; i++) {
+	  data[i] = fill_sample;
   }
 
   in_read_offset = end;
 }
 
 bool CodecAudio::onFastTimer() {
-  uint16_t dma_read_offset = out_buffer.size() - ((BSP_AUDIO_OUT_GetRemainingCount())/2);
+  uint16_t dma_read_offset = out_buffer.size() - ((BSP_AUDIO_OUT_GetRemainingCount()+1)/2);
   uint16_t start = out_write_offset;
   uint16_t end = (out_buffer.size() + dma_read_offset - 1) % out_buffer.size();
 
