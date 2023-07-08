@@ -113,6 +113,7 @@ static void USB_CDC_IF_BUFFER_write_char(struct USBD_CDC_CircularBuffer* buffer,
     // Buffer not full
     buffer->buffer[buffer->write_index] = c;
     assert(next_write_index < sizeof(buffer->buffer));
+    __DSB();
     buffer->write_index = next_write_index;
   }
 }
@@ -127,6 +128,7 @@ static uint8_t USB_CDC_IF_BUFFER_read_char(struct USBD_CDC_CircularBuffer* buffe
   assert(buffer->read_index < sizeof(buffer->buffer));
 
   *c = buffer->buffer[buffer->read_index];
+  __DSB();
   buffer->read_index = (buffer->read_index + 1) % sizeof(buffer->buffer);
 
   return 1;
@@ -169,6 +171,7 @@ static void USB_CDC_IF_sendPending() {
     assert(total_size <= sizeof(txBuffer.usb_buffer));
   }
 
+  __DSB();
   txBuffer.read_index = end;
 
 
@@ -343,6 +346,7 @@ static int8_t USB_CDC_IF_Receive(uint8_t *Buf, uint32_t *Len)
   }
 
   assert(end < sizeof(rxBuffer.buffer));
+  __DSB();
   rxBuffer.write_index = end;
 
   USBD_CDC_ReceivePacket(usb_pdev);
