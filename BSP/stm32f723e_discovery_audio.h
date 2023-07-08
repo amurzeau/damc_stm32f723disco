@@ -216,6 +216,7 @@
 uint8_t BSP_AUDIO_OUT_Init(uint16_t OutputDevice, uint8_t Volume, uint32_t AudioFreq);
 void    BSP_AUDIO_OUT_DeInit(void);
 uint8_t BSP_AUDIO_OUT_Play(uint16_t* pBuffer, uint32_t Size);
+uint16_t BSP_AUDIO_OUT_GetRemainingCount(void);
 uint8_t BSP_AUDIO_OUT_Pause(void);
 uint8_t BSP_AUDIO_OUT_Resume(void);
 uint8_t BSP_AUDIO_OUT_Stop(uint32_t Option);
@@ -255,6 +256,7 @@ uint8_t BSP_AUDIO_IN_InitEx(uint16_t InputDevice, uint32_t AudioFreq, uint32_t B
 uint8_t BSP_AUDIO_IN_OUT_Init(uint16_t InputDevice, uint16_t OutputDevice, uint32_t AudioFreq, uint32_t BitRes, uint32_t ChnlNbr);
 void    BSP_AUDIO_IN_DeInit(void);
 uint8_t BSP_AUDIO_IN_Record(uint16_t *pData, uint32_t Size);
+uint16_t BSP_AUDIO_IN_GetRemainingCount(void);
 uint8_t BSP_AUDIO_IN_Stop(uint32_t Option);
 uint8_t BSP_AUDIO_IN_Pause(void);
 uint8_t BSP_AUDIO_IN_Resume(void);

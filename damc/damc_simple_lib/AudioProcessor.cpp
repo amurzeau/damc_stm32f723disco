@@ -11,12 +11,13 @@
 #include <usbd_conf.h>
 
 
+volatile AudioProcessor* audio_processor;
+
 AudioProcessor* AudioProcessor::getInstance() {
 	static AudioProcessor instance(2, 48000, 48);
+	audio_processor = &instance;
 	return &instance;
 }
-
-volatile uint32_t variable = sizeof(ChannelStrip);
 
 AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t maxNframes)
     : oscRoot(true), serialClient(&oscRoot), strips(&oscRoot, "strip"),

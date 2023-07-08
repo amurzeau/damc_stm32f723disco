@@ -270,6 +270,15 @@ uint8_t BSP_AUDIO_OUT_Play(uint16_t* pBuffer, uint32_t Size)
 }
 
 /**
+  * @brief  Return the DMA position.
+  * @retval DMA position in half-words. Returned value varies between 1 and N.
+  */
+uint16_t BSP_AUDIO_OUT_GetRemainingCount(void)
+{
+  return __HAL_DMA_GET_COUNTER(haudio_out_sai.hdmatx);
+}
+
+/**
   * @brief  This function Pauses the audio file stream. In case
   *         of using DMA, the DMA Pause feature is used.
   * @note    When calling BSP_AUDIO_OUT_Pause() function for pause, only
@@ -884,7 +893,8 @@ uint8_t BSP_AUDIO_IN_OUT_Init(uint16_t InputDevice, uint16_t OutputDevice, uint3
   uint32_t deviceid = 0x00;
   uint32_t slot_active;
 
-  if ((InputDevice != INPUT_DEVICE_DIGITAL_MICROPHONE_1) &&
+  if ((InputDevice != INPUT_DEVICE_INPUT_LINE_1) &&
+      (InputDevice != INPUT_DEVICE_DIGITAL_MICROPHONE_1) &&
       (InputDevice != INPUT_DEVICE_DIGITAL_MICROPHONE_2) &&
       (InputDevice != INPUT_DEVICE_DIGITAL_MIC1_MIC2))
   {
@@ -979,6 +989,15 @@ uint8_t  BSP_AUDIO_IN_Record(uint16_t* pbuf, uint32_t size)
   }
   
   return ret;
+}
+
+/**
+  * @brief  Return the DMA position.
+  * @retval DMA position in half-words. Returned value varies between 1 and N.
+  */
+uint16_t BSP_AUDIO_IN_GetRemainingCount(void)
+{
+  return __HAL_DMA_GET_COUNTER(haudio_in_sai.hdmarx);
 }
 
 /**
@@ -1192,8 +1211,8 @@ __weak void BSP_AUDIO_IN_MspInit(SAI_HandleTypeDef *hsai, void *Params)
   HAL_NVIC_EnableIRQ(AUDIO_IN_SAIx_DMAx_IRQ);
 
   /* Audio INT IRQ Channel configuration */
-  HAL_NVIC_SetPriority(AUDIO_IN_INT_IRQ, AUDIO_IN_IRQ_PREPRIO, 0);
-  HAL_NVIC_EnableIRQ(AUDIO_IN_INT_IRQ);
+  //HAL_NVIC_SetPriority(AUDIO_IN_INT_IRQ, AUDIO_IN_IRQ_PREPRIO, 0);
+  //HAL_NVIC_EnableIRQ(AUDIO_IN_INT_IRQ);
 }
 
 /**

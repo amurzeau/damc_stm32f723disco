@@ -73,6 +73,8 @@ static void MX_FMC_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
+static void MPU_Config(void);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -123,14 +125,15 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-  MX_SAI2_Init();
+  //MX_SAI2_Init();
   MX_USART6_UART_Init();
   MX_USB_DEVICE_Init();
   MX_FMC_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
-  //k_BspInit();
+  k_BspInit();
+  DAMC_start();
 
   /* USER CODE END 2 */
 
