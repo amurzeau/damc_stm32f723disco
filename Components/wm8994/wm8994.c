@@ -593,8 +593,11 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
       /* ADC oversample enable */
       counter += CODEC_IO_Write(DeviceAddr, 0x620, 0x0002);
 
-      /* AIF ADC2 HPF enable, HPF cut = voice mode 1 fc=127Hz at fs=8kHz */
-      counter += CODEC_IO_Write(DeviceAddr, 0x411, 0x3800);
+      /* AIF ADC1 HPF enable, HPF cut = hifi mode fc=4Hz at fs=8kHz */
+      counter += CODEC_IO_Write(DeviceAddr, 0x410, 0x1800);
+
+      /* AIF ADC2 HPF enable, HPF cut = hifi mode fc=4Hz at fs=8kHz */
+      counter += CODEC_IO_Write(DeviceAddr, 0x411, 0x1800);
     }
     else if(input_device == INPUT_DEVICE_DIGITAL_MIC1_MIC2)
     {
@@ -605,10 +608,10 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
       /* ADC oversample enable */
       counter += CODEC_IO_Write(DeviceAddr, 0x620, 0x0002);
     
-      /* AIF ADC1 HPF enable, HPF cut = voice mode 1 fc=127Hz at fs=8kHz */
+      /* AIF ADC1 HPF enable, HPF cut = hifi mode fc=4Hz at fs=8kHz */
       counter += CODEC_IO_Write(DeviceAddr, 0x410, 0x1800);
       
-      /* AIF ADC2 HPF enable, HPF cut = voice mode 1 fc=127Hz at fs=8kHz */
+      /* AIF ADC2 HPF enable, HPF cut = hifi mode fc=4Hz at fs=8kHz */
       counter += CODEC_IO_Write(DeviceAddr, 0x411, 0x1800);      
     }    
     else if ((input_device == INPUT_DEVICE_INPUT_LINE_1) || (input_device == INPUT_DEVICE_INPUT_LINE_2))
