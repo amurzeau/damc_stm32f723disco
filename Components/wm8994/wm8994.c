@@ -134,7 +134,7 @@ static uint8_t CODEC_IO_Write(uint8_t Addr, uint16_t Reg, uint16_t Value);
   * @param AudioFreq: Audio Frequency 
   * @retval 0 if correct communication, else wrong communication
   */
-uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Volume, uint32_t AudioFreq)
+uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t OutVolume, uint8_t InVolume, uint32_t AudioFreq)
 {
   uint32_t counter = 0;
   uint16_t output_device = OutputInputDevice & 0xFF;
@@ -147,6 +147,9 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Vo
   counter += CODEC_IO_Write(DeviceAddr, 0x102, 0x0003);
   counter += CODEC_IO_Write(DeviceAddr, 0x817, 0x0000);
   counter += CODEC_IO_Write(DeviceAddr, 0x102, 0x0000);
+
+  /* Volume Control */
+  wm8994_SetVolume(DeviceAddr, 0, 0);
 
   /* Enable VMID soft start (fast), Start-up Bias Current Enabled */
   counter += CODEC_IO_Write(DeviceAddr, 0x39, 0x006C);
@@ -577,9 +580,6 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Vo
 
     /* Unmute the AIF1 Timeslot 1 DAC2 path */
     counter += CODEC_IO_Write(DeviceAddr, 0x422, 0x0010);
-    
-    /* Volume Control */
-    wm8994_SetVolume(DeviceAddr, Volume);
   }
 
   if (input_device > 0) /* Audio input selected */
@@ -623,9 +623,11 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Vo
       /* AIF ADC1 HPF enable, HPF cut = hifi mode fc=4Hz at fs=48kHz */
       counter += CODEC_IO_Write(DeviceAddr, 0x410, 0x1800);
     }
-    /* Volume Control */
-    wm8994_SetVolume(DeviceAddr, Volume);
   }
+
+  /* Volume Control */
+  wm8994_SetVolume(DeviceAddr, OutVolume, InVolume);
+
   /* Return communication control value */
   return counter;  
 }
@@ -765,10 +767,10 @@ uint32_t wm8994_Stop(uint16_t DeviceAddr, uint32_t CodecPdwnMode)
   *         description for more details).
   * @retval 0 if correct communication, else wrong communication
   */
-uint32_t wm8994_SetVolume(uint16_t DeviceAddr, uint8_t Volume)
+uint32_t wm8994_SetVolume(uint16_t DeviceAddr, uint8_t OutVolume, uint8_t InVolume)
 {
   uint32_t counter = 0;
-  uint8_t convertedvol = VOLUME_CONVERT(Volume);
+  uint8_t convertedvol = VOLUME_CONVERT(OutVolume);
 
   /* Output volume */
   if (outputEnabled != 0)
@@ -790,7 +792,7 @@ uint32_t wm8994_SetVolume(uint16_t DeviceAddr, uint8_t Volume)
       /* Right Speaker Volume */
       counter += CODEC_IO_Write(DeviceAddr, 0x27, 0x3F | 0x140);
     }
-    else if (Volume == 0)
+    else if (OutVolume == 0)
     {
       /* Mute audio codec */
       counter += wm8994_SetMute(DeviceAddr, AUDIO_MUTE_ON);
@@ -815,9 +817,10 @@ uint32_t wm8994_SetVolume(uint16_t DeviceAddr, uint8_t Volume)
   }
 
   /* Input volume */
+  /* disabled, don't change the input volume */
   if (inputEnabled != 0)
   {
-    convertedvol = VOLUME_IN_CONVERT(Volume);
+    convertedvol = VOLUME_IN_CONVERT(InVolume);
 
     /* Left AIF1 ADC1 volume */
     counter += CODEC_IO_Write(DeviceAddr, 0x400, convertedvol | 0x100);
