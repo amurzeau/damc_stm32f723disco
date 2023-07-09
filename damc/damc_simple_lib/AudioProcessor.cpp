@@ -40,7 +40,7 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
 		return new ChannelStrip(parent, name, numChannels, sampleRate, maxNframes);
 	});
 
-	strips.resize(AUDIO_LOOPBACKS_NUMBER);
+	strips.resize(AUDIO_OUT_NUMBER);
 
 	serialClient.init();
 }
@@ -53,7 +53,7 @@ void AudioProcessor::processAudioInterleaved(int16_t index,
                                              size_t nframes) {
 	TimeMeasure::timeMeasureAudioProcessing.beginMeasure();
 
-	if(index < AUDIO_LOOPBACKS_NUMBER)
+	if(index < AUDIO_OUT_NUMBER)
 		strips.at(index).processAudioInterleaved(data_input, data_output, nframes);
 	else {
 		memcpy(data_output, data_input, nframes * USBD_AUDIO_BYTES_PER_SAMPLE * USBD_AUDIO_CHANNELS);
@@ -74,13 +74,13 @@ void AudioProcessor::mainLoop() {
 	uint32_t currentTick = HAL_GetTick();
 	// Do onFastTimer every 100ms
 	// Process one strip at a time to avoid taking too much time
-	if(currentTick >= fastTimerPreviousTick + (100/AUDIO_LOOPBACKS_NUMBER)) {
+	if(currentTick >= fastTimerPreviousTick + (100/AUDIO_OUT_NUMBER)) {
 		TimeMeasure::timeMeasureFastTimer.beginMeasure();
 
 		fastTimerPreviousTick = currentTick;
 		strips.at(nextTimerStripIndex).onFastTimer();
 		nextTimerStripIndex++;
-		if(nextTimerStripIndex >= AUDIO_LOOPBACKS_NUMBER)
+		if(nextTimerStripIndex >= AUDIO_OUT_NUMBER)
 			nextTimerStripIndex = 0;
 
 		TimeMeasure::timeMeasureFastTimer.endMeasure();

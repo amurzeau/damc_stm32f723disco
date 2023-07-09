@@ -317,8 +317,8 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 	/* 07 byte*/
 
 /* USB AUDIO device Configuration Descriptor */
-#define USB_AUDIO_CONTROL_DESC_SIZ (8 + 2 * AUDIO_LOOPBACKS_NUMBER + (31 * 2) * AUDIO_LOOPBACKS_NUMBER)
-#define USB_AUDIO_CONFIG_DESC_SIZ (9 + 8 + 9 + USB_AUDIO_CONTROL_DESC_SIZ + (52 * 2) * AUDIO_LOOPBACKS_NUMBER + 8 + 58)
+#define USB_AUDIO_CONTROL_DESC_SIZ (8 + AUDIO_OUT_NUMBER + AUDIO_IN_NUMBER + 31 * (AUDIO_OUT_NUMBER + AUDIO_IN_NUMBER))
+#define USB_AUDIO_CONFIG_DESC_SIZ (9 + 8 + 9 + USB_AUDIO_CONTROL_DESC_SIZ + 52 * (AUDIO_OUT_NUMBER + AUDIO_IN_NUMBER) + 8 + 58)
 #define USBD_AUDIO_STR_FIRST_INDEX 10
 
 enum USBD_AUDIO_StringEnum {
@@ -339,7 +339,7 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   USB_DESC_TYPE_CONFIGURATION,          /* bDescriptorType */
   LOBYTE(USB_AUDIO_CONFIG_DESC_SIZ),    /* wTotalLength */
   HIBYTE(USB_AUDIO_CONFIG_DESC_SIZ),
-  0x01 + 2 * AUDIO_LOOPBACKS_NUMBER + 2,   /* bNumInterfaces */
+  0x01 + AUDIO_OUT_NUMBER + AUDIO_IN_NUMBER + 2,   /* bNumInterfaces */
   0x01,                                 /* bConfigurationValue */
   0x00,                                 /* iConfiguration */
 #if (USBD_SELF_POWERED == 1U)
@@ -373,14 +373,14 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   /* 09 byte*/
 
   /* USB Speaker Class-specific AC Interface Descriptor */
-  8 + 2 * AUDIO_LOOPBACKS_NUMBER,            /* bLength */
+  8 + AUDIO_OUT_NUMBER + AUDIO_IN_NUMBER,            /* bLength */
   AUDIO_INTERFACE_DESCRIPTOR_TYPE,      /* bDescriptorType */
   AUDIO_CONTROL_HEADER,                 /* bDescriptorSubtype */
   0x00,          /* 1.00 */             /* bcdADC */
   0x01,
   LOBYTE(USB_AUDIO_CONTROL_DESC_SIZ), /* wTotalLength */
   HIBYTE(USB_AUDIO_CONTROL_DESC_SIZ),
-  AUDIO_LOOPBACKS_NUMBER * 2,          /* bInCollection */
+  AUDIO_OUT_NUMBER + AUDIO_IN_NUMBER,          /* bInCollection */
   0x01,                                 /* baInterfaceNr(0) */
   0x02,                                 /* baInterfaceNr(1) */
   0x03,                                 /* baInterfaceNr(2) */
