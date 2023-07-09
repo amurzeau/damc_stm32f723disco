@@ -542,15 +542,15 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
     /* Add Delay */
     AUDIO_IO_Delay(15);
 
-    /* Select DAC1 (Left) to Left Headphone Output PGA (HPOUT1LVOL) path */
-    counter += CODEC_IO_Write(DeviceAddr, 0x2D, 0x0001);
-
-    /* Select DAC1 (Right) to Right Headphone Output PGA (HPOUT1RVOL) path */
-    counter += CODEC_IO_Write(DeviceAddr, 0x2E, 0x0001);
+//    /* Select DAC1 (Left) to Left Headphone Output PGA (HPOUT1LVOL) path */
+//    counter += CODEC_IO_Write(DeviceAddr, 0x2D, 0x0001);
+//
+//    /* Select DAC1 (Right) to Right Headphone Output PGA (HPOUT1RVOL) path */
+//    counter += CODEC_IO_Write(DeviceAddr, 0x2E, 0x0001);
 
     /* Enable Left Output Mixer (MIXOUTL), Enable Right Output Mixer (MIXOUTR) */
     /* idem for SPKOUTL and SPKOUTR */
-    counter += CODEC_IO_Write(DeviceAddr, 0x03, 0x0030 | 0x0300);
+    counter += CODEC_IO_Write(DeviceAddr, 0x03, /*0x0030 |*/ 0x0300);
 
     /* Enable DC Servo and trigger start-up mode on left and right channels */
     counter += CODEC_IO_Write(DeviceAddr, 0x54, 0x0033);
