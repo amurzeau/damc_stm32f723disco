@@ -169,24 +169,24 @@ struct history_data {
 	uint32_t DOEPINT;
 };
 
-enum USBD_AUDIO_RXTransferState {
-	TS_RX_ReadyToReceive,
-	TS_RX_Receiving,
-	TS_RX_ReadyToProcess,
+enum USBD_AUDIO_BufferState {
+	BS_AvailableForUSB,
+	BS_USBBusy,
+	BS_AvailableForApp,
 };
 
-enum USBD_AUDIO_TXTransferState {
-	TS_TX_Empty,
-	TS_TX_ReadyToTransmit,
-	TS_TX_Transmiting,
-};
+typedef struct {
+	volatile enum USBD_AUDIO_BufferState state;
+	uint32_t usb_index;
+	uint32_t buffer_size[2];
+	uint8_t buffer[2][AUDIO_OUT_PACKET];
+} USBD_AUDIO_Buffer;
 
 typedef struct {
 	uint32_t endpoint_out;
 	uint32_t endpoint_in;
 	uint32_t max_packet_size;
 	uint32_t in_packet_size;
-	uint32_t buffer_size;
 
 	uint32_t current_alternate[2];
 	int32_t next_target_frame[2];
@@ -197,14 +197,12 @@ typedef struct {
 	struct history_data history[256];
 	struct history_data history_on_isoincomplete[256];
 #endif
-	volatile enum USBD_AUDIO_RXTransferState buffer_rx_state;
-	volatile enum USBD_AUDIO_TXTransferState buffer_tx_state;
 #ifdef USB_AUDIO_ENABLE_HISTORY
 	uint8_t history_index;
 	uint8_t history_save_disable;
 #endif
-	uint8_t buffer_rx[AUDIO_OUT_PACKET] __attribute__((aligned(4)));
-	uint8_t buffer_tx[AUDIO_OUT_PACKET] __attribute__((aligned(4)));
+	USBD_AUDIO_Buffer buffer_rx __attribute__((aligned(4)));
+	USBD_AUDIO_Buffer buffer_tx __attribute__((aligned(4)));
 } USBD_AUDIO_LoopbackDataTypeDef;
 
 #ifdef USB_AUDIO_ENABLE_HISTORY
@@ -214,6 +212,7 @@ void USBD_AUDIO_trace(USBD_AUDIO_LoopbackDataTypeDef* data, const char* operatio
 #endif
 
 extern USBD_AUDIO_LoopbackDataTypeDef loopbackData[AUDIO_LOOPBACKS_NUMBER];
+extern volatile uint8_t usb_new_frame_flag;
 
 typedef struct
 {

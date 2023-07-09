@@ -230,6 +230,7 @@ USBD_AUDIO_LoopbackDataTypeDef* USBD_AUDIO_getDataFromUnitId(USBD_AUDIO_HandleTy
   * @retval status
   */
 USBD_AUDIO_LoopbackDataTypeDef loopbackData[AUDIO_LOOPBACKS_NUMBER];
+volatile uint8_t usb_new_frame_flag;
 static volatile uint32_t *SCB_DEMCR = (volatile uint32_t *)0xE000EDFC; //address of the register
 
 static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
@@ -267,17 +268,16 @@ static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	  haudio->loopbackData[i].endpoint_in = in_ep;
 	  haudio->loopbackData[i].max_packet_size = AUDIO_OUT_PACKET;
 	  haudio->loopbackData[i].in_packet_size = AUDIO_OUT_PACKET;
-	  haudio->loopbackData[i].buffer_size = 0U;
 	  haudio->loopbackData[i].current_alternate[0] = 0U;
 	  haudio->loopbackData[i].current_alternate[1] = 0U;
-	  haudio->loopbackData[i].buffer_rx_state = TS_RX_ReadyToReceive;
-	  haudio->loopbackData[i].buffer_tx_state = TS_TX_Empty;
 	  haudio->loopbackData[i].next_target_frame[0] = -1;
 	  haudio->loopbackData[i].next_target_frame[1] = -1;
 	  haudio->loopbackData[i].transfer_in_progress[0] = 0;
 	  haudio->loopbackData[i].transfer_in_progress[1] = 0;
-	  memset(haudio->loopbackData[i].buffer_rx, 0, sizeof(haudio->loopbackData[i].buffer_rx));
-	  memset(haudio->loopbackData[i].buffer_tx, 0, sizeof(haudio->loopbackData[i].buffer_tx));
+	  memset(&haudio->loopbackData[i].buffer_rx, 0, sizeof(haudio->loopbackData[i].buffer_rx));
+	  memset(&haudio->loopbackData[i].buffer_tx, 0, sizeof(haudio->loopbackData[i].buffer_tx));
+	  haudio->loopbackData[i].buffer_rx.state = BS_AvailableForUSB;
+	  haudio->loopbackData[i].buffer_tx.state = BS_AvailableForApp;
 
 	  if (pdev->dev_speed == USBD_SPEED_HIGH)
 	  {
@@ -594,19 +594,30 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
 
   previous_framenumber = frameNumber;
 
+  if((frameNumber % 8) == 0) {
+	  usb_new_frame_flag = 1;
+  }
+
   for(size_t i = 0; i < AUDIO_LOOPBACKS_NUMBER; i++) {
 	  USBD_AUDIO_LoopbackDataTypeDef* data = &haudio->loopbackData[i];
+
+	  // Switch buffers on frame 7 as prepare/transmit will be effective only on the next frame
+	  if((frameNumber % 8) == 7) {
+		  data->buffer_tx.usb_index = !data->buffer_tx.usb_index;
+		  data->buffer_rx.usb_index = !data->buffer_rx.usb_index;
+	  }
 
 	  //USBD_AUDIO_trace(data, "SOF");
 
 	  if(data->current_alternate[1] && data->next_target_frame[1] == frameNumber) {
 		  while(data->transfer_in_progress[1] > 0);
 		  data->transfer_in_progress[1] = 1;
-		  if(data->buffer_size > 0 && data->buffer_tx_state == TS_TX_ReadyToTransmit) {
-			  data->buffer_tx_state = TS_TX_Transmiting;
+		  USBD_AUDIO_Buffer* buffer = &data->buffer_tx;
+		  if(buffer->buffer_size[buffer->usb_index] > 0 && (1 || buffer->state == BS_AvailableForUSB)) {
+			  buffer->state = BS_USBBusy;
 			  USBD_AUDIO_trace(data, "USBD_LL_Transmit");
-			  USBD_LL_Transmit(pdev, data->endpoint_in, data->buffer_tx, data->buffer_size);
-			  data->buffer_size = 0U;
+			  USBD_LL_Transmit(pdev, data->endpoint_in, buffer->buffer[buffer->usb_index], buffer->buffer_size[buffer->usb_index]);
+			  buffer->buffer_size[buffer->usb_index] = 0U;
 		  } else {
 			  USBD_AUDIO_trace(data, "USBD_LL_Transmit dummy");
 			  USBD_LL_Transmit(pdev, data->endpoint_in, zero_data, data->in_packet_size);
@@ -616,10 +627,11 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
 	  if(data->current_alternate[0] && data->transfer_in_progress[0] == 0 && data->next_target_frame[0] == frameNumber) {
 		  while(data->transfer_in_progress[0] > 0);
 		  data->transfer_in_progress[0] = 1;
-		  if(data->buffer_rx_state == TS_RX_ReadyToReceive) {
-			  data->buffer_rx_state = TS_RX_Receiving;
+		  USBD_AUDIO_Buffer* buffer = &data->buffer_rx;
+		  if(1 || buffer->state == BS_AvailableForUSB) {
+			  buffer->state = BS_USBBusy;
 			  USBD_AUDIO_trace(data, "USBD_LL_PrepareReceive");
-			  USBD_LL_PrepareReceive(pdev, data->endpoint_out, data->buffer_rx, data->max_packet_size);
+			  USBD_LL_PrepareReceive(pdev, data->endpoint_out, buffer->buffer[buffer->usb_index], data->max_packet_size);
 		  } else {
 			  USBD_AUDIO_trace(data, "USBD_LL_PrepareReceive dummy");
 			  USBD_LL_PrepareReceive(pdev, data->endpoint_out, dummy_buffer, data->max_packet_size);
@@ -769,8 +781,9 @@ static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 	    return USBD_OK;
 	  }
 
-	  if(data->buffer_tx_state == TS_TX_Transmiting) {
-		  data->buffer_tx_state = TS_TX_Empty;
+	  USBD_AUDIO_Buffer* buffer = &data->buffer_tx;
+	  if(buffer->state == BS_USBBusy) {
+		  buffer->state = BS_AvailableForApp;
 		  USBD_AUDIO_trace(data, "TS_TX_Empty");
 	  }
 
@@ -810,12 +823,14 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
   if (epnum >= AUDIO_OUT_EP)
   {
+	  USBD_AUDIO_Buffer* buffer = &data->buffer_rx;
+
     /* Get received data packet length */
-    data->buffer_size = (uint16_t)USBD_LL_GetRxDataSize(pdev, epnum);
+	  buffer->buffer_size[buffer->usb_index] = (uint16_t)USBD_LL_GetRxDataSize(pdev, epnum);
 
     /* Prepare Out endpoint to receive next audio packet */
-	  if(data->buffer_rx_state == TS_RX_Receiving) {
-		  data->buffer_rx_state = TS_RX_ReadyToProcess;
+	  if(buffer->state == BS_USBBusy) {
+		  buffer->state = BS_AvailableForApp;
 		  USBD_AUDIO_trace(data, "TS_RX_ReadyToProcess");
 	  }
 

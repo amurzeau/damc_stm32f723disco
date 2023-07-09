@@ -144,17 +144,22 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  int i;
-	  for(i = 0; i < AUDIO_LOOPBACKS_NUMBER; i++) {
-		  USBD_AUDIO_LoopbackDataTypeDef* data = &loopbackData[i];
-		  if(data->buffer_rx_state == TS_RX_ReadyToProcess) {
-			  data->buffer_rx_state = TS_RX_ReadyToReceive;
-			  USBD_AUDIO_trace(data, "TS_RX_ReadyToReceive");
-			  //memcpy(data->buffer_tx, data->buffer_rx, sizeof(data->buffer_rx));
-			  DAMC_processAudioInterleaved(i, (int16_t*)data->buffer_rx, (int16_t*)data->buffer_tx, data->buffer_size / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS);
-			  data->buffer_tx_state = TS_TX_ReadyToTransmit;
-			  USBD_AUDIO_trace(data, "TS_TX_ReadyToTransmit");
-		  }
+	  if(usb_new_frame_flag) {
+		  usb_new_frame_flag = 0;
+
+		  USBD_AUDIO_LoopbackDataTypeDef* data = &loopbackData[0];
+		  uint32_t usb_index = !data->buffer_rx.usb_index;
+		  uint8_t* endpoint_out_buffer = data->buffer_rx.buffer[usb_index];
+		  uint8_t* endpoint_in_buffer = data->buffer_tx.buffer[usb_index];
+		  size_t nframes = data->buffer_rx.buffer_size[usb_index] / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS;
+
+		  data->buffer_tx.state = BS_AvailableForUSB;
+
+		  DAMC_processAudioInterleaved(0, (int16_t*)endpoint_out_buffer, (int16_t*)endpoint_in_buffer, nframes);
+
+		  data->buffer_tx.buffer_size[usb_index] = data->buffer_rx.buffer_size[usb_index];
+		  data->buffer_rx.buffer_size[usb_index] = 0;
+		  data->buffer_rx.state = BS_AvailableForUSB;
 	  }
 
 	  DAMC_mainLoop();
