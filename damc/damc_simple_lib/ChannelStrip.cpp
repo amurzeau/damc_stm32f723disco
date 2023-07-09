@@ -9,12 +9,12 @@
 #include <spdlog/spdlog.h>
 
 ChannelStrip::ChannelStrip(
-    OscContainer* parent, int index, uint32_t numChannels, uint32_t sampleRate, size_t maxNframes)
+    OscContainer* parent, int index, std::string_view name, uint32_t numChannels, uint32_t sampleRate, size_t maxNframes)
     : OscContainer(parent, Utils::toString(index), 10),
       oscEnable(this, "enable", true),
       oscType(this, "_type", 0),
       oscName(this, "name", Utils::toString(index)),
-      oscDisplayName(this, "display_name", oscName.get()),
+      oscDisplayName(this, "display_name", name),
       oscNumChannels(this, "channels", numChannels),
       oscSampleRate(this, "sample_rate", sampleRate),
       filterChain(this, &oscNumChannels, &oscSampleRate),
@@ -58,6 +58,10 @@ void ChannelStrip::processAudioInterleaved(const int16_t* data_input, int16_t* d
 			    static_cast<int16_t>(channelBuffers[channel][frame] * 32768.f);
 		}
 	}
+}
+
+void ChannelStrip::processSamples(float** samples, size_t numChannel, size_t nframes) {
+	filterChain.processSamples(samples, numChannel, nframes);
 }
 
 void ChannelStrip::onFastTimer() {

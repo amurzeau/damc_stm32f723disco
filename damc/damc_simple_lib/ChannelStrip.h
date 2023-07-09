@@ -7,10 +7,11 @@
 
 class ChannelStrip : public OscContainer {
 public:
-	ChannelStrip(OscContainer* parent, int index, uint32_t numChannels, uint32_t sampleRate, size_t maxNframes);
+	ChannelStrip(OscContainer* parent, int index, std::string_view name, uint32_t numChannels, uint32_t sampleRate, size_t maxNframes);
 	~ChannelStrip();
 
 	void processAudioInterleaved(const int16_t* data_input, int16_t* data_output, size_t nframes);
+	void processSamples(float** samples, size_t numChannel, size_t nframes);
 	void onFastTimer();
 
 private:

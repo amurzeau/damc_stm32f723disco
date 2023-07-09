@@ -21,8 +21,11 @@ void CodecAudio::start() {
 	BSP_AUDIO_IN_Record((uint16_t*)in_buffer.data(), in_buffer.size()*2);
 }
 
-void CodecAudio::processAudioInterleaved(const int16_t* data_input, int16_t* data_output, size_t nframes) {
-	writeOutBuffer((uint32_t*)data_output, nframes);
+void CodecAudio::processAudioInterleavedOutput(const int16_t* data_input, size_t nframes) {
+	writeOutBuffer((uint32_t*)data_input, nframes);
+}
+
+void CodecAudio::processAudioInterleavedInput(int16_t* data_output, size_t nframes) {
 	readInBuffer((uint32_t*)data_output, nframes);
 }
 
@@ -81,6 +84,7 @@ void CodecAudio::writeOutBuffer(const uint32_t* data, size_t nframes) {
 volatile uint32_t in_max_dma_pos = 5;
 volatile uint32_t in_min_dma_pos = 5;
 volatile uint32_t in_dma_pos = 5;
+volatile uint32_t diff_dma_in;
 void CodecAudio::readInBuffer(uint32_t* data, size_t nframes) {
   uint16_t start = in_read_offset;
 
@@ -94,6 +98,8 @@ void CodecAudio::readInBuffer(uint32_t* data, size_t nframes) {
   uint16_t dma_write_offset = in_buffer.size() - ((dma_pos+1)/2);
   uint16_t end = dma_write_offset;
   uint16_t size = (end - start + in_buffer.size()) % in_buffer.size();
+
+  diff_dma_in = (dma_write_offset + in_buffer.size() - CodecAudio::instance.out_write_offset) % in_buffer.size();
 
   assert(start < in_buffer.size());
   assert(end < in_buffer.size());

@@ -13,11 +13,8 @@ void DAMC_start() {
 	CodecAudio::instance.start();
 }
 
-void DAMC_processAudioInterleaved(int16_t index, const int16_t* data_input, int16_t* data_output, size_t nframes) {
-	AudioProcessor::getInstance()->processAudioInterleaved(index, data_input, data_output, nframes);
-	if(index == 0) {
-		CodecAudio::instance.processAudioInterleaved(data_input, data_output, nframes);
-	}
+void DAMC_processAudioInterleaved(const int16_t** input_endpoints, size_t input_endpoints_number, int16_t** output_endpoints, size_t output_endpoints_number, size_t nframes) {
+	AudioProcessor::getInstance()->processAudioInterleaved(input_endpoints, input_endpoints_number, output_endpoints, output_endpoints_number, nframes);
 }
 
 void DAMC_mainLoop() {

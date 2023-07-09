@@ -8,17 +8,35 @@
 #include <OscRoot.h>
 #include <stdint.h>
 
+class MultiChannelAudioBuffer {
+public:
+	MultiChannelAudioBuffer();
+
+	static constexpr size_t CHANNEL_NUMBER = 2;
+	static constexpr size_t BUFFER_SIZE = 48*2;
+
+	float data[CHANNEL_NUMBER][BUFFER_SIZE];
+	float *dataPointers[CHANNEL_NUMBER];
+};
+
 class AudioProcessor {
 public:
 	AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t maxNframes);
 	~AudioProcessor();
 
-	void processAudioInterleaved(int16_t index, const int16_t* data_input, int16_t* data_output, size_t nframes);
+	void processAudioInterleaved(const int16_t** input_endpoints, size_t input_endpoints_number, int16_t** output_endpoints, size_t output_endpoints_number, size_t nframes);
 	void mainLoop();
 
 	static AudioProcessor* getInstance();
 
+protected:
+	void interleavedToFloat(const int16_t* data_input, MultiChannelAudioBuffer* data_float, size_t nframes);
+	void floatToInterleaved(MultiChannelAudioBuffer* data_float, int16_t* data_output, size_t nframes);
+	void mixAudio(MultiChannelAudioBuffer* mixed_data, MultiChannelAudioBuffer* data_to_add, size_t nframes);
+
 private:
+	uint32_t numChannels;
+
 	OscRoot oscRoot;
 	OscSerialClient serialClient;
 	OscContainerArray<ChannelStrip> strips;
@@ -40,4 +58,8 @@ private:
 	uint32_t nextTimerStripIndex;
 	uint32_t slowTimerPreviousTick;
 	uint32_t slowTimerIndex;
+
+
+	MultiChannelAudioBuffer buffer[5];
+	int16_t codecBuffer[MultiChannelAudioBuffer::BUFFER_SIZE * MultiChannelAudioBuffer::CHANNEL_NUMBER] __attribute__((aligned(4)));
 };

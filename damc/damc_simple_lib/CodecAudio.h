@@ -10,7 +10,8 @@ public:
 
 	void start();
 
-	void processAudioInterleaved(const int16_t* data_input, int16_t* data_output, size_t nframes);
+	void processAudioInterleavedOutput(const int16_t* data_input, size_t nframes);
+	void processAudioInterleavedInput(int16_t* data_output, size_t nframes);
 
 	bool onFastTimer();
 

@@ -167,7 +167,12 @@ int main(void)
 			  endpoint_in_buffer[i] = USBD_AUDIO_GetBufferFromApp(data_in[i]);
 		  }
 
-		  DAMC_processAudioInterleaved(0, (int16_t*)endpoint_out_buffer[0], (int16_t*)endpoint_in_buffer[0], nframes);
+		  DAMC_processAudioInterleaved(
+				  (const int16_t**)endpoint_out_buffer,
+				  sizeof(data_out)/sizeof(data_out[0]),
+				  (int16_t**)endpoint_in_buffer,
+				  sizeof(data_in)/sizeof(data_in[0]),
+				  nframes);
 
 		  for(size_t i = 0; i < sizeof(data_out)/sizeof(data_out[0]); i++) {
 			  USBD_AUDIO_ReleaseBufferFromApp(data_out[i]);
