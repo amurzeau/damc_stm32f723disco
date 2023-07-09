@@ -147,19 +147,34 @@ int main(void)
 	  if(usb_new_frame_flag) {
 		  usb_new_frame_flag = 0;
 
-		  USBD_AUDIO_LoopbackDataTypeDef* data_out = &usb_audio_endpoint_out_data[0];
-		  USBD_AUDIO_LoopbackDataTypeDef* data_in = &usb_audio_endpoint_in_data[0];
-		  USBD_AUDIO_Buffer* endpoint_out_buffer = &data_out->buffer[!data_out->usb_index_for_processing];
-		  USBD_AUDIO_Buffer* endpoint_in_buffer = &data_in->buffer[!data_in->usb_index_for_processing];
-		  size_t nframes = endpoint_out_buffer->size / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS;
+		  size_t nframes = usb_audio_endpoint_out_data[0].nominal_packet_size / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS;
 
+		  USBD_AUDIO_LoopbackDataTypeDef* data_out[2] = {
+			&usb_audio_endpoint_out_data[0],
+			&usb_audio_endpoint_out_data[1],
+		  };
+		  USBD_AUDIO_LoopbackDataTypeDef* data_in[1] = {
+			&usb_audio_endpoint_in_data[0]
+		  };
 
-		  DAMC_processAudioInterleaved(0, (int16_t*)endpoint_out_buffer->buffer, (int16_t*)endpoint_in_buffer->buffer, nframes);
+		  uint8_t* endpoint_out_buffer[2];
+		  uint8_t* endpoint_in_buffer[1];
 
-		  endpoint_in_buffer->size = endpoint_out_buffer->size;
-		  endpoint_out_buffer->size = 0;
-		  endpoint_in_buffer->state = BS_AvailableForUSB;
-		  endpoint_out_buffer->state = BS_AvailableForUSB;
+		  for(size_t i = 0; i < sizeof(data_out)/sizeof(data_out[0]); i++) {
+			  endpoint_out_buffer[i] = USBD_AUDIO_GetBufferFromApp(data_out[i]);
+		  }
+		  for(size_t i = 0; i < sizeof(data_in)/sizeof(data_in[0]); i++) {
+			  endpoint_in_buffer[i] = USBD_AUDIO_GetBufferFromApp(data_in[i]);
+		  }
+
+		  DAMC_processAudioInterleaved(0, (int16_t*)endpoint_out_buffer[0], (int16_t*)endpoint_in_buffer[0], nframes);
+
+		  for(size_t i = 0; i < sizeof(data_out)/sizeof(data_out[0]); i++) {
+			  USBD_AUDIO_ReleaseBufferFromApp(data_out[i]);
+		  }
+		  for(size_t i = 0; i < sizeof(data_in)/sizeof(data_in[0]); i++) {
+			  USBD_AUDIO_ReleaseBufferFromApp(data_in[i]);
+		  }
 	  }
 
 	  DAMC_mainLoop();

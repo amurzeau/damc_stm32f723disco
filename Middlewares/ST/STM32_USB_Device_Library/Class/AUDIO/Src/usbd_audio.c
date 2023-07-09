@@ -1010,6 +1010,27 @@ static void *USBD_AUDIO_GetAudioHeaderDesc(uint8_t *pConfDesc)
   return pAudioDesc;
 }
 
+uint8_t* USBD_AUDIO_GetBufferFromApp(USBD_AUDIO_LoopbackDataTypeDef *data)
+{
+	USBD_AUDIO_Buffer* buffer = &data->buffer[!data->usb_index_for_processing];
+	if(data->is_in || buffer->size > 0) {
+		return buffer->buffer;
+	} else {
+		return zero_data;
+	}
+}
+
+void USBD_AUDIO_ReleaseBufferFromApp(USBD_AUDIO_LoopbackDataTypeDef *data)
+{
+	USBD_AUDIO_Buffer* buffer = &data->buffer[!data->usb_index_for_processing];
+
+	if(data->is_in) {
+		buffer->size = data->nominal_packet_size;
+	} else {
+		buffer->size = 0;
+	}
+	buffer->state = BS_AvailableForUSB;
+}
 /**
   * @}
   */

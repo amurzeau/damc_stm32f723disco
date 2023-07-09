@@ -182,6 +182,11 @@ typedef struct {
 } USBD_AUDIO_Buffer;
 
 typedef struct {
+	uint32_t size;
+	uint8_t* buffer;
+} USBD_AUDIO_BufferRef;
+
+typedef struct {
 	uint32_t is_in;
 	uint32_t endpoint;
 	uint32_t max_packet_size;
@@ -214,6 +219,8 @@ void USBD_AUDIO_trace(USBD_AUDIO_LoopbackDataTypeDef* data, const char* operatio
 extern volatile uint8_t usb_new_frame_flag;
 extern USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_out_data[AUDIO_OUT_NUMBER];
 extern USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_in_data[AUDIO_IN_NUMBER];
+uint8_t* USBD_AUDIO_GetBufferFromApp(USBD_AUDIO_LoopbackDataTypeDef *data);
+void USBD_AUDIO_ReleaseBufferFromApp(USBD_AUDIO_LoopbackDataTypeDef *data);
 
 typedef struct
 {
