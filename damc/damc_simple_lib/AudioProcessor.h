@@ -24,6 +24,7 @@ public:
 	AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t maxNframes);
 	~AudioProcessor();
 
+	void init();
 	void processAudioInterleaved(const int16_t** input_endpoints, size_t input_endpoints_number, int16_t** output_endpoints, size_t output_endpoints_number, size_t nframes);
 	void mainLoop();
 

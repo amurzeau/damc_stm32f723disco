@@ -10,6 +10,7 @@ void DAMC_init() {
 }
 
 void DAMC_start() {
+	AudioProcessor::getInstance()->init();
 	CodecAudio::instance.start();
 }
 

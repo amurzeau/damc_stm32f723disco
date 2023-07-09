@@ -35,7 +35,7 @@ public:
 
 	void addPendingConfigNode(OscNode* node);
 	void nodeRemoved(OscNode* node);
-	void loadNodeConfig(const std::map<std::string, std::vector<OscArgument>>& configValues);
+	void loadNodeConfig(const std::map<std::string_view, std::vector<OscArgument>>& configValues);
 
 	static std::string getArgumentVectorAsString(const OscArgument* arguments, size_t number);
 

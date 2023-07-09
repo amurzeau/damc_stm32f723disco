@@ -86,7 +86,7 @@ void OscRoot::sendMessage(const OscNode* node, const OscArgument* arguments, siz
 	}
 }
 
-void OscRoot::loadNodeConfig(const std::map<std::string, std::vector<OscArgument>>& configValues) {
+void OscRoot::loadNodeConfig(const std::map<std::string_view, std::vector<OscArgument>>& configValues) {
 	SPDLOG_DEBUG("Traversing OscNode to assign configuration values");
 
 	std::string nodeAddress;
@@ -236,7 +236,7 @@ void OscRoot::notifyValueChanged() {
 
 void OscRoot::addPendingConfigNode(OscNode* node) {
 	SPDLOG_DEBUG("Adding node {} as pending configuration", node->getFullAddress());
-	//nodesPendingConfig.insert(node);
+	nodesPendingConfig.insert(node);
 }
 
 void OscRoot::nodeRemoved(OscNode* node) {
