@@ -179,10 +179,10 @@ void USBD_AUDIO_trace(USBD_AUDIO_LoopbackDataTypeDef* data, const char* operatio
 USBD_AUDIO_LoopbackDataTypeDef* USBD_AUDIO_getDataFromEndpoint(USBD_AUDIO_HandleTypeDef* haudio,
                                                              uint8_t epnum, uint8_t is_in)
 {
-	if(epnum < 1 || haudio == NULL)
+	if(epnum < 3 || haudio == NULL)
 		return NULL;
 
-	uint32_t index = (epnum & 0x0F) - 1;
+	uint32_t index = (epnum & 0x0F) - 3;
 
 	if(is_in) {
 		if(index >= AUDIO_IN_NUMBER)
@@ -200,11 +200,11 @@ USBD_AUDIO_LoopbackDataTypeDef* USBD_AUDIO_getDataFromEndpoint(USBD_AUDIO_Handle
 USBD_AUDIO_LoopbackDataTypeDef* USBD_AUDIO_getDataFromInterface(USBD_AUDIO_HandleTypeDef* haudio,
                                                               uint8_t interface)
 {
-	if(interface < 1 || haudio == NULL)
+	if(interface < 3 || haudio == NULL)
 		return NULL;
 
-	uint32_t index = (interface - 1) / 2;
-	uint32_t is_in = ((interface - 1) % 2) == 1;
+	uint32_t index = (interface - 3) / 2;
+	uint32_t is_in = ((interface - 3) % 2) == 1;
 
 	if(is_in) {
 		if(index < AUDIO_IN_NUMBER) {
