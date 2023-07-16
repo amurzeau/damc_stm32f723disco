@@ -1,18 +1,17 @@
 #include "AudioProcessor.h"
 #include "OscSerialClient.h"
+#include "TimeMeasure.h"
+#include <CodecAudio.h>
+#include <map>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "TimeMeasure.h"
-#include <CodecAudio.h>
 #include <vector>
-#include <map>
 
 #include <spdlog/spdlog.h>
 
 #include <stm32f7xx_hal.h>
 #include <usbd_conf.h>
-
 
 volatile AudioProcessor* audio_processor;
 
@@ -30,47 +29,47 @@ AudioProcessor* AudioProcessor::getInstance() {
 
 AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t maxNframes)
     : numChannels(numChannels),
-	  oscRoot(true),
-	  serialClient(&oscRoot),
-	  strips(&oscRoot, "strip"),
-	  timeMeasureUsbInterrupt(&oscRoot, "timeUsbInterrupt"),
-	  timeMeasureAudioProcessing(&oscRoot, "timeAudioProc"),
-	  timeMeasureFastTimer(&oscRoot, "timeFastTimer"),
-	  timeMeasureOscInput(&oscRoot, "timeOscInput"),
-	  timeMeasureMaxPerLoopUsbInterrupt(&oscRoot, "timePerLoopUsbInterrupt"),
-	  timeMeasureMaxPerLoopAudioProcessing(&oscRoot, "timePerLoopAudioProc"),
-	  timeMeasureMaxPerLoopFastTimer(&oscRoot, "timePerLoopFastTimer"),
-	  timeMeasureMaxPerLoopOscInput(&oscRoot, "timePerLoopOscInput"),
-	  memoryAvailable(&oscRoot, "memoryAvailable"),
-	  memoryUsed(&oscRoot, "memoryUsed"),
-	  fastTimerPreviousTick(0),
-	  nextTimerStripIndex(0),
-	  slowTimerPreviousTick(0),
-	  slowTimerIndex(0)
-{
+      oscRoot(true),
+      serialClient(&oscRoot),
+      controls(&oscRoot),
+      strips(&oscRoot, "strip"),
+      timeMeasureUsbInterrupt(&oscRoot, "timeUsbInterrupt"),
+      timeMeasureAudioProcessing(&oscRoot, "timeAudioProc"),
+      timeMeasureFastTimer(&oscRoot, "timeFastTimer"),
+      timeMeasureOscInput(&oscRoot, "timeOscInput"),
+      timeMeasureMaxPerLoopUsbInterrupt(&oscRoot, "timePerLoopUsbInterrupt"),
+      timeMeasureMaxPerLoopAudioProcessing(&oscRoot, "timePerLoopAudioProc"),
+      timeMeasureMaxPerLoopFastTimer(&oscRoot, "timePerLoopFastTimer"),
+      timeMeasureMaxPerLoopOscInput(&oscRoot, "timePerLoopOscInput"),
+      memoryAvailable(&oscRoot, "memoryAvailable"),
+      memoryUsed(&oscRoot, "memoryUsed"),
+      fastTimerPreviousTick(0),
+      nextTimerStripIndex(0),
+      slowTimerPreviousTick(0),
+      slowTimerIndex(0) {
 	strips.setFactory([this, numChannels, sampleRate, maxNframes](OscContainer* parent, int index) {
 		using namespace std::literals;
 
 		std::string_view name;
 		switch(index) {
-		case 0:
-			name = "master"sv;
-			break;
-		case 1:
-			name = "comp"sv;
-			break;
-		case 2:
-			name = "mic"sv;
-			break;
-		case 3:
-			name = "out-record"sv;
-			break;
-		case 4:
-			name = "mic-feedback"sv;
-			break;
-		default:
-			name = Utils::toString(index);
-			break;
+			case 0:
+				name = "master"sv;
+				break;
+			case 1:
+				name = "comp"sv;
+				break;
+			case 2:
+				name = "mic"sv;
+				break;
+			case 3:
+				name = "out-record"sv;
+				break;
+			case 4:
+				name = "mic-feedback"sv;
+				break;
+			default:
+				name = Utils::toString(index);
+				break;
 		}
 		return new ChannelStrip(parent, index, name, numChannels, sampleRate, maxNframes);
 	});
@@ -78,6 +77,7 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
 	strips.resize(5);
 
 	serialClient.init();
+	controls.init();
 }
 
 AudioProcessor::~AudioProcessor() {}
@@ -85,21 +85,23 @@ AudioProcessor::~AudioProcessor() {}
 void AudioProcessor::init() {
 	using namespace std::literals;
 	const std::map<std::string_view, std::vector<OscArgument>> default_config = {
-		{"/strip/1/filterChain/compressorFilter/makeUpGain", {float{-1.f}}},
-		{"/strip/0/display_name", {"master"sv}},
-		{"/strip/1/display_name", {"comp"sv}},
-		{"/strip/2/display_name", {"mic"sv}},
-		{"/strip/3/display_name", {"out-record"sv}},
-		{"/strip/4/display_name", {"mic-feedback"sv}},
-		{"/strip/1/filterChain/compressorFilter/enable", {true}},
-		{"/strip/3/filterChain/mute", {true}},
-		{"/strip/4/filterChain/mute", {true}},
+	    {"/strip/1/filterChain/compressorFilter/makeUpGain", {float{-1.f}}},
+	    {"/strip/0/display_name", {"master"sv}},
+	    {"/strip/1/display_name", {"comp"sv}},
+	    {"/strip/2/display_name", {"mic"sv}},
+	    {"/strip/3/display_name", {"out-record"sv}},
+	    {"/strip/4/display_name", {"mic-feedback"sv}},
+	    {"/strip/1/filterChain/compressorFilter/enable", {true}},
+	    {"/strip/3/filterChain/mute", {true}},
+	    {"/strip/4/filterChain/mute", {true}},
 	};
 
 	oscRoot.loadNodeConfig(default_config);
 }
 
-void AudioProcessor::interleavedToFloat(const int16_t* data_input, MultiChannelAudioBuffer* data_float, size_t nframes) {
+void AudioProcessor::interleavedToFloat(const int16_t* data_input,
+                                        MultiChannelAudioBuffer* data_float,
+                                        size_t nframes) {
 	for(uint32_t channel = 0; channel < numChannels; channel++) {
 		for(uint32_t frame = 0; frame < nframes; frame++) {
 			data_float->data[channel][frame] = data_input[frame * numChannels + channel] / 32768.f;
@@ -116,7 +118,9 @@ void AudioProcessor::floatToInterleaved(MultiChannelAudioBuffer* data_float, int
 	}
 }
 
-void AudioProcessor::mixAudio(MultiChannelAudioBuffer* mixed_data, MultiChannelAudioBuffer* data_to_add, size_t nframes) {
+void AudioProcessor::mixAudio(MultiChannelAudioBuffer* mixed_data,
+                              MultiChannelAudioBuffer* data_to_add,
+                              size_t nframes) {
 	for(uint32_t channel = 0; channel < numChannels; channel++) {
 		for(uint32_t frame = 0; frame < nframes; frame++) {
 			mixed_data->data[channel][frame] += data_to_add->data[channel][frame];
@@ -124,12 +128,11 @@ void AudioProcessor::mixAudio(MultiChannelAudioBuffer* mixed_data, MultiChannelA
 	}
 }
 
-void AudioProcessor::processAudioInterleaved(
-		const int16_t** input_endpoints,
-		size_t input_endpoints_number,
-		int16_t** output_endpoints,
-		size_t output_endpoints_number,
-		size_t nframes) {
+void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
+                                             size_t input_endpoints_number,
+                                             int16_t** output_endpoints,
+                                             size_t output_endpoints_number,
+                                             size_t nframes) {
 	TimeMeasure::timeMeasureAudioProcessing.beginMeasure();
 	/**
 	 * Legend:
@@ -189,7 +192,6 @@ void AudioProcessor::processAudioInterleaved(
 	// Copy codec MIC audio as it has multiple destination
 	memcpy(&buffer[4].data, &buffer[3].data, sizeof(buffer[3].data));
 
-
 	// Process mic
 	strips.at(2).processSamples(buffer[3].dataPointers, numChannels, nframes);
 
@@ -214,10 +216,10 @@ void AudioProcessor::processAudioInterleaved(
 	TimeMeasure::timeMeasureAudioProcessing.endMeasure();
 }
 
-extern "C" uint8_t *__sbrk_heap_end; // end of heap
-extern "C" uint8_t _end; // end of static data in RAM (start of heap)
-extern "C" uint8_t _estack; // start of RAM (end of RAM as stack grows backward)
-extern "C" uint8_t _Min_Stack_Size; // minimal stack size
+extern "C" uint8_t* __sbrk_heap_end;  // end of heap
+extern "C" uint8_t _end;              // end of static data in RAM (start of heap)
+extern "C" uint8_t _estack;           // start of RAM (end of RAM as stack grows backward)
+extern "C" uint8_t _Min_Stack_Size;   // minimal stack size
 void AudioProcessor::mainLoop() {
 	// Do at most one thing to avoid taking too much time here
 	if(serialClient.mainLoop())
@@ -226,7 +228,7 @@ void AudioProcessor::mainLoop() {
 	uint32_t currentTick = HAL_GetTick();
 	// Do onFastTimer every 100ms
 	// Process one strip at a time to avoid taking too much time
-	if(currentTick >= fastTimerPreviousTick + (100/strips.size())) {
+	if(currentTick >= fastTimerPreviousTick + (100 / strips.size())) {
 		TimeMeasure::timeMeasureFastTimer.beginMeasure();
 
 		fastTimerPreviousTick = currentTick;
@@ -236,31 +238,33 @@ void AudioProcessor::mainLoop() {
 			nextTimerStripIndex = 0;
 
 		TimeMeasure::timeMeasureFastTimer.endMeasure();
-	} else if(currentTick >= slowTimerPreviousTick + 1000/3) {
+	} else if(currentTick >= slowTimerPreviousTick + 1000 / 3) {
 		TimeMeasure::timeMeasureFastTimer.beginMeasure();
 
 		slowTimerPreviousTick = currentTick;
 
 		switch(slowTimerIndex) {
-		case 0:
-			timeMeasureUsbInterrupt.set(TimeMeasure::timeMeasureUsbInterrupt.getCumulatedTimeUsAndReset());
-			timeMeasureAudioProcessing.set(TimeMeasure::timeMeasureAudioProcessing.getCumulatedTimeUsAndReset());
-			timeMeasureFastTimer.set(TimeMeasure::timeMeasureFastTimer.getCumulatedTimeUsAndReset());
-			timeMeasureOscInput.set(TimeMeasure::timeMeasureOscInput.getCumulatedTimeUsAndReset());
-			break;
-		case 1:
-			timeMeasureMaxPerLoopUsbInterrupt.set(TimeMeasure::timeMeasureUsbInterrupt.getMaxTimeUsAndReset());
-			timeMeasureMaxPerLoopAudioProcessing.set(TimeMeasure::timeMeasureAudioProcessing.getMaxTimeUsAndReset());
-			timeMeasureMaxPerLoopFastTimer.set(TimeMeasure::timeMeasureFastTimer.getMaxTimeUsAndReset());
-			timeMeasureMaxPerLoopOscInput.set(TimeMeasure::timeMeasureOscInput.getMaxTimeUsAndReset());
-			break;
-		case 2:
-			OscArgument used_memory = static_cast<int32_t>((uint32_t)__sbrk_heap_end - (uint32_t)&_end);
-			memoryUsed.sendMessage(&used_memory, 1);
+			case 0:
+				timeMeasureUsbInterrupt.set(TimeMeasure::timeMeasureUsbInterrupt.getCumulatedTimeUsAndReset());
+				timeMeasureAudioProcessing.set(TimeMeasure::timeMeasureAudioProcessing.getCumulatedTimeUsAndReset());
+				timeMeasureFastTimer.set(TimeMeasure::timeMeasureFastTimer.getCumulatedTimeUsAndReset());
+				timeMeasureOscInput.set(TimeMeasure::timeMeasureOscInput.getCumulatedTimeUsAndReset());
+				break;
+			case 1:
+				timeMeasureMaxPerLoopUsbInterrupt.set(TimeMeasure::timeMeasureUsbInterrupt.getMaxTimeUsAndReset());
+				timeMeasureMaxPerLoopAudioProcessing.set(
+				    TimeMeasure::timeMeasureAudioProcessing.getMaxTimeUsAndReset());
+				timeMeasureMaxPerLoopFastTimer.set(TimeMeasure::timeMeasureFastTimer.getMaxTimeUsAndReset());
+				timeMeasureMaxPerLoopOscInput.set(TimeMeasure::timeMeasureOscInput.getMaxTimeUsAndReset());
+				break;
+			case 2:
+				OscArgument used_memory = static_cast<int32_t>((uint32_t) __sbrk_heap_end - (uint32_t) &_end);
+				memoryUsed.sendMessage(&used_memory, 1);
 
-			OscArgument available_memory = static_cast<int32_t>((uint32_t)&_estack - (uint32_t)&_Min_Stack_Size - (uint32_t)__sbrk_heap_end);
-			memoryAvailable.sendMessage(&available_memory, 1);
-			break;
+				OscArgument available_memory = static_cast<int32_t>((uint32_t) &_estack - (uint32_t) &_Min_Stack_Size -
+				                                                    (uint32_t) __sbrk_heap_end);
+				memoryAvailable.sendMessage(&available_memory, 1);
+				break;
 		}
 		slowTimerIndex++;
 		if(slowTimerIndex > 2)

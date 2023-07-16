@@ -118,9 +118,9 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 	bBaseTerminalID * 3 + 0x02,           /* bUnitID */ \
 	bBaseTerminalID * 3 + 0x01,           /* bSourceID */ \
 	0x01,                                 /* bControlSize */ \
-	AUDIO_CONTROL_MUTE,                   /* bmaControls(0) */ \
-	AUDIO_CONTROL_VOLUME,                 /* bmaControls(1) */ \
-	AUDIO_CONTROL_VOLUME,                 /* bmaControls(2) */ \
+	AUDIO_CONTROL_MUTE | AUDIO_CONTROL_VOLUME, /* bmaControls(0) */ \
+	0,                                    /* bmaControls(1) */ \
+	0,                                    /* bmaControls(2) */ \
 	0x00,                                 /* iTerminal */ \
 	/* 10 byte*/ \
 \
@@ -159,9 +159,9 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 	bBaseTerminalID * 3 + 0x02,           /* bUnitID */ \
 	bBaseTerminalID * 3 + 0x01,           /* bSourceID */ \
 	0x01,                                 /* bControlSize */ \
-	AUDIO_CONTROL_MUTE,                   /* bmaControls(0) */ \
-	AUDIO_CONTROL_VOLUME,                 /* bmaControls(1) */ \
-	AUDIO_CONTROL_VOLUME,                 /* bmaControls(1) */ \
+	AUDIO_CONTROL_MUTE | AUDIO_CONTROL_VOLUME, /* bmaControls(0) */ \
+	0,                                    /* bmaControls(1) */ \
+	0,                                    /* bmaControls(1) */ \
 	0x00,                                 /* iTerminal */ \
 	/* 10 byte*/ \
 \
@@ -318,7 +318,7 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 
 /* USB AUDIO device Configuration Descriptor */
 #define USB_AUDIO_CONTROL_DESC_SIZ (8 + AUDIO_OUT_NUMBER + AUDIO_IN_NUMBER + 31 * (AUDIO_OUT_NUMBER + AUDIO_IN_NUMBER))
-#define USB_AUDIO_CONFIG_DESC_SIZ (9 + 8 + 9 + USB_AUDIO_CONTROL_DESC_SIZ + 52 * (AUDIO_OUT_NUMBER + AUDIO_IN_NUMBER) + 8 + 58)
+#define USB_AUDIO_CONFIG_DESC_SIZ (9 + 9 + 8 + 9 + USB_AUDIO_CONTROL_DESC_SIZ + 52 * (AUDIO_OUT_NUMBER + AUDIO_IN_NUMBER) + 8 + 58)
 #define USBD_AUDIO_STR_FIRST_INDEX 10
 
 enum USBD_AUDIO_StringEnum {
@@ -457,7 +457,7 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   USB_DESC_TYPE_INTERFACE,              /* bDescriptorType */
   0x02,                                 /* bInterfaceNumber */
   0x00,                                 /* bAlternateSetting */
-  0x00,                                 /* bNumEndpoints */
+  0x01,                                 /* bNumEndpoints */
   USB_DEVICE_CLASS_AUDIO,               /* bInterfaceClass */
   AUDIO_SUBCLASS_AUDIOCONTROL,          /* bInterfaceSubClass */
   AUDIO_PROTOCOL_UNDEFINED,             /* bInterfaceProtocol */
@@ -480,6 +480,18 @@ __ALIGN_BEGIN static uint8_t USBD_COMPOSITE_CfgDesc[USB_AUDIO_CONFIG_DESC_SIZ] _
   DECLARE_UNITS_OUT(USBD_AUDIO_STR_SPEAKER1, 0) /* 31 bytes */
   DECLARE_UNITS_IN(USBD_AUDIO_STR_MIC1, 1) /* 31 bytes */
   DECLARE_UNITS_OUT(USBD_AUDIO_STR_SPEAKER2, 2) /* 31 bytes */
+
+  /* Endpoint control interrupt - Standard Descriptor */ \
+  AUDIO_STANDARD_ENDPOINT_DESC_SIZE,    /* bLength */ \
+  USB_DESC_TYPE_ENDPOINT,               /* bDescriptorType */ \
+  AUDIO_INTERRUPT_EP,                   /* bEndpointAddress */ \
+  USBD_EP_TYPE_INTR,                    /* bmAttributes */ \
+  2,                                    /* wMaxPacketSize in Bytes */ \
+  0,                                     \
+  0x08,                                 /* bInterval (16ms) */ \
+  0x00,                                 /* bRefresh */ \
+  0x00,                                 /* bSynchAddress */ \
+  /* 09 byte*/ \
 
   DECLARE_ENDPOINT_OUT(0, 0, USBD_AUDIO_CHANNELS, AUDIO_PACKET_SZE) /* 52 bytes */
   DECLARE_ENDPOINT_IN(1, 1, USBD_AUDIO_CHANNELS, AUDIO_PACKET_SZE) /* 52 bytes */

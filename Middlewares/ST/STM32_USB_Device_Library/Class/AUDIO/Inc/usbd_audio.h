@@ -60,10 +60,11 @@ extern "C" {
 #define AUDIO_FS_BINTERVAL                            0x01U
 #endif /* AUDIO_FS_BINTERVAL */
 
+#define AUDIO_INTERRUPT_EP                            0x83U
 #ifndef AUDIO_OUT_EP
-#define AUDIO_OUT_EP                                  0x03U
+#define AUDIO_OUT_EP                                  0x04U
 #endif /* AUDIO_OUT_EP */
-#define AUDIO_IN_EP                                   0x83U
+#define AUDIO_IN_EP                                   0x84U
 
 #define AUDIO_INTERFACE_DESC_SIZE                     0x09U
 #define USB_AUDIO_DESC_SIZ                            0x09U
@@ -108,6 +109,7 @@ extern "C" {
 #define AUDIO_REQ_SET_MIN                             0x02U
 #define AUDIO_REQ_SET_MAX                             0x03U
 #define AUDIO_REQ_SET_RES                             0x04U
+#define AUDIO_REQ_GET_STAT                            0xFFU
 
 #define AUDIO_OUT_STREAMING_CTRL                      0x02U
 
@@ -208,6 +210,7 @@ typedef struct {
 	uint32_t usb_index_for_prepare;
 	uint32_t usb_index_for_processing;
 	USBD_AUDIO_Buffer buffer[2] __attribute__((aligned(4)));
+	USBD_AUDIO_ControlTypeDef control;
 } USBD_AUDIO_LoopbackDataTypeDef;
 
 #ifdef USB_AUDIO_ENABLE_HISTORY
@@ -221,10 +224,13 @@ extern USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_out_data[AUDIO_OUT_NUMB
 extern USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_in_data[AUDIO_IN_NUMBER];
 uint8_t* USBD_AUDIO_GetBufferFromApp(USBD_AUDIO_LoopbackDataTypeDef *data);
 void USBD_AUDIO_ReleaseBufferFromApp(USBD_AUDIO_LoopbackDataTypeDef *data);
+void USBD_AUDIO_NotifyUnitIdChanged(uint8_t unit_id);
 
 typedef struct
 {
-  USBD_AUDIO_ControlTypeDef control;
+	USBD_AUDIO_LoopbackDataTypeDef* ep0_data_endpoint;
+	USBD_SetupReqTypedef control_req;
+	uint8_t control_tx_data[USB_MAX_EP0_SIZE];
 } USBD_AUDIO_HandleTypeDef;
 
 

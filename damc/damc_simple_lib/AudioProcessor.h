@@ -1,10 +1,11 @@
 #pragma once
 
 #include "ChannelStrip.h"
+#include "Controls.h"
 #include "OscSerialClient.h"
 #include <FilteringChain.h>
-#include <Osc/OscReadOnlyVariable.h>
 #include <Osc/OscDynamicVariable.h>
+#include <Osc/OscReadOnlyVariable.h>
 #include <OscRoot.h>
 #include <stdint.h>
 
@@ -13,10 +14,10 @@ public:
 	MultiChannelAudioBuffer();
 
 	static constexpr size_t CHANNEL_NUMBER = 2;
-	static constexpr size_t BUFFER_SIZE = 48*2;
+	static constexpr size_t BUFFER_SIZE = 48 * 2;
 
 	float data[CHANNEL_NUMBER][BUFFER_SIZE];
-	float *dataPointers[CHANNEL_NUMBER];
+	float* dataPointers[CHANNEL_NUMBER];
 };
 
 class AudioProcessor {
@@ -25,8 +26,14 @@ public:
 	~AudioProcessor();
 
 	void init();
-	void processAudioInterleaved(const int16_t** input_endpoints, size_t input_endpoints_number, int16_t** output_endpoints, size_t output_endpoints_number, size_t nframes);
+	void processAudioInterleaved(const int16_t** input_endpoints,
+	                             size_t input_endpoints_number,
+	                             int16_t** output_endpoints,
+	                             size_t output_endpoints_number,
+	                             size_t nframes);
 	void mainLoop();
+
+	Controls* getControls() { return &controls; }
 
 	static AudioProcessor* getInstance();
 
@@ -40,6 +47,7 @@ private:
 
 	OscRoot oscRoot;
 	OscSerialClient serialClient;
+	Controls controls;
 	OscContainerArray<ChannelStrip> strips;
 
 	OscReadOnlyVariable<int32_t> timeMeasureUsbInterrupt;
@@ -60,7 +68,7 @@ private:
 	uint32_t slowTimerPreviousTick;
 	uint32_t slowTimerIndex;
 
-
 	MultiChannelAudioBuffer buffer[5];
-	int16_t codecBuffer[MultiChannelAudioBuffer::BUFFER_SIZE * MultiChannelAudioBuffer::CHANNEL_NUMBER] __attribute__((aligned(4)));
+	int16_t codecBuffer[MultiChannelAudioBuffer::BUFFER_SIZE * MultiChannelAudioBuffer::CHANNEL_NUMBER]
+	    __attribute__((aligned(4)));
 };
