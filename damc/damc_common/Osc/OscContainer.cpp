@@ -84,6 +84,27 @@ void OscContainer::execute(std::string_view address, const std::vector<OscArgume
 	}
 }
 
+OscNode* OscContainer::getNode(std::string_view address) {
+	if(address.empty() || address == "/") {
+		SPDLOG_TRACE("Executing address {}", getFullAddress());
+		return this;
+	} else {
+		std::string_view childAddress;
+		std::string_view remainingAddress;
+
+		splitAddress(address, &childAddress, &remainingAddress);
+
+		for(auto& child : children) {
+			if(child->getName() == childAddress) {
+				return child->getNode(remainingAddress);
+			}
+		}
+
+		SPDLOG_WARN("Address {} not found from {}", childAddressStr, getFullAddress());
+	}
+	return nullptr;
+}
+
 bool OscContainer::visit(const std::function<bool(OscNode*)>* nodeVisitorFunction) {
 	if(!OscNode::visit(nodeVisitorFunction))
 		return false;

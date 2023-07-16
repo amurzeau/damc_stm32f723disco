@@ -77,6 +77,14 @@ size_t OscNode::constructFullName(std::string* outputString) const {
 	return fullNameSize;
 }
 
+OscNode* OscNode::getNode(std::string_view address) {
+	if(address.empty() || address == "/") {
+		return this;
+	}
+
+	return nullptr;
+}
+
 void OscNode::getFullAddress(std::string* output) const {
 	output->clear();
 	output->reserve(constructFullName(nullptr));

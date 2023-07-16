@@ -4,13 +4,10 @@
 #include "OscNode.h"
 #include <vector>
 
-template<typename T>
-class PreallocatedVector : public std::vector<T> {
+template<typename T> class PreallocatedVector : public std::vector<T> {
 public:
 	using std::vector<T>::vector;
-	PreallocatedVector(size_t reserveSize) {
-		this->reserve(reserveSize);
-	}
+	PreallocatedVector(size_t reserveSize) { this->reserve(reserveSize); }
 };
 
 class OscContainer : public OscNode {
@@ -30,6 +27,7 @@ public:
 
 	using OscNode::execute;
 	void execute(std::string_view address, const std::vector<OscArgument>& arguments) override;
+	virtual OscNode* getNode(std::string_view address) override;
 	bool visit(const std::function<bool(OscNode*)>* nodeVisitorFunction) override;
 
 	std::string getAsString() const override;

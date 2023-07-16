@@ -10,9 +10,7 @@
 template<class T> struct osc_type_name {};
 
 #define DEFINE_OSC_TYPE(type_) \
-	template<> struct osc_type_name<type_> { \
-		static constexpr const char* name = #type_; \
-	}
+	template<> struct osc_type_name<type_> { static constexpr const char* name = #type_; }
 
 DEFINE_OSC_TYPE(bool);
 DEFINE_OSC_TYPE(int32_t);
@@ -27,12 +25,8 @@ DEFINE_OSC_TYPE(std::string);
 	prefix_ class template_name_<float>; \
 	prefix_ class template_name_<std::string>;
 
-template<typename T> struct OscReadOnlyType {
-	typedef T type;
-};
-template<> struct OscReadOnlyType<std::string> {
-	typedef std::string_view type;
-};
+template<typename T> struct OscReadOnlyType { typedef T type; };
+template<> struct OscReadOnlyType<std::string> { typedef std::string_view type; };
 
 using OscArgument = std::variant<bool, int32_t, float, std::string_view>;
 
@@ -82,6 +76,7 @@ public:
 
 	virtual bool visit(const std::function<bool(OscNode*)>* nodeVisitorFunction);
 	virtual void execute(std::string_view address, const std::vector<OscArgument>& arguments);
+	virtual OscNode* getNode(std::string_view address);
 
 	virtual OscRoot* getRoot();
 
