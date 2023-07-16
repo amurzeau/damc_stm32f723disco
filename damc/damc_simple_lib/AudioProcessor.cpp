@@ -91,6 +91,7 @@ void AudioProcessor::init() {
 	    {"/strip/2/display_name", {"mic"sv}},
 	    {"/strip/3/display_name", {"out-record"sv}},
 	    {"/strip/4/display_name", {"mic-feedback"sv}},
+	    {"/strip/0/filterChain/volume", {float{-25.f}}},
 	    {"/strip/1/filterChain/compressorFilter/enable", {true}},
 	    {"/strip/3/filterChain/mute", {true}},
 	    {"/strip/4/filterChain/mute", {true}},
