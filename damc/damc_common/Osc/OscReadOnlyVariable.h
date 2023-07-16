@@ -18,11 +18,13 @@ public:
 	OscReadOnlyVariable(const OscReadOnlyVariable&) = delete;
 
 	void set(readonly_type v, bool fromOsc = false);
+	void setFromOsc(readonly_type value);
 	void setDefault(readonly_type v);
 	void forceDefault(readonly_type v);
 
 	T& get() { return value; }
 	const T& get() const { return value; }
+	readonly_type getToOsc() const;
 	bool isDefault() const { return isDefaultValue; }
 
 	template<typename U = T> std::enable_if_t<std::is_same_v<U, std::string>, const char*> c_str();
@@ -50,9 +52,6 @@ public:
 
 protected:
 	void notifyOsc();
-
-	readonly_type getToOsc() const;
-	void setFromOsc(readonly_type value);
 
 private:
 	T value{};
