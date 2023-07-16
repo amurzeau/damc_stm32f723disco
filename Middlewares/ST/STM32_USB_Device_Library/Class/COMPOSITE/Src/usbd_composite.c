@@ -100,7 +100,7 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 	AUDIO_INPUT_TERMINAL_DESC_SIZE,       /* bLength */ \
 	AUDIO_INTERFACE_DESCRIPTOR_TYPE,      /* bDescriptorType */ \
 	AUDIO_CONTROL_INPUT_TERMINAL,         /* bDescriptorSubtype */ \
-	bBaseTerminalID * 3 + 0x01,           /* bTerminalID */ \
+	bBaseTerminalID * AUDIO_UNIT_ID_PER_ENDPOINT + 0x01,           /* bTerminalID */ \
 	0x01,                                 /* wTerminalType AUDIO_TERMINAL_USB_STREAMING   0x0101 */ \
 	0x01, \
 	0x00,                                 /* bAssocTerminal */ \
@@ -115,8 +115,8 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 	10,                                   /* bLength */ \
 	AUDIO_INTERFACE_DESCRIPTOR_TYPE,      /* bDescriptorType */ \
 	AUDIO_CONTROL_FEATURE_UNIT,           /* bDescriptorSubtype */ \
-	bBaseTerminalID * 3 + 0x02,           /* bUnitID */ \
-	bBaseTerminalID * 3 + 0x01,           /* bSourceID */ \
+	bBaseTerminalID * AUDIO_UNIT_ID_PER_ENDPOINT + AUDIO_UNIT_ID_OFFSET_FEATURE_UNIT,           /* bUnitID */ \
+	bBaseTerminalID * AUDIO_UNIT_ID_PER_ENDPOINT + 0x01,           /* bSourceID */ \
 	0x01,                                 /* bControlSize */ \
 	AUDIO_CONTROL_MUTE | AUDIO_CONTROL_VOLUME, /* bmaControls(0) */ \
 	0,                                    /* bmaControls(1) */ \
@@ -128,11 +128,11 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 	0x09,                                 /* bLength */ \
 	AUDIO_INTERFACE_DESCRIPTOR_TYPE,      /* bDescriptorType */ \
 	AUDIO_CONTROL_OUTPUT_TERMINAL,        /* bDescriptorSubtype */ \
-	bBaseTerminalID * 3 + 0x03,           /* bTerminalID */ \
+	bBaseTerminalID * AUDIO_UNIT_ID_PER_ENDPOINT + 0x03,           /* bTerminalID */ \
 	0x03,                                 /* wTerminalType  0x0603  Line connector */ \
 	0x06, \
 	0x00,                                 /* bAssocTerminal */ \
-	bBaseTerminalID * 3 + 0x02,           /* bSourceID */ \
+	bBaseTerminalID * AUDIO_UNIT_ID_PER_ENDPOINT + AUDIO_UNIT_ID_OFFSET_FEATURE_UNIT,           /* bSourceID */ \
 	iTerminal,                            /* iTerminal */ \
 	/* 09 byte*/
 
@@ -141,7 +141,7 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 	AUDIO_INPUT_TERMINAL_DESC_SIZE,       /* bLength */ \
 	AUDIO_INTERFACE_DESCRIPTOR_TYPE,      /* bDescriptorType */ \
 	AUDIO_CONTROL_INPUT_TERMINAL,         /* bDescriptorSubtype */ \
-	bBaseTerminalID * 3 + 0x01,           /* bTerminalID */ \
+	bBaseTerminalID * AUDIO_UNIT_ID_PER_ENDPOINT + 0x01,           /* bTerminalID */ \
 	0x03,                                 /* wTerminalType  0x0603  Line connector*/ \
 	0x06, \
 	0x00,                                 /* bAssocTerminal */ \
@@ -156,8 +156,8 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 	10,                                   /* bLength */ \
 	AUDIO_INTERFACE_DESCRIPTOR_TYPE,      /* bDescriptorType */ \
 	AUDIO_CONTROL_FEATURE_UNIT,           /* bDescriptorSubtype */ \
-	bBaseTerminalID * 3 + 0x02,           /* bUnitID */ \
-	bBaseTerminalID * 3 + 0x01,           /* bSourceID */ \
+	bBaseTerminalID * AUDIO_UNIT_ID_PER_ENDPOINT + AUDIO_UNIT_ID_OFFSET_FEATURE_UNIT,           /* bUnitID */ \
+	bBaseTerminalID * AUDIO_UNIT_ID_PER_ENDPOINT + 0x01,           /* bSourceID */ \
 	0x01,                                 /* bControlSize */ \
 	AUDIO_CONTROL_MUTE | AUDIO_CONTROL_VOLUME, /* bmaControls(0) */ \
 	0,                                    /* bmaControls(1) */ \
@@ -169,11 +169,11 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
 	0x09,                                 /* bLength */ \
 	AUDIO_INTERFACE_DESCRIPTOR_TYPE,      /* bDescriptorType */ \
 	AUDIO_CONTROL_OUTPUT_TERMINAL,        /* bDescriptorSubtype */ \
-	bBaseTerminalID * 3 + 0x03,           /* bTerminalID */ \
+	bBaseTerminalID * AUDIO_UNIT_ID_PER_ENDPOINT + 0x03,           /* bTerminalID */ \
 	0x01,                                 /* wTerminalType AUDIO_TERMINAL_USB_STREAMING   0x0101 */ \
 	0x01, \
 	0x00,                                 /* bAssocTerminal */ \
-	bBaseTerminalID * 3 + 0x02,           /* bSourceID */ \
+	bBaseTerminalID * AUDIO_UNIT_ID_PER_ENDPOINT + AUDIO_UNIT_ID_OFFSET_FEATURE_UNIT,           /* bSourceID */ \
 	iTerminal,                            /* iTerminal */ \
 	/* 09 byte*/
 

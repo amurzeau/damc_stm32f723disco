@@ -227,8 +227,8 @@ USBD_AUDIO_LoopbackDataTypeDef* USBD_AUDIO_getDataFromUnitId(USBD_AUDIO_HandleTy
 	if(unitId < 1 || haudio == NULL)
 		return NULL;
 
-	uint32_t index = (unitId - 1) / 6;
-	uint32_t is_in = (((unitId - 1) / 3) % 2) == 1;
+	uint32_t index = (unitId - 1) / AUDIO_UNIT_ID_PER_ENDPOINT / 2;
+	uint32_t is_in = (((unitId - 1) / AUDIO_UNIT_ID_PER_ENDPOINT) % 2) == 1;
 
 	if(is_in) {
 		if(index < AUDIO_IN_NUMBER) {
@@ -255,7 +255,7 @@ USBD_AUDIO_LoopbackDataTypeDef* USBD_AUDIO_getDataFromUnitId(USBD_AUDIO_HandleTy
   */
 USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_out_data[AUDIO_OUT_NUMBER];
 USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_in_data[AUDIO_IN_NUMBER];
-static uint8_t usb_audio_notify_unit_id_change;
+static uint16_t usb_audio_notify_unit_id_change;
 static uint16_t usb_audio_notify_in_progress_data;
 
 volatile uint8_t usb_new_frame_flag;
@@ -691,7 +691,7 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
 	  }
   }
 
-  uint8_t unit_id_change_bitmask = usb_audio_notify_unit_id_change;
+  uint16_t unit_id_change_bitmask = usb_audio_notify_unit_id_change;
   if(!usb_audio_notify_in_progress_data && unit_id_change_bitmask) {
 	  uint8_t unit_id = 31 - __builtin_clz(unit_id_change_bitmask);
 	  usb_audio_notify_unit_id_change &= ~(1 << unit_id);

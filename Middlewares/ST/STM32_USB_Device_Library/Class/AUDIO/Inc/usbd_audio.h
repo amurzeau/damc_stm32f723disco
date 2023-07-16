@@ -66,6 +66,9 @@ extern "C" {
 #endif /* AUDIO_OUT_EP */
 #define AUDIO_IN_EP                                   0x84U
 
+#define AUDIO_UNIT_ID_PER_ENDPOINT 3
+#define AUDIO_UNIT_ID_OFFSET_FEATURE_UNIT 2
+
 #define AUDIO_INTERFACE_DESC_SIZE                     0x09U
 #define USB_AUDIO_DESC_SIZ                            0x09U
 #define AUDIO_STANDARD_ENDPOINT_DESC_SIZE             0x09U
@@ -94,7 +97,7 @@ extern "C" {
 #define AUDIO_STREAMING_INTERFACE_DESC_SIZE           0x07U
 
 #define AUDIO_CONTROL_MUTE                            1
-#define AUDIO_CONTROL_VOLUME 2
+#define AUDIO_CONTROL_VOLUME                          2
 
 #define AUDIO_FORMAT_TYPE_I                           0x01U
 #define AUDIO_FORMAT_TYPE_III                         0x03U
