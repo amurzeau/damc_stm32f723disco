@@ -68,7 +68,7 @@ private:
 	uint32_t slowTimerPreviousTick;
 	uint32_t slowTimerIndex;
 
-	MultiChannelAudioBuffer buffer[5];
+	MultiChannelAudioBuffer buffer[4];
 	int16_t codecBuffer[MultiChannelAudioBuffer::BUFFER_SIZE * MultiChannelAudioBuffer::CHANNEL_NUMBER]
 	    __attribute__((aligned(4)));
 };

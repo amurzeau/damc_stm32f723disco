@@ -148,7 +148,7 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	 *                                                      |    |
 	 * IN 0 (mic input)               <----------(+)---[3]--+   [4]
 	 *                                            |              |
-	 *                                            +----[2]-------*----< Codec mic
+	 *                                            +--------------*--[2]--< Codec mic
 	 * ChannelStrip:
 	 *   [0]: master (OUT 0 + compressed OUT 1)
 	 *   [1]: compressor for OUT 1
@@ -160,8 +160,7 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	 *  - #0: OUT 1 processing
 	 *  - #1: OUT 0 processing then mix of OUT 0 + OUT 1 then out-record processing then IN 0
 	 *  - #2: Codec Headphones mix
-	 *  - #3: Codec MIC input then MIC processing (then added into buffer #1)
-	 *  - #4: Copy of codec MIC input then mic-feedback processing (then added into buffer #2)
+	 *  - #3: Codec MIC input then MIC processing (then added into buffer #1) then mic-feedback processing
 	 *
 	 */
 
@@ -190,23 +189,20 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	CodecAudio::instance.processAudioInterleavedInput(codecBuffer, nframes);
 	interleavedToFloat(codecBuffer, &buffer[3], nframes);
 
-	// Copy codec MIC audio as it has multiple destination
-	memcpy(&buffer[4].data, &buffer[3].data, sizeof(buffer[3].data));
-
 	// Process mic
 	strips.at(2).processSamples(buffer[3].dataPointers, numChannels, nframes);
 
-	// Mic mic and out-record into IN 0
+	// Mix mic and out-record into IN 0
 	mixAudio(&buffer[1], &buffer[3], nframes);
 
 	// Output float data to USB endpoint IN 0
 	floatToInterleaved(&buffer[1], output_endpoints[0], nframes);
 
 	// Process mic-feedback
-	strips.at(4).processSamples(buffer[4].dataPointers, numChannels, nframes);
+	strips.at(4).processSamples(buffer[3].dataPointers, numChannels, nframes);
 
 	// Mix mic-feedback with master
-	mixAudio(&buffer[2], &buffer[4], nframes);
+	mixAudio(&buffer[2], &buffer[3], nframes);
 
 	// Output float data to codec headphones
 	floatToInterleaved(&buffer[2], codecBuffer, nframes);
