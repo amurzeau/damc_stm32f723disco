@@ -678,15 +678,27 @@ __weak void BSP_AUDIO_OUT_ClockConfig(SAI_HandleTypeDef *hsai, uint32_t AudioFre
   }
   else /* AUDIO_FREQUENCY_8K, AUDIO_FREQUENCY_16K, AUDIO_FREQUENCY_48K, AUDIO_FREQUENCY_96K */
   {
-    /* SAI clock config 
-    PLLSAI_VCO: VCO_344M 
-    SAI_CLK(first level) = PLLSAI_VCO/PLLSAIQ = 344/7 = 49.142 Mhz 
-    SAI_CLK_x = SAI_CLK(first level)/PLLSAIDIVQ = 49.142/1 = 49.142 Mhz */  
-    rcc_ex_clk_init_struct.PeriphClockSelection = RCC_PERIPHCLK_SAI2;
-    rcc_ex_clk_init_struct.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLLI2S;
-    rcc_ex_clk_init_struct.PLLI2S.PLLI2SN = 344; 
-    rcc_ex_clk_init_struct.PLLI2S.PLLI2SQ = 7; 
-    rcc_ex_clk_init_struct.PLLI2SDivQ = 1;      
+    if(HSE_VALUE == 25000000U) {
+      /* SAI clock config
+      PLLSAI_VCO: VCO_344M
+      SAI_CLK(first level) = PLLSAI_VCO/PLLSAIQ = 1Mhz * 344/7 = 49.142 Mhz
+      SAI_CLK_x = SAI_CLK(first level)/PLLSAIDIVQ = 49.142/1 = 49.142 Mhz */
+      rcc_ex_clk_init_struct.PeriphClockSelection = RCC_PERIPHCLK_SAI2;
+      rcc_ex_clk_init_struct.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLLI2S;
+      rcc_ex_clk_init_struct.PLLI2S.PLLI2SN = 344;
+      rcc_ex_clk_init_struct.PLLI2S.PLLI2SQ = 7;
+      rcc_ex_clk_init_struct.PLLI2SDivQ = 1;
+    } else {
+      /* SAI clock config
+      PLLSAI_VCO: VCO_344M
+      SAI_CLK(first level) = PLLSAI_VCO/PLLSAIQ = 2Mhz * 172/7 = 49,143 Mhz
+      SAI_CLK_x = SAI_CLK(first level)/PLLSAIDIVQ = 49,143/1 = 49,143 Mhz */
+      rcc_ex_clk_init_struct.PeriphClockSelection = RCC_PERIPHCLK_SAI2;
+      rcc_ex_clk_init_struct.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLLI2S;
+      rcc_ex_clk_init_struct.PLLI2S.PLLI2SN = 172;
+      rcc_ex_clk_init_struct.PLLI2S.PLLI2SQ = 7;
+      rcc_ex_clk_init_struct.PLLI2SDivQ = 1;
+    }
     
     HAL_RCCEx_PeriphCLKConfig(&rcc_ex_clk_init_struct);
   }

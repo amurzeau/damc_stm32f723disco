@@ -502,6 +502,9 @@ void HAL_SRAM_MspDeInit(SRAM_HandleTypeDef* hsram){
   /* USER CODE END SRAM_MspDeInit 1 */
 }
 
+/* USER CODE BEGIN 1 */
+
+
 static uint32_t SAI2_client =0;
 
 void HAL_SAI_MspInit(SAI_HandleTypeDef* hsai)
@@ -591,7 +594,5 @@ void HAL_SAI_MspDeInit(SAI_HandleTypeDef* hsai)
 
     }
 }
-
-/* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
