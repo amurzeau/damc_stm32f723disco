@@ -585,11 +585,16 @@ static uint8_t USBD_AUDIO_EP0_RxReady(USBD_HandleTypeDef *pdev)
   if (haudio->control_req.bRequest == AUDIO_REQ_SET_CUR)
   {
     /* In this driver, to simplify code, only SET_CUR request is managed */
+	uint16_t value = 0;
+
+	memcpy(&value, haudio->control_tx_data, MIN(haudio->control_req.wLength, sizeof(value)));
+
 	DAMC_setControlFromUSB(unit_id,
 			HIBYTE(haudio->control_req.wValue),
 			LOBYTE(haudio->control_req.wValue),
 			haudio->control_req.bRequest,
-			*(uint16_t*)haudio->control_tx_data);
+			value);
+
 	haudio->control_req = (USBD_SetupReqTypedef){0};
   }
 
