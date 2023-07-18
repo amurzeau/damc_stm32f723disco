@@ -43,7 +43,7 @@ uint16_t Controls::getControlFromUSB(uint8_t unit_id, uint8_t control_selector, 
 					case AUDIO_REQ_GET_CUR:
 						return (uint16_t) (int16_t) (endpointVolumeControls[endpoint_index]->getToOsc() * 256);
 					case AUDIO_REQ_GET_MIN:
-						return (uint16_t) (int16_t) (-80 * 256);
+						return (uint16_t) (int16_t) (-127 * 256);
 					case AUDIO_REQ_GET_MAX:
 						return (uint16_t) (int16_t) (20 * 256);
 					case AUDIO_REQ_GET_RES:
