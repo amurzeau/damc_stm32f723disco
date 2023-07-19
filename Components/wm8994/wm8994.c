@@ -154,9 +154,10 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
   /* Enable VMID soft start (fast), Start-up Bias Current Enabled */
   counter += CODEC_IO_Write(DeviceAddr, 0x39, 0x006C);
 
-    /* Enable bias generator, Enable VMID */
+    /* Enable bias generator, Enable VMID, enable MICBIAS1 at 0.65*AVDD1 */
   if (input_device > 0)
   {
+    counter += CODEC_IO_Write(DeviceAddr, 0x3a, 0x0001);
     counter += CODEC_IO_Write(DeviceAddr, 0x01, 0x0013);
   }
   else
