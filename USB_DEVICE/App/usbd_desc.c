@@ -286,11 +286,11 @@ uint8_t * USBD_HS_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length
 {
   if(speed == 0)
   {
-    USBD_GetString((uint8_t *)USBD_PRODUCT_STRING_HS, USBD_StrDesc, length);
+    USBD_GetString(USBD_PRODUCT_STRING_HS, USBD_StrDesc, length);
   }
   else
   {
-    USBD_GetString((uint8_t *)USBD_PRODUCT_STRING_HS, USBD_StrDesc, length);
+    USBD_GetString(USBD_PRODUCT_STRING_HS, USBD_StrDesc, length);
   }
   return USBD_StrDesc;
 }
@@ -304,7 +304,7 @@ uint8_t * USBD_HS_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length
 uint8_t * USBD_HS_ManufacturerStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
   UNUSED(speed);
-  USBD_GetString((uint8_t *)USBD_MANUFACTURER_STRING, USBD_StrDesc, length);
+  USBD_GetString(USBD_MANUFACTURER_STRING, USBD_StrDesc, length);
   return USBD_StrDesc;
 }
 
@@ -339,11 +339,11 @@ uint8_t * USBD_HS_ConfigStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
   if(speed == USBD_SPEED_HIGH)
   {
-    USBD_GetString((uint8_t *)USBD_CONFIGURATION_STRING_HS, USBD_StrDesc, length);
+    USBD_GetString(USBD_CONFIGURATION_STRING_HS, USBD_StrDesc, length);
   }
   else
   {
-    USBD_GetString((uint8_t *)USBD_CONFIGURATION_STRING_HS, USBD_StrDesc, length);
+    USBD_GetString(USBD_CONFIGURATION_STRING_HS, USBD_StrDesc, length);
   }
   return USBD_StrDesc;
 }
@@ -358,11 +358,11 @@ uint8_t * USBD_HS_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *leng
 {
   if(speed == 0)
   {
-    USBD_GetString((uint8_t *)USBD_INTERFACE_STRING_HS, USBD_StrDesc, length);
+    USBD_GetString(USBD_INTERFACE_STRING_HS, USBD_StrDesc, length);
   }
   else
   {
-    USBD_GetString((uint8_t *)USBD_INTERFACE_STRING_HS, USBD_StrDesc, length);
+    USBD_GetString(USBD_INTERFACE_STRING_HS, USBD_StrDesc, length);
   }
   return USBD_StrDesc;
 }
@@ -400,10 +400,14 @@ static void Get_SerialNum(void)
 
   deviceserial0 += deviceserial2;
 
+  static const uint8_t serial_prefix[] = {'D', 0, 'A', 0, 'M', 0, 'C', 0, '_', 0};
+
+  memcpy(&USBD_StringSerial[2], serial_prefix, 10);
+
   if (deviceserial0 != 0)
   {
-    IntToUnicode(deviceserial0, &USBD_StringSerial[2], 8);
-    IntToUnicode(deviceserial1, &USBD_StringSerial[18], 4);
+    IntToUnicode(deviceserial0, &USBD_StringSerial[12], 8);
+    IntToUnicode(deviceserial1, &USBD_StringSerial[28], 4);
   }
 }
 

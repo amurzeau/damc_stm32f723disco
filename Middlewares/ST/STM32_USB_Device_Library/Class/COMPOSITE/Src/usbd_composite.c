@@ -820,7 +820,7 @@ uint8_t *USBD_COMPOSITE_GetDeviceQualifierDescriptor(uint16_t *length)
 static uint8_t USBD_COMPOSITE_UsrStrDescriptor[0x200];
 
 static uint8_t* USBD_COMPOSITE_GetString(const char* str, uint16_t* length) {
-	USBD_GetString((uint8_t*) str, USBD_COMPOSITE_UsrStrDescriptor, length);
+	USBD_GetString(str, USBD_COMPOSITE_UsrStrDescriptor, length);
 	return USBD_COMPOSITE_UsrStrDescriptor;
 }
 
