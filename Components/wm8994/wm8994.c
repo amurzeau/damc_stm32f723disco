@@ -617,6 +617,9 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
     }    
     else if ((input_device == INPUT_DEVICE_INPUT_LINE_1) || (input_device == INPUT_DEVICE_INPUT_LINE_2))
     {
+      /* Enable Microphone bias 1 generator, Enable VMID */
+      power_mgnt_reg_1 |= 0x0013;
+      counter += CODEC_IO_Write(DeviceAddr, 0x01, power_mgnt_reg_1);
 
       /* Disable mute on IN1L, IN1L Volume = +0dB */
       counter += CODEC_IO_Write(DeviceAddr, 0x18, 0x000B);
