@@ -146,6 +146,14 @@ SECTIONS
 
   } >RAM AT> FLASH
 
+  /* User storage section, used to check that there is enough "FLASH" type memory left */
+  .storage_data (NOLOAD) :
+  {
+    . = ALIGN(4);
+    . = . + 32768;
+    . = ALIGN(4);
+  } >FLASH
+
   /* Uninitialized data section into "RAM" Ram type memory */
   . = ALIGN(4);
   .bss :

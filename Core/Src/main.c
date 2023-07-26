@@ -510,14 +510,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : QSPI_D2_Pin */
-  GPIO_InitStruct.Pin = QSPI_D2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF9_QUADSPI;
-  HAL_GPIO_Init(QSPI_D2_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pins : ARD_D11_TIM3_CH2_SPI1_MOSI_Pin ARD_D12_SPI1_MISO_Pin */
   GPIO_InitStruct.Pin = ARD_D11_TIM3_CH2_SPI1_MOSI_Pin|ARD_D12_SPI1_MISO_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -549,14 +541,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF3_TIM9;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : QSPI_NCS_Pin */
-  GPIO_InitStruct.Pin = QSPI_NCS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF10_QUADSPI;
-  HAL_GPIO_Init(QSPI_NCS_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : SAI2_INT_Pin */
   GPIO_InitStruct.Pin = SAI2_INT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
@@ -575,14 +559,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : QSPI_D1_Pin QSPI_D0_Pin */
-  GPIO_InitStruct.Pin = QSPI_D1_Pin|QSPI_D0_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF9_QUADSPI;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PA12 PA11 */
@@ -708,14 +684,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : QSPI_CLK_Pin */
-  GPIO_InitStruct.Pin = QSPI_CLK_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF9_QUADSPI;
-  HAL_GPIO_Init(QSPI_CLK_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : ARD_D9_TIM12_CH1_Pin */
   GPIO_InitStruct.Pin = ARD_D9_TIM12_CH1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -731,14 +699,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF4_I2C3;
   HAL_GPIO_Init(CTP_SDA_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : QSPI_D3_Pin */
-  GPIO_InitStruct.Pin = QSPI_D3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF9_QUADSPI;
-  HAL_GPIO_Init(QSPI_D3_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : ARD_A1_Pin ARD_A0_Pin */
   GPIO_InitStruct.Pin = ARD_A1_Pin|ARD_A0_Pin;
