@@ -1,10 +1,10 @@
 #include "FilteringChain.h"
 #include <MathUtils.h>
+#include <Utils.h>
 #include <fastapprox/fastexp.h>
 #include <fastapprox/fastlog.h>
 #include <math.h>
 #include <string.h>
-#include <Utils.h>
 
 float LogScaleFromOsc(float value) {
 	return fastpow2(value * LOG10_VALUE_DIV_20);
@@ -12,7 +12,7 @@ float LogScaleFromOsc(float value) {
 
 float LogScaleToOsc(float value) {
 	float logValue = fastlog2(value) / LOG10_VALUE_DIV_20;
-	logValue = roundf(logValue*100.f)/100.f;
+	logValue = roundf(logValue * 100.f) / 100.f;
 	return logValue;
 }
 
@@ -53,7 +53,7 @@ void FilterChain::updateNumChannels(size_t numChannel) {
 	// reverbFilters.resize(numChannel);
 	volume.resize(numChannel);
 
-	eqFilters.resize(6);
+	eqFilters.resize(10);
 
 	for(auto& filter : eqFilters) {
 		filter->init(numChannel);
