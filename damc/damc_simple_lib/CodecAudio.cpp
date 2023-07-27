@@ -15,7 +15,9 @@ CodecAudio::CodecAudio() {
 }
 
 void CodecAudio::start() {
-	BSP_AUDIO_IN_OUT_Init(INPUT_DEVICE_INPUT_LINE_1, OUTPUT_DEVICE_HEADPHONE1, 48000, 16, 2, 100, 80);
+	// 91 gives 0dB HPOUT1L_VOL
+	// 80 gives 0dB AIF1ADC1L_VOL
+	BSP_AUDIO_IN_OUT_Init(INPUT_DEVICE_INPUT_LINE_1, OUTPUT_DEVICE_HEADPHONE1, 48000, 16, 2, 91, 80);
 
 	BSP_AUDIO_OUT_Play((uint16_t*) out_buffer.data(), out_buffer.size() * sizeof(out_buffer[0]));
 	BSP_AUDIO_IN_Record((uint16_t*) in_buffer.data(), in_buffer.size() * 2);
