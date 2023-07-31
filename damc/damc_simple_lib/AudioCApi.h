@@ -17,8 +17,19 @@ void DAMC_processAudioInterleaved(const int16_t** input_endpoints,
 void DAMC_mainLoop();
 void DAMC_usbInterruptBeginMeasure();
 void DAMC_usbInterruptEndMeasure();
-void DAMC_setControlFromUSB(uint8_t unit_id, uint8_t control_selector, uint8_t channel, uint8_t bRequest, uint16_t value);
+void DAMC_setControlFromUSB(
+    uint8_t unit_id, uint8_t control_selector, uint8_t channel, uint8_t bRequest, uint16_t value);
 uint16_t DAMC_getControlFromUSB(uint8_t unit_id, uint8_t control_selector, uint8_t channel, uint8_t bRequest);
+
+enum DAMC_USB_Buffer_e {
+	DUB_Out1,
+	DUB_Out2,
+	DUB_In,
+};
+uint32_t DAMC_getUSBFeedbackValue(enum DAMC_USB_Buffer_e index);
+
+void DAMC_writeAudioSample(enum DAMC_USB_Buffer_e index, const void* data, size_t size);
+size_t DAMC_readAudioSample(enum DAMC_USB_Buffer_e index, void* data, size_t size);
 
 #ifdef __cplusplus
 }

@@ -150,7 +150,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if(usb_new_frame_flag) {
+	  if(usb_new_frame_flag && 0) {
 		  usb_new_frame_flag = 0;
 
 		  size_t nframes = usb_audio_endpoint_out_data[0].nominal_packet_size / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS;

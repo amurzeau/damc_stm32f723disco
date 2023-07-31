@@ -388,13 +388,13 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
   HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_HS, 0x180);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 0, 0x60);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, 512U/4);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, 16U);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 3, 16U);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 4, (192*2 / 4));
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 5, (192*2 / 4));
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 6, (192*2 / 4));
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 7, (192*2 / 4));
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, 512U/4); // CDC data IN
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, 16U); // CDC commands
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 3, 16U); // audio control status interrupt
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 4, (192*2 / 4)); // audio OUT 1 feedback
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 5, (192*2 / 4)); // audio IN 1 data
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 6, (192*2 / 4)); // audio OUT 2 feedback
+  //HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 7, (192*2 / 4)); // unused
   }
   return USBD_OK;
 }

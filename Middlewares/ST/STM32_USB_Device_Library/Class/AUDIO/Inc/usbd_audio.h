@@ -64,7 +64,8 @@ extern "C" {
 #ifndef AUDIO_OUT_EP
 #define AUDIO_OUT_EP                                  0x04U
 #endif /* AUDIO_OUT_EP */
-#define AUDIO_IN_EP                                   0x84U
+#define AUDIO_OUT_FEEDBACK_EP                         0x84U
+#define AUDIO_IN_EP                                   0x85U
 
 #define AUDIO_UNIT_ID_PER_ENDPOINT 3
 #define AUDIO_UNIT_ID_OFFSET_FEATURE_UNIT 2
@@ -121,13 +122,16 @@ extern "C" {
 
 
 #define AUDIO_OUT_PACKET                              (uint16_t)(((USBD_AUDIO_FREQ * USBD_AUDIO_CHANNELS * USBD_AUDIO_BYTES_PER_SAMPLE) / 1000U))
+#define AUDIO_OUT_MAX_PACKET                          (uint16_t)((2 * USBD_AUDIO_CHANNELS * USBD_AUDIO_BYTES_PER_SAMPLE) + AUDIO_OUT_PACKET)
+#define AUDIO_OUT_FEEDBACK_MAX_PACKET                 ((uint16_t)4)
+
 #define AUDIO_DEFAULT_VOLUME                          70U
 
 #define AUDIO_SAMPLE_FREQ(frq) \
   (uint8_t)(frq), (uint8_t)((frq >> 8)), (uint8_t)((frq >> 16))
 
 #define AUDIO_PACKET_SZE \
-	(uint8_t)(AUDIO_OUT_PACKET & 0xFFU), (uint8_t)((AUDIO_OUT_PACKET >> 8) & 0xFFU)
+	(uint8_t)(AUDIO_OUT_MAX_PACKET & 0xFFU), (uint8_t)((AUDIO_OUT_MAX_PACKET >> 8) & 0xFFU)
 
 /* Number of sub-packets in the audio transfer buffer. You can modify this value but always make sure
   that it is an even number and higher than 3 */
@@ -183,7 +187,7 @@ enum USBD_AUDIO_BufferState {
 typedef struct {
 	volatile enum USBD_AUDIO_BufferState state;
 	uint32_t size;
-	uint8_t buffer[AUDIO_OUT_PACKET];
+	uint8_t buffer[AUDIO_OUT_MAX_PACKET];
 } USBD_AUDIO_Buffer;
 
 typedef struct {
@@ -194,11 +198,14 @@ typedef struct {
 typedef struct {
 	uint32_t is_in;
 	uint32_t endpoint;
+	uint32_t endpoint_feedback;
 	uint32_t max_packet_size;
 	uint32_t nominal_packet_size;
 
 	uint32_t current_alternate;
 	int32_t next_target_frame;
+	int32_t next_target_frame_feedback;
+	uint32_t feedback;
 	uint32_t transfer_in_progress;
 	uint32_t incomplete_iso;
 	uint32_t complete_iso;
@@ -214,6 +221,7 @@ typedef struct {
 	uint32_t usb_index_for_processing;
 	USBD_AUDIO_Buffer buffer[2] __attribute__((aligned(4)));
 	USBD_AUDIO_ControlTypeDef control;
+	uint8_t buffer_feedback[AUDIO_OUT_FEEDBACK_MAX_PACKET] __attribute__((aligned(4)));
 } USBD_AUDIO_LoopbackDataTypeDef;
 
 #ifdef USB_AUDIO_ENABLE_HISTORY

@@ -178,21 +178,22 @@ void USBD_AUDIO_trace(USBD_AUDIO_LoopbackDataTypeDef* data, const char* operatio
 }
 #endif
 
-USBD_AUDIO_LoopbackDataTypeDef* USBD_AUDIO_getDataFromEndpoint(USBD_AUDIO_HandleTypeDef* haudio,
-                                                             uint8_t epnum, uint8_t is_in)
+uint8_t USBD_AUDIO_isFeedbackEndpoint(uint8_t epnum)
 {
-	if(epnum < AUDIO_OUT_EP || haudio == NULL)
-		return NULL;
+	return (((epnum & 0x0F) - (AUDIO_OUT_FEEDBACK_EP & 0x0F)) % 2) == 0;
+}
 
-	uint32_t index = (epnum & 0x0F) - AUDIO_OUT_EP;
-
+USBD_AUDIO_LoopbackDataTypeDef* USBD_AUDIO_getDataFromEndpoint(uint8_t epnum, uint8_t is_in)
+{
 	if(is_in) {
-		if(index >= AUDIO_IN_NUMBER)
+		int32_t index = ((epnum & 0x0F) - (AUDIO_IN_EP & 0x0F))/2;
+		if(index < 0 || index >= AUDIO_IN_NUMBER)
 			return NULL;
 
 		return &usb_audio_endpoint_in_data[index];
 	} else {
-		if(index >= AUDIO_OUT_NUMBER)
+		int32_t index = ((epnum & 0x0F) - (AUDIO_OUT_EP & 0x0F))/2;
+		if(index < 0 || index >= AUDIO_OUT_NUMBER)
 			return NULL;
 
 		return &usb_audio_endpoint_out_data[index];
@@ -288,14 +289,17 @@ static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 #endif /* USE_USBD_COMPOSITE */
 
   for(size_t i = 0; i < AUDIO_OUT_NUMBER; i++) {
-	  unsigned int ep = AUDIO_OUT_EP + i;
+	  unsigned int ep = AUDIO_OUT_EP + i*2;
+	  unsigned int ep_feedback = AUDIO_OUT_FEEDBACK_EP + i*2;
 	  USBD_AUDIO_LoopbackDataTypeDef* data = &usb_audio_endpoint_out_data[i];
 	  data->is_in = 0;
 	  data->endpoint = ep;
-	  data->max_packet_size = AUDIO_OUT_PACKET;
+	  data->endpoint_feedback = ep_feedback;
+	  data->max_packet_size = AUDIO_OUT_MAX_PACKET;
 	  data->nominal_packet_size = AUDIO_OUT_PACKET;
 	  data->current_alternate = 0U;
 	  data->next_target_frame = -1;
+	  data->next_target_frame_feedback = -1;
 	  data->transfer_in_progress = 0;
 	  memset(&data->buffer, 0, sizeof(data->buffer));
 	  data->buffer[0].state = BS_AvailableForUSB;
@@ -313,15 +317,28 @@ static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	  /* Open EP OUT */
 	  (void)USBD_LL_OpenEP(pdev, ep, USBD_EP_TYPE_ISOC, data->max_packet_size);
 	  pdev->ep_out[ep & 0xFU].is_used = 1U;
+
+	  if (pdev->dev_speed == USBD_SPEED_HIGH)
+	  {
+		pdev->ep_in[ep_feedback & 0xFU].bInterval = AUDIO_HS_BINTERVAL;
+	  }
+	  else   /* LOW and FULL-speed endpoints */
+	  {
+		pdev->ep_in[ep_feedback & 0xFU].bInterval = AUDIO_FS_BINTERVAL;
+	  }
+
+	  /* Open EP OUT */
+	  (void)USBD_LL_OpenEP(pdev, ep_feedback, USBD_EP_TYPE_ISOC, AUDIO_OUT_FEEDBACK_MAX_PACKET);
+	  pdev->ep_in[ep_feedback & 0xFU].is_used = 1U;
   }
 
 
   for(size_t i = 0; i < AUDIO_IN_NUMBER; i++) {
-	  unsigned int ep = AUDIO_IN_EP + i;
+	  unsigned int ep = AUDIO_IN_EP + i*2;
 	  USBD_AUDIO_LoopbackDataTypeDef* data = &usb_audio_endpoint_in_data[i];
 	  data->is_in = 1;
 	  data->endpoint = ep;
-	  data->max_packet_size = AUDIO_OUT_PACKET;
+	  data->max_packet_size = AUDIO_OUT_MAX_PACKET;
 	  data->nominal_packet_size = AUDIO_OUT_PACKET;
 	  data->current_alternate = 0U;
 	  data->next_target_frame = -1;
@@ -399,6 +416,10 @@ static uint8_t USBD_AUDIO_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 		  (void)USBD_LL_CloseEP(pdev, data->endpoint);
 		  pdev->ep_out[data->endpoint & 0xFU].is_used = 0U;
 		  pdev->ep_out[data->endpoint & 0xFU].bInterval = 0U;
+		  /* Close EP OUT feedback */
+		  (void)USBD_LL_CloseEP(pdev, data->endpoint_feedback);
+		  pdev->ep_out[data->endpoint_feedback & 0xFU].is_used = 0U;
+		  pdev->ep_out[data->endpoint_feedback & 0xFU].bInterval = 0U;
 	  }
 
 	  (void)USBD_LL_CloseEP(pdev, AUDIO_INTERRUPT_EP);
@@ -527,9 +548,13 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev,
               USBD_CtlError(pdev, req);
               ret = USBD_FAIL;
             } else {
-              if(data->is_in && req->wValue == 1 && data->current_alternate == 0) {
-                PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
-                data->next_target_frame = (pcd->FrameNumber + 1) & 0x3FFF;
+              if(req->wValue == 1 && data->current_alternate == 0) {
+            	  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+            	  if(data->is_in) {
+					data->next_target_frame = (pcd->FrameNumber + 1) & 0x3FFF;
+				  } else {
+					data->next_target_frame_feedback = (pcd->FrameNumber + 1) & 0x3FFF;
+				  }
               }
               data->current_alternate = req->wValue;
               if(data->is_in) {
@@ -660,15 +685,12 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
 		  while(data->transfer_in_progress > 0);
 		  data->transfer_in_progress = 1;
 		  USBD_AUDIO_Buffer* buffer = &data->buffer[data->usb_index_for_prepare];
-		  if(buffer->size > 0 && (1 || buffer->state == BS_AvailableForUSB)) {
-			  buffer->state = BS_USBBusy;
-			  USBD_AUDIO_trace(data, "USBD_LL_Transmit");
-			  USBD_LL_Transmit(pdev, data->endpoint, buffer->buffer, buffer->size);
-			  buffer->size = 0U;
-		  } else {
-			  USBD_AUDIO_trace(data, "USBD_LL_Transmit dummy");
-			  USBD_LL_Transmit(pdev, data->endpoint, zero_data, data->nominal_packet_size);
-		  }
+		  buffer->state = BS_USBBusy;
+		  USBD_AUDIO_trace(data, "USBD_LL_Transmit");
+
+		  buffer->size = DAMC_readAudioSample(i + DUB_In, buffer->buffer, sizeof(buffer->buffer)/4)*4;
+		  USBD_LL_Transmit(pdev, data->endpoint, buffer->buffer, buffer->size);
+		  buffer->size = 0U;
 	  }
   }
 
@@ -681,17 +703,27 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
 		  data->usb_index_for_prepare = !data->usb_index_for_prepare;
 	  }
 
-	  if(data->current_alternate && data->transfer_in_progress == 0 && data->next_target_frame == frameNumber) {
-		  while(data->transfer_in_progress > 0);
-		  data->transfer_in_progress = 1;
-		  USBD_AUDIO_Buffer* buffer = &data->buffer[data->usb_index_for_prepare];
-		  if(1 || buffer->state == BS_AvailableForUSB) {
-			  buffer->state = BS_USBBusy;
-			  USBD_AUDIO_trace(data, "USBD_LL_PrepareReceive");
-			  USBD_LL_PrepareReceive(pdev, data->endpoint, buffer->buffer, data->max_packet_size);
-		  } else {
-			  USBD_AUDIO_trace(data, "USBD_LL_PrepareReceive dummy");
-			  USBD_LL_PrepareReceive(pdev, data->endpoint, dummy_buffer, data->max_packet_size);
+	  if(data->current_alternate) {
+		  if(data->transfer_in_progress == 0 && data->next_target_frame == frameNumber) {
+			  while(data->transfer_in_progress > 0);
+			  data->transfer_in_progress = 1;
+			  data->feedback = DAMC_getUSBFeedbackValue(i);
+			  USBD_AUDIO_Buffer* buffer = &data->buffer[data->usb_index_for_prepare];
+			  if(1 || buffer->state == BS_AvailableForUSB) {
+				  buffer->state = BS_USBBusy;
+				  USBD_AUDIO_trace(data, "USBD_LL_PrepareReceive");
+				  USBD_LL_PrepareReceive(pdev, data->endpoint, buffer->buffer, data->max_packet_size);
+			  } else {
+				  USBD_AUDIO_trace(data, "USBD_LL_PrepareReceive dummy");
+				  USBD_LL_PrepareReceive(pdev, data->endpoint, dummy_buffer, data->nominal_packet_size);
+			  }
+	  	  }
+		  if(data->next_target_frame_feedback == frameNumber) {
+			  data->buffer_feedback[0] = data->feedback & 0xFF;
+			  data->buffer_feedback[1] = (data->feedback >> 8) & 0xFF;
+			  data->buffer_feedback[2] = (data->feedback >> 16) & 0xFF;
+			  data->buffer_feedback[3] = (data->feedback >> 24) & 0xFF;
+			  USBD_LL_Transmit(pdev, data->endpoint_feedback, data->buffer_feedback, sizeof(data->buffer_feedback));
 		  }
 	  }
   }
@@ -726,21 +758,27 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
   */
 static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-  USBD_AUDIO_HandleTypeDef *haudio;
-  haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
-  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromEndpoint(haudio, epnum, 1);
+  uint8_t is_feedback = USBD_AUDIO_isFeedbackEndpoint(epnum);
+  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromEndpoint(epnum, !is_feedback);
 
   if(data == NULL) {
 	  return USBD_OK;
   }
 
-  USBD_AUDIO_trace(data, "IsoINIncomplete (usbd_audio.c)");
-  data->transfer_in_progress = 0;
-  data->incomplete_iso++;
+  if(is_feedback) {
+	  if(data->current_alternate) {
+		  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+		  data->next_target_frame_feedback = (pcd->FrameNumber + 126) & 0x3FFF;
+	  }
+  } else {
+	  USBD_AUDIO_trace(data, "IsoINIncomplete (usbd_audio.c)");
+	  data->transfer_in_progress = 0;
+	  data->incomplete_iso++;
 
-  if(data->current_alternate) {
-	  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
-	  data->next_target_frame = (pcd->FrameNumber + 6) & 0x3FFF;
+	  if(data->current_alternate) {
+		  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+		  data->next_target_frame = (pcd->FrameNumber + 6) & 0x3FFF;
+	  }
   }
 
   return (uint8_t)USBD_OK;
@@ -755,9 +793,7 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
 uint32_t iso_incomplete_gintsts;
 static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-  USBD_AUDIO_HandleTypeDef *haudio;
-  haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
-  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromEndpoint(haudio, epnum, 0);
+  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromEndpoint(epnum, 0);
 
   if(data == NULL) {
 	  return USBD_OK;
@@ -790,9 +826,7 @@ static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epn
   */
 static uint8_t USBD_AUDIO_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-  USBD_AUDIO_HandleTypeDef *haudio;
-  haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
-  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromEndpoint(haudio, epnum, 0);
+  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromEndpoint(epnum, 0);
 
   if(data == NULL) {
 	  return USBD_OK;
@@ -831,37 +865,41 @@ static uint8_t USBD_AUDIO_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_
 
 static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-  if(epnum >= (AUDIO_IN_EP & 0x7F))
-  {
-	  USBD_AUDIO_HandleTypeDef *haudio;
-	  haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
-
-	  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromEndpoint(haudio, epnum, 1);
+  if(epnum == (AUDIO_INTERRUPT_EP & 0x7F)) {
+    usb_audio_notify_in_progress_data = 0;
+  } else {
+	  uint8_t is_feedback = USBD_AUDIO_isFeedbackEndpoint(epnum);
+	  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromEndpoint(epnum, !is_feedback);
 
 	  if(data == NULL) {
 	    return USBD_OK;
 	  }
 
-	  data->complete_iso++;
-	  data->transfer_in_progress = 0;
-	  USBD_AUDIO_trace(data, "DataIn");
+	  if(is_feedback) {
+		  if(data->current_alternate == 0) {
+			return USBD_OK;
+		  }
 
-	  if(data->current_alternate == 0) {
-	    return USBD_OK;
+		  data->next_target_frame_feedback = (data->next_target_frame_feedback + 128) & 0x3FFF;
+	  } else {
+		  data->complete_iso++;
+		  data->transfer_in_progress = 0;
+		  USBD_AUDIO_trace(data, "DataIn");
+
+		  if(data->current_alternate == 0) {
+			return USBD_OK;
+		  }
+
+		  USBD_AUDIO_Buffer* buffer = &data->buffer[data->usb_index_for_processing];
+		  if(buffer->state == BS_USBBusy) {
+			  buffer->state = BS_AvailableForApp;
+			  USBD_AUDIO_trace(data, "TS_TX_Empty");
+		  }
+
+		  data->next_target_frame = (data->next_target_frame + 8) & 0x3FFF;
 	  }
-
-	  USBD_AUDIO_Buffer* buffer = &data->buffer[data->usb_index_for_processing];
-	  if(buffer->state == BS_USBBusy) {
-		  buffer->state = BS_AvailableForApp;
-		  USBD_AUDIO_trace(data, "TS_TX_Empty");
-	  }
-
-	  data->next_target_frame = (data->next_target_frame + 8) & 0x3FFF;
-  } else if(epnum == (AUDIO_INTERRUPT_EP & 0x7F)) {
-	  usb_audio_notify_in_progress_data = 0;
   }
 
-  /* Only OUT data are processed */
   return (uint8_t)USBD_OK;
 }
 
@@ -882,7 +920,7 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 #endif /* USE_USBD_COMPOSITE */
 
   haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
-  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromEndpoint(haudio, epnum, 0);
+  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromEndpoint(epnum, 0);
 
   if (haudio == NULL || data == NULL)
   {
@@ -905,6 +943,9 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 		  buffer->state = BS_AvailableForApp;
 		  USBD_AUDIO_trace(data, "TS_RX_ReadyToProcess");
 	  }
+
+	  int32_t index = ((epnum & 0x0F) - (AUDIO_OUT_EP & 0x0F))/2;
+	  DAMC_writeAudioSample(index, buffer->buffer, buffer->size/4);
 
 	data->next_target_frame = (data->next_target_frame + 8) & 0x3FFF;
   }
