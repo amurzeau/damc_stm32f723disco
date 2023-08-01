@@ -688,9 +688,22 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
 		  buffer->state = BS_USBBusy;
 		  USBD_AUDIO_trace(data, "USBD_LL_Transmit");
 
-		  buffer->size = DAMC_readAudioSample(i + DUB_In, buffer->buffer, sizeof(buffer->buffer)/4)*4;
-		  USBD_LL_Transmit(pdev, data->endpoint, buffer->buffer, buffer->size);
-		  buffer->size = 0U;
+		  uint32_t size_to_read = DAMC_getUSBInSizeValue(DUB_In + i);
+		  data->accumulated_transmit_error += size_to_read;
+		  size_to_read = data->accumulated_transmit_error / 65536;
+		  if(size_to_read > sizeof(buffer->buffer)/4) {
+			  size_to_read = sizeof(buffer->buffer)/4;
+		  }
+		  data->accumulated_transmit_error -= size_to_read * 65536;
+
+		  buffer->size = DAMC_readAudioSample(DUB_In, buffer->buffer, size_to_read)*4;
+
+		  if(buffer->size > 0) {
+			  USBD_LL_Transmit(pdev, data->endpoint, buffer->buffer, buffer->size);
+			  buffer->size = 0U;
+		  } else {
+			  USBD_LL_Transmit(pdev, data->endpoint, zero_data, data->nominal_packet_size);
+		  }
 	  }
   }
 
@@ -895,6 +908,7 @@ static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 			  buffer->state = BS_AvailableForApp;
 			  USBD_AUDIO_trace(data, "TS_TX_Empty");
 		  }
+
 
 		  data->next_target_frame = (data->next_target_frame + 8) & 0x3FFF;
 	  }

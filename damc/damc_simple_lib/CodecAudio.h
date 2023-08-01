@@ -14,7 +14,8 @@ public:
 	void processAudioInterleavedOutput(const int16_t* data_input, size_t nframes);
 	void processAudioInterleavedInput(int16_t* data_output, size_t nframes);
 
-	uint32_t getDMAPos();
+	uint32_t getDMAOutPos();
+	uint32_t getDMAInPos();
 
 	bool onFastTimer();
 

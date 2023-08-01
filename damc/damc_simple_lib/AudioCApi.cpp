@@ -92,37 +92,66 @@ extern "C" void BSP_AUDIO_OUT_TransferComplete_CallBack(void) {
 }
 
 CircularBuffer<3> usbBuffers[3];
-int32_t diff_usb[2];
-int32_t expected_buff[2];
-int32_t usb_buff[2];
-int32_t dma_pos_at_usb[2];
+int32_t diff_usb[3];
+int32_t expected_buff[3];
+int32_t usb_buff[3];
+int32_t dma_pos_at_usb[3];
 int32_t div_ratio = 1;
 uint32_t DAMC_getUSBFeedbackValue(enum DAMC_USB_Buffer_e index) {
 	uint32_t feedback = 6 << 16;  // nominal value: 6 samples per microframe
 
 	// Expected = 1.25 buffer (= 1.25 * 48 samples) + remaning DMA playback size
 	// We are running just before getting a new buffer, so remove 48 from the expected result
-	uint32_t dma_pos = CodecAudio::instance.getDMAPos();
-	uint32_t expected_buffering = (48 / 4) + (dma_pos % 48);
+	uint32_t dma_pos = CodecAudio::instance.getDMAOutPos() % 48;
+	uint32_t expected_buffering = (48 / 4) + dma_pos;
 	uint32_t usb_buffering = usbBuffers[index].getAvailableReadForDMA(usbBuffers[index].getReadPos());
 	int32_t diff_buffering = usb_buffering - expected_buffering;
+	expected_buff[index] = expected_buffering;
+	usb_buff[index] = usb_buffering;
+	dma_pos_at_usb[index] = dma_pos;
+
+	if(dma_pos < 10) {
+		if(diff_buffering < -24) {
+			diff_buffering += 48;
+		} else if(diff_buffering > 24) {
+			diff_buffering -= 48;
+		}
+	}
+
+	diff_usb[index] = diff_buffering;
+
+	feedback -= diff_buffering * (65536 / 8192) * div_ratio;
+	return feedback;
+}
+
+int32_t diff_usb_before_adjust[3];
+int32_t is_underdma;
+uint32_t DAMC_getUSBInSizeValue(enum DAMC_USB_Buffer_e index) {
+	uint32_t usb_in_size = 48 << 16;  // nominal value: 48 samples per microframe
+
+	// Expected = 1.25 buffer (= 1.25 * 48 samples) + remaning DMA playback size
+	// We are running just before getting a new buffer, so remove 48 from the expected result
+	uint32_t dma_pos = CodecAudio::instance.getDMAInPos() % 48;
+	uint32_t expected_buffering = 48 + (48 / 4) + 48 - dma_pos;
+	uint32_t usb_buffering = usbBuffers[index].getAvailableWriteForDMA(usbBuffers[index].getWritePos());
+	int32_t diff_buffering = usb_buffering - expected_buffering;
+	diff_usb_before_adjust[index] = diff_buffering;
+
+	if(dma_pos < 10) {
+		if(diff_buffering < -24) {
+			diff_buffering += 48;
+		} else if(diff_buffering > 24) {
+			diff_buffering -= 48;
+		}
+	}
+
 	diff_usb[index] = diff_buffering;
 	expected_buff[index] = expected_buffering;
 	usb_buff[index] = usb_buffering;
 	dma_pos_at_usb[index] = dma_pos;
 
-	feedback -= diff_buffering * (65536 / 8192) * div_ratio;
-	//	if(diff_buffering > 10) {
-	//		// diff_buffering is number of sample diff
-	//		// we want to resolve this for the next second (in 8192 microframes)
-	//		// As the feedback is the number of sample per microframe (and not per second)
-	//		// we need to add diff_buffering/128
-	//		feedback -= diff_buffering * (65536 / 8192);
-	//		feedback -= (6 << 16) / div_ratio;
-	//	} else if(diff_buffering < 10) {
-	//		feedback += (6 << 16) / div_ratio;
-	//	}
-	return feedback;
+	usb_in_size += diff_buffering * (65536 / 1024) * div_ratio;
+	return usb_in_size;
 }
 
 uint32_t available_usb_buffer[3];

@@ -39,10 +39,16 @@ void CodecAudio::processAudioInterleavedInput(int16_t* data_output, size_t nfram
 	in_buffer.readInBuffer(dma_write_offset, (uint32_t*) data_output, nframes);
 }
 
-uint32_t CodecAudio::getDMAPos() {
+uint32_t CodecAudio::getDMAOutPos() {
 	uint32_t dma_pos = BSP_AUDIO_OUT_GetRemainingCount();
 	uint16_t dma_read_offset = out_buffer.getCount() - ((dma_pos + 1) / 2);
 	return dma_read_offset;
+}
+
+uint32_t CodecAudio::getDMAInPos() {
+	uint32_t dma_pos = BSP_AUDIO_IN_GetRemainingCount();
+	uint16_t dma_write_offset = in_buffer.getCount() - ((dma_pos + 1) / 2);
+	return dma_write_offset;
 }
 
 bool CodecAudio::onFastTimer() {

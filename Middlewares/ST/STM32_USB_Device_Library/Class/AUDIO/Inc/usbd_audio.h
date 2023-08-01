@@ -217,6 +217,7 @@ typedef struct {
 	uint8_t history_index;
 	uint8_t history_save_disable;
 #endif
+	int32_t accumulated_transmit_error;
 	uint32_t usb_index_for_prepare;
 	uint32_t usb_index_for_processing;
 	USBD_AUDIO_Buffer buffer[2] __attribute__((aligned(4)));
