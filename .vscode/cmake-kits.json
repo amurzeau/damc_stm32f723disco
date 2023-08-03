@@ -1,0 +1,7 @@
+[
+	{
+		"name": "GCC STM32",
+		"toolchainFile": "cmake/gcc-arm-none-eabi.cmake",
+		"triple": "arm-none-eabi"
+	}
+]

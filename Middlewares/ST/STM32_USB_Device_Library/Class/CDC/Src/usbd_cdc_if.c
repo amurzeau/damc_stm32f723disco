@@ -23,6 +23,7 @@ EndBSPDependencies */
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_cdc_if.h"
+#include <assert.h>
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
   * @{

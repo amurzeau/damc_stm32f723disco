@@ -1,0 +1,14 @@
+{
+	"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+	"cmake.configureOnOpen": true,
+	"editor.detectIndentation": false,
+	"editor.insertSpaces": false,
+	"C_Cpp.autoAddFileAssociations": false,
+	"files.associations": {
+		"damc/**/*.h": "cpp",
+		"*.h": "c",
+		"**/include/c++/**": "cpp",
+	},
+	"editor.formatOnSave": true,
+	"editor.formatOnSaveMode": "modificationsIfAvailable"
+}

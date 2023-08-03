@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+	{
+		"cwd": "${workspaceFolder}",
+		"executable": "${command:cmake.launchTargetPath}",
+		"name": "Debug with ST-Link",
+		"request": "launch",
+		"type": "cortex-debug",
+		"runToEntryPoint": "main",
+		"showDevDebugOutput": "none",
+		"servertype": "stlink",
+		"liveWatch": {
+			"enabled": true,
+			"samplesPerSecond": 4
+		},
+		"svdPath": "STM32F723.svd"
+	}
+  ]
+}
