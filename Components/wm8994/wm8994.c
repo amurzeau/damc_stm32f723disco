@@ -161,7 +161,7 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
   if (input_device > 0)
   {
     counter += CODEC_IO_Write(DeviceAddr, 0x3a, 0x0001);
-    power_mgnt_reg_1 |= 0x0013;
+    power_mgnt_reg_1 |= 0x0003;
     counter += CODEC_IO_Write(DeviceAddr, 0x01, power_mgnt_reg_1);
   }
   else
@@ -488,6 +488,7 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
       if(ColdStartup)
       {
         counter += CODEC_IO_Write(DeviceAddr,0x110,0x8100);
+        power_mgnt_reg_1 |= 0x0303;
         
         ColdStartup=0;
         /* Add Delay */
@@ -540,17 +541,17 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
     }
 
     /* Enable bias generator, Enable VMID, Enable HPOUT1 (Left) and Enable HPOUT1 (Right) input stages */
-    power_mgnt_reg_1 |= 0x0303;
-    counter += CODEC_IO_Write(DeviceAddr, 0x01, power_mgnt_reg_1);
+    // power_mgnt_reg_1 |= 0x0303;
+    // counter += CODEC_IO_Write(DeviceAddr, 0x01, power_mgnt_reg_1);
 
     /* Enable HPOUT1 (Left) and HPOUT1 (Right) intermediate stages */
-    counter += CODEC_IO_Write(DeviceAddr, 0x60, 0x0022);
+    // counter += CODEC_IO_Write(DeviceAddr, 0x60, 0x0022);
 
     /* Enable Charge Pump */
-    counter += CODEC_IO_Write(DeviceAddr, 0x4C, 0x9F25);
+    // counter += CODEC_IO_Write(DeviceAddr, 0x4C, 0x9F25);
 
     /* Add Delay */
-    AUDIO_IO_Delay(15);
+    // AUDIO_IO_Delay(15);
 
 //    /* Select DAC1 (Left) to Left Headphone Output PGA (HPOUT1LVOL) path */
 //    counter += CODEC_IO_Write(DeviceAddr, 0x2D, 0x0001);
@@ -558,18 +559,20 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
 //    /* Select DAC1 (Right) to Right Headphone Output PGA (HPOUT1RVOL) path */
 //    counter += CODEC_IO_Write(DeviceAddr, 0x2E, 0x0001);
 
-    /* Enable Left Output Mixer (MIXOUTL), Enable Right Output Mixer (MIXOUTR) */
-    /* idem for SPKOUTL and SPKOUTR */
-    counter += CODEC_IO_Write(DeviceAddr, 0x03, /*0x0030 |*/ 0x0300);
+	if (output_device == OUTPUT_DEVICE_SPEAKER) {
+		/* Enable Left Output Mixer (MIXOUTL), Enable Right Output Mixer (MIXOUTR) */
+		/* idem for SPKOUTL and SPKOUTR */
+		counter += CODEC_IO_Write(DeviceAddr, 0x03, /*0x0030 |*/ 0x0300);
+	}
 
     /* Enable DC Servo and trigger start-up mode on left and right channels */
-    counter += CODEC_IO_Write(DeviceAddr, 0x54, 0x0033);
+    // counter += CODEC_IO_Write(DeviceAddr, 0x54, 0x0033);
 
     /* Add Delay */
-    AUDIO_IO_Delay(257);
+    // AUDIO_IO_Delay(257);
 
     /* Enable HPOUT1 (Left) and HPOUT1 (Right) intermediate and output stages. Remove clamps */
-    counter += CODEC_IO_Write(DeviceAddr, 0x60, 0x00EE);
+    // counter += CODEC_IO_Write(DeviceAddr, 0x60, 0x00EE);
 
     /* Unmutes */
 
