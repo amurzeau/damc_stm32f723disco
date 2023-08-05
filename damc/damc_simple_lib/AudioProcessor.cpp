@@ -34,14 +34,18 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
       controls(&oscRoot),
       strips(&oscRoot, "strip"),
       oscStatePersist(&oscRoot),
-      timeMeasureUsbInterrupt(&oscRoot, "timeUsbInterrupt"),
-      timeMeasureAudioProcessing(&oscRoot, "timeAudioProc"),
-      timeMeasureFastTimer(&oscRoot, "timeFastTimer"),
-      timeMeasureOscInput(&oscRoot, "timeOscInput"),
-      timeMeasureMaxPerLoopUsbInterrupt(&oscRoot, "timePerLoopUsbInterrupt"),
-      timeMeasureMaxPerLoopAudioProcessing(&oscRoot, "timePerLoopAudioProc"),
-      timeMeasureMaxPerLoopFastTimer(&oscRoot, "timePerLoopFastTimer"),
-      timeMeasureMaxPerLoopOscInput(&oscRoot, "timePerLoopOscInput"),
+      oscTimeMeasure{
+          {&oscRoot, "timeUsbInterrupt"},
+          {&oscRoot, "timeAudioProc"},
+          {&oscRoot, "timeFastTimer"},
+          {&oscRoot, "timeOscInput"},
+      },
+      oscTimeMeasureMaxPerLoop{
+          {&oscRoot, "timePerLoopUsbInterrupt"},
+          {&oscRoot, "timePerLoopAudioProc"},
+          {&oscRoot, "timePerLoopFastTimer"},
+          {&oscRoot, "timePerLoopOscInput"},
+      },
       memoryAvailable(&oscRoot, "memoryAvailable"),
       memoryUsed(&oscRoot, "memoryUsed"),
       fastTimerPreviousTick(0),
@@ -118,7 +122,6 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
                                              int16_t** output_endpoints,
                                              size_t output_endpoints_number,
                                              size_t nframes) {
-	TimeMeasure::timeMeasureAudioProcessing.beginMeasure();
 	/**
 	 * Legend:
 	 *  - OUT/IN: USB endpoints (OUT = from PC to codec, IN = from codec to PC)
@@ -193,8 +196,6 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 
 	// Output processed audio to codec and retrieve MIC
 	CodecAudio::instance.processAudioInterleavedOutput(codecBuffer, nframes);
-
-	TimeMeasure::timeMeasureAudioProcessing.endMeasure();
 }
 
 extern "C" uint8_t* __sbrk_heap_end;  // end of heap
@@ -210,7 +211,7 @@ void AudioProcessor::mainLoop() {
 	// Do onFastTimer every 100ms
 	// Process one strip at a time to avoid taking too much time
 	if(currentTick >= fastTimerPreviousTick + (100 / strips.size())) {
-		TimeMeasure::timeMeasureFastTimer.beginMeasure();
+		TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
 
 		fastTimerPreviousTick = currentTick;
 		strips.at(nextTimerStripIndex).onFastTimer();
@@ -218,25 +219,22 @@ void AudioProcessor::mainLoop() {
 		if(nextTimerStripIndex >= strips.size())
 			nextTimerStripIndex = 0;
 
-		TimeMeasure::timeMeasureFastTimer.endMeasure();
+		TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
 	} else if(currentTick >= slowTimerPreviousTick + 1000 / 3) {
-		TimeMeasure::timeMeasureFastTimer.beginMeasure();
+		TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
 
 		slowTimerPreviousTick = currentTick;
 
 		switch(slowTimerIndex) {
 			case 0:
-				timeMeasureUsbInterrupt.set(TimeMeasure::timeMeasureUsbInterrupt.getCumulatedTimeUsAndReset());
-				timeMeasureAudioProcessing.set(TimeMeasure::timeMeasureAudioProcessing.getCumulatedTimeUsAndReset());
-				timeMeasureFastTimer.set(TimeMeasure::timeMeasureFastTimer.getCumulatedTimeUsAndReset());
-				timeMeasureOscInput.set(TimeMeasure::timeMeasureOscInput.getCumulatedTimeUsAndReset());
+				for(size_t i = 0; i < TMI_NUMBER; i++) {
+					oscTimeMeasure[i].set(TimeMeasure::timeMeasure[i].getCumulatedTimeUsAndReset());
+				}
 				break;
 			case 1:
-				timeMeasureMaxPerLoopUsbInterrupt.set(TimeMeasure::timeMeasureUsbInterrupt.getMaxTimeUsAndReset());
-				timeMeasureMaxPerLoopAudioProcessing.set(
-				    TimeMeasure::timeMeasureAudioProcessing.getMaxTimeUsAndReset());
-				timeMeasureMaxPerLoopFastTimer.set(TimeMeasure::timeMeasureFastTimer.getMaxTimeUsAndReset());
-				timeMeasureMaxPerLoopOscInput.set(TimeMeasure::timeMeasureOscInput.getMaxTimeUsAndReset());
+				for(size_t i = 0; i < TMI_NUMBER; i++) {
+					oscTimeMeasureMaxPerLoop[i].set(TimeMeasure::timeMeasure[i].getMaxTimeUsAndReset());
+				}
 				break;
 			case 2:
 				OscArgument used_memory = static_cast<int32_t>((uint32_t) __sbrk_heap_end - (uint32_t) &_end);
@@ -251,14 +249,9 @@ void AudioProcessor::mainLoop() {
 		if(slowTimerIndex > 2)
 			slowTimerIndex = 0;
 
-		TimeMeasure::timeMeasureFastTimer.endMeasure();
+		TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
 	} else {
 		controls.mainLoop();
 		oscStatePersist.mainLoop();
 	}
-
-	TimeMeasure::timeMeasureUsbInterrupt.endAudioLoop();
-	TimeMeasure::timeMeasureAudioProcessing.endAudioLoop();
-	TimeMeasure::timeMeasureFastTimer.endAudioLoop();
-	TimeMeasure::timeMeasureOscInput.endAudioLoop();
 }

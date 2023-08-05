@@ -2,12 +2,21 @@
 
 #include <stdint.h>
 
+enum TimeMeasureItem {
+	TMI_UsbInterrupt,
+	TMI_AudioProcessing,
+	TMI_MainLoop,
+	TMI_OscInput,
+
+	TMI_NUMBER,
+};
+
 class TimeMeasure {
 public:
 	TimeMeasure();
 
-	void beginMeasure();
-	void endMeasure();
+	void beginMeasure(bool stateSave = true);
+	void endMeasure(bool stateRestore = true);
 	void endAudioLoop();
 
 	static uint32_t getCurrent();
@@ -16,11 +25,9 @@ public:
 	uint32_t getMaxTimeUsAndReset();
 
 	static void updateClockPerUs();
+	static void on1msElapsed();
 
-	static TimeMeasure timeMeasureUsbInterrupt;
-	static TimeMeasure timeMeasureAudioProcessing;
-	static TimeMeasure timeMeasureFastTimer;
-	static TimeMeasure timeMeasureOscInput;
+	static TimeMeasure timeMeasure[TMI_NUMBER];
 
 private:
 	static uint32_t clock_per_us;
@@ -28,4 +35,7 @@ private:
 	uint64_t time_sum_per_loop;
 	uint32_t time_max;
 	uint32_t begin_time;
+	bool isMeasuring;
+
+	bool otherTimeMeasureState[TMI_NUMBER];
 };

@@ -3,6 +3,7 @@
 #include "ChannelStrip.h"
 #include "Controls.h"
 #include "OscSerialClient.h"
+#include "TimeMeasure.h"
 #include <FilteringChain.h>
 #include <Osc/OscDynamicVariable.h>
 #include <Osc/OscReadOnlyVariable.h>
@@ -51,15 +52,8 @@ private:
 	OscContainerArray<ChannelStrip> strips;
 	OscStatePersist oscStatePersist;
 
-	OscReadOnlyVariable<int32_t> timeMeasureUsbInterrupt;
-	OscReadOnlyVariable<int32_t> timeMeasureAudioProcessing;
-	OscReadOnlyVariable<int32_t> timeMeasureFastTimer;
-	OscReadOnlyVariable<int32_t> timeMeasureOscInput;
-
-	OscReadOnlyVariable<int32_t> timeMeasureMaxPerLoopUsbInterrupt;
-	OscReadOnlyVariable<int32_t> timeMeasureMaxPerLoopAudioProcessing;
-	OscReadOnlyVariable<int32_t> timeMeasureMaxPerLoopFastTimer;
-	OscReadOnlyVariable<int32_t> timeMeasureMaxPerLoopOscInput;
+	OscReadOnlyVariable<int32_t> oscTimeMeasure[TMI_NUMBER];
+	OscReadOnlyVariable<int32_t> oscTimeMeasureMaxPerLoop[TMI_NUMBER];
 
 	OscDynamicVariable<int32_t> memoryAvailable;
 	OscDynamicVariable<int32_t> memoryUsed;

@@ -103,22 +103,22 @@ void Controls::setControlFromUSB(
 void Controls::mainLoop() {
 	for(size_t i = 0; i < controlsMapping.size(); i++) {
 		if(controlsMapping[i].volumeToSet.isChanged) {
-			TimeMeasure::timeMeasureFastTimer.beginMeasure();
+			TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
 			controlsMapping[i].volumeToSet.isChanged = false;
 			__DSB();
 			processUsbControlChange = true;
 			controlsMapping[i].volumeControl->setFromOsc(controlsMapping[i].volumeToSet.value);
 			processUsbControlChange = false;
-			TimeMeasure::timeMeasureFastTimer.endMeasure();
+			TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
 		}
 		if(controlsMapping[i].muteToSet.isChanged) {
-			TimeMeasure::timeMeasureFastTimer.beginMeasure();
+			TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
 			controlsMapping[i].muteToSet.isChanged = false;
 			__DSB();
 			processUsbControlChange = true;
 			controlsMapping[i].muteControl->setFromOsc(controlsMapping[i].muteToSet.value);
 			processUsbControlChange = false;
-			TimeMeasure::timeMeasureFastTimer.endMeasure();
+			TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
 		}
 	}
 }

@@ -29,11 +29,11 @@ void DAMC_mainLoop() {
 }
 
 void DAMC_usbInterruptBeginMeasure() {
-	TimeMeasure::timeMeasureUsbInterrupt.beginMeasure();
+	TimeMeasure::timeMeasure[TMI_UsbInterrupt].beginMeasure();
 }
 
 void DAMC_usbInterruptEndMeasure() {
-	TimeMeasure::timeMeasureUsbInterrupt.endMeasure();
+	TimeMeasure::timeMeasure[TMI_UsbInterrupt].endMeasure();
 }
 
 void DAMC_setControlFromUSB(
@@ -54,6 +54,10 @@ uint16_t DAMC_getControlFromUSB(uint8_t unit_id, uint8_t control_selector, uint8
  * @retval None
  */
 extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
+	TimeMeasure::on1msElapsed();
+
+	TimeMeasure::timeMeasure[TMI_AudioProcessing].beginMeasure();
+
 	size_t nframes = 48;
 	static uint32_t usb_buffers[3][48];
 
@@ -79,6 +83,8 @@ extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
 	for(size_t i = 0; i < AUDIO_IN_NUMBER; i++) {
 		DAMC_writeAudioSample((enum DAMC_USB_Buffer_e)(DUB_In + i), &usb_buffers[DUB_In + i], nframes);
 	}
+
+	TimeMeasure::timeMeasure[TMI_AudioProcessing].endMeasure();
 }
 /**
  * @brief Tx Transfer Half completed callback.

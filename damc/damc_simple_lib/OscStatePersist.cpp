@@ -159,7 +159,7 @@ void OscStatePersist::mainLoop() {
 	uint32_t currentTick = HAL_GetTick();
 
 	if(currentTick >= oscConfigSaveTimerPreviousTick + 10000) {
-		TimeMeasure::timeMeasureFastTimer.beginMeasure();
+		TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
 
 		oscConfigSaveTimerPreviousTick = currentTick;
 
@@ -170,6 +170,6 @@ void OscStatePersist::mainLoop() {
 			saveState();
 		}
 
-		TimeMeasure::timeMeasureFastTimer.endMeasure();
+		TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
 	}
 }
