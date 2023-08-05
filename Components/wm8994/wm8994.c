@@ -36,6 +36,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "wm8994.h"
 
+#pragma GCC push_options
+#pragma GCC optimize("O0")
+
 /** @addtogroup BSP
   * @{
   */
@@ -158,11 +161,13 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
   if (input_device > 0)
   {
     counter += CODEC_IO_Write(DeviceAddr, 0x3a, 0x0001);
-    counter += CODEC_IO_Write(DeviceAddr, 0x01, 0x0013);
+    power_mgnt_reg_1 |= 0x0013;
+    counter += CODEC_IO_Write(DeviceAddr, 0x01, power_mgnt_reg_1);
   }
   else
   {
-    counter += CODEC_IO_Write(DeviceAddr, 0x01, 0x0003);
+    power_mgnt_reg_1 |= 0x0003;
+    counter += CODEC_IO_Write(DeviceAddr, 0x01, power_mgnt_reg_1);
   }
 
   /* Add Delay */
@@ -498,23 +503,28 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
       /* Soft un-Mute the AIF1 Timeslot 0 DAC1 path L&R */
       counter += CODEC_IO_Write(DeviceAddr, 0x420, 0x0000);
     }
-    /* Analog Output Configuration */
 
-    /* Enable SPKRVOL PGA, Enable SPKMIXR, Enable SPKLVOL PGA, Enable SPKMIXL */
-    counter += CODEC_IO_Write(DeviceAddr, 0x03, 0x0300);
+    if (output_device == OUTPUT_DEVICE_SPEAKER)
+    {
+      /* Analog Output Configuration */
 
-    /* Left Speaker Mixer Volume = 0dB */
-    counter += CODEC_IO_Write(DeviceAddr, 0x22, 0x0000);
+      /* Enable SPKRVOL PGA, Enable SPKMIXR, Enable SPKLVOL PGA, Enable SPKMIXL */
+      counter += CODEC_IO_Write(DeviceAddr, 0x03, 0x0300);
 
-    /* Speaker output mode = Class D, Right Speaker Mixer Volume = 0dB ((0x23, 0x0100) = class AB)*/
-    counter += CODEC_IO_Write(DeviceAddr, 0x23, 0x0000);
+      /* Left Speaker Mixer Volume = 0dB */
+      counter += CODEC_IO_Write(DeviceAddr, 0x22, 0x0000);
 
-    /* Unmute DAC2 (Left) to Left Speaker Mixer (SPKMIXL) path,
-    Unmute DAC2 (Right) to Right Speaker Mixer (SPKMIXR) path */
-    counter += CODEC_IO_Write(DeviceAddr, 0x36, 0x0300);
+      /* Speaker output mode = Class D, Right Speaker Mixer Volume = 0dB ((0x23, 0x0100) = class AB)*/
+      counter += CODEC_IO_Write(DeviceAddr, 0x23, 0x0000);
 
-    /* Enable bias generator, Enable VMID, Enable SPKOUTL, Enable SPKOUTR */
-    counter += CODEC_IO_Write(DeviceAddr, 0x01, 0x3003);
+      /* Unmute DAC2 (Left) to Left Speaker Mixer (SPKMIXL) path,
+      Unmute DAC2 (Right) to Right Speaker Mixer (SPKMIXR) path */
+      counter += CODEC_IO_Write(DeviceAddr, 0x36, 0x0300);
+
+      /* Enable bias generator, Enable VMID, Enable SPKOUTL, Enable SPKOUTR */
+      power_mgnt_reg_1 |= 0x3003;
+      counter += CODEC_IO_Write(DeviceAddr, 0x01, power_mgnt_reg_1);
+    }
 
     /* Headphone/Speaker Enable */
 
@@ -530,8 +540,7 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
     }
 
     /* Enable bias generator, Enable VMID, Enable HPOUT1 (Left) and Enable HPOUT1 (Right) input stages */
-    /* idem for Speaker */
-    power_mgnt_reg_1 |= 0x0303 | 0x3003;
+    power_mgnt_reg_1 |= 0x0303;
     counter += CODEC_IO_Write(DeviceAddr, 0x01, power_mgnt_reg_1);
 
     /* Enable HPOUT1 (Left) and HPOUT1 (Right) intermediate stages */
