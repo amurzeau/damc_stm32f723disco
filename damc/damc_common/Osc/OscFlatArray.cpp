@@ -11,8 +11,7 @@ OscFlatArray<T>::OscFlatArray(OscContainer* parent, std::string_view name) noexc
 	this->getRoot()->addPendingConfigNode(this);
 }
 
-template<typename T>
-void OscFlatArray<T>:: reserve(size_t reserveSize) {
+template<typename T> void OscFlatArray<T>::reserve(size_t reserveSize) {
 	values.reserve(reserveSize);
 }
 
@@ -82,8 +81,19 @@ template<typename T> bool OscFlatArray<T>::callCheckCallbacks(const std::vector<
 	return isDataValid;
 }
 
+template<typename T>
+void OscFlatArray<T>::visit(const std::function<void(OscNode*, OscArgument*, size_t)>& nodeVisitorFunction) {
+	size_t size = values.size();
+	OscArgument valueToSend[size];
+
+	for(size_t i = 0; i < size; i++) {
+		valueToSend[i] = values[i];
+	}
+	nodeVisitorFunction(this, valueToSend, size);
+}
+
 template<typename T> void OscFlatArray<T>::notifyOsc() {
-	//std::vector<OscArgument> valueToSend;
+	// std::vector<OscArgument> valueToSend;
 	size_t size = values.size();
 	OscArgument valueToSend[size];
 

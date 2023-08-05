@@ -33,6 +33,7 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
       serialClient(&oscRoot),
       controls(&oscRoot),
       strips(&oscRoot, "strip"),
+      oscStatePersist(&oscRoot),
       timeMeasureUsbInterrupt(&oscRoot, "timeUsbInterrupt"),
       timeMeasureAudioProcessing(&oscRoot, "timeAudioProc"),
       timeMeasureFastTimer(&oscRoot, "timeFastTimer"),
@@ -78,27 +79,10 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
 
 	serialClient.init();
 	controls.init();
+	oscStatePersist.init();
 }
 
 AudioProcessor::~AudioProcessor() {}
-
-void AudioProcessor::init() {
-	using namespace std::literals;
-	const std::map<std::string_view, std::vector<OscArgument>> default_config = {
-	    {"/strip/1/filterChain/compressorFilter/makeUpGain", {float{-1.f}}},
-	    {"/strip/0/display_name", {"master"sv}},
-	    {"/strip/1/display_name", {"comp"sv}},
-	    {"/strip/2/display_name", {"mic"sv}},
-	    {"/strip/3/display_name", {"out-record"sv}},
-	    {"/strip/4/display_name", {"mic-feedback"sv}},
-	    {"/strip/0/filterChain/volume", {float{-25.f}}},
-	    {"/strip/1/filterChain/compressorFilter/enable", {true}},
-	    {"/strip/3/filterChain/mute", {true}},
-	    {"/strip/4/filterChain/mute", {true}},
-	};
-
-	oscRoot.loadNodeConfig(default_config);
-}
 
 void AudioProcessor::interleavedToFloat(const int16_t* data_input,
                                         MultiChannelAudioBuffer* data_float,
@@ -268,6 +252,8 @@ void AudioProcessor::mainLoop() {
 			slowTimerIndex = 0;
 
 		TimeMeasure::timeMeasureFastTimer.endMeasure();
+	} else {
+		oscStatePersist.mainLoop();
 	}
 
 	TimeMeasure::timeMeasureUsbInterrupt.endAudioLoop();

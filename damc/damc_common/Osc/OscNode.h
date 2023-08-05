@@ -74,7 +74,7 @@ public:
 	const std::string_view& getName() const { return name; }
 	virtual void dump() {}
 
-	virtual bool visit(const std::function<bool(OscNode*)>* nodeVisitorFunction);
+	virtual void visit(const std::function<void(OscNode*, OscArgument*, size_t)>& nodeVisitorFunction);
 	virtual void execute(std::string_view address, const std::vector<OscArgument>& arguments);
 	virtual OscNode* getNode(std::string_view address);
 

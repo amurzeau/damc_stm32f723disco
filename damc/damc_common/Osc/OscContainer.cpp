@@ -20,7 +20,7 @@ bool OscContainer::osc_node_comparator::operator()(const std::string_view& x, co
 }
 
 OscContainer::OscContainer(OscContainer* parent, std::string_view name, size_t reserveSize) noexcept
-    : OscNode(parent, name), children(reserveSize), oscDump(this, "dump") {
+    : OscNode(parent, name), children(reserveSize + 1), oscDump(this, "dump") {
 	oscDump.setCallback([this](auto) { dump(); });
 }
 
@@ -78,6 +78,8 @@ void OscContainer::execute(std::string_view address, const std::vector<OscArgume
 					return;
 				}
 			}
+			while(1)
+				;
 
 			SPDLOG_WARN("Address {} not found from {}", childAddressStr, getFullAddress());
 		}
@@ -105,15 +107,10 @@ OscNode* OscContainer::getNode(std::string_view address) {
 	return nullptr;
 }
 
-bool OscContainer::visit(const std::function<bool(OscNode*)>* nodeVisitorFunction) {
-	if(!OscNode::visit(nodeVisitorFunction))
-		return false;
-
+void OscContainer::visit(const std::function<void(OscNode*, OscArgument*, size_t)>& nodeVisitorFunction) {
 	for(auto& child : children) {
 		child->visit(nodeVisitorFunction);
 	}
-
-	return true;
 }
 
 std::string OscContainer::getAsString() const {

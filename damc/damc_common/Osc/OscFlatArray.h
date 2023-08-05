@@ -23,6 +23,8 @@ public:
 
 	bool callCheckCallbacks(const std::vector<T>& v);
 
+	void visit(const std::function<void(OscNode*, OscArgument*, size_t)>& nodeVisitorFunction) override;
+
 protected:
 	void notifyOsc();
 	bool checkData(const std::vector<T>& savedValues, bool fromOsc);

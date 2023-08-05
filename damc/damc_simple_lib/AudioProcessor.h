@@ -7,6 +7,7 @@
 #include <Osc/OscDynamicVariable.h>
 #include <Osc/OscReadOnlyVariable.h>
 #include <OscRoot.h>
+#include <OscStatePersist.h>
 #include <stdint.h>
 
 class MultiChannelAudioBuffer {
@@ -25,7 +26,6 @@ public:
 	AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t maxNframes);
 	~AudioProcessor();
 
-	void init();
 	void processAudioInterleaved(const int16_t** input_endpoints,
 	                             size_t input_endpoints_number,
 	                             int16_t** output_endpoints,
@@ -49,6 +49,7 @@ private:
 	OscSerialClient serialClient;
 	Controls controls;
 	OscContainerArray<ChannelStrip> strips;
+	OscStatePersist oscStatePersist;
 
 	OscReadOnlyVariable<int32_t> timeMeasureUsbInterrupt;
 	OscReadOnlyVariable<int32_t> timeMeasureAudioProcessing;

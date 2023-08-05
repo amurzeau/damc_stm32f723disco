@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-template<typename T> class OscReadOnlyVariable : protected OscContainer {
+template<typename T> class OscReadOnlyVariable : public OscContainer {
 public:
 	using underlying_type = T;
 	using readonly_type = typename OscReadOnlyType<T>::type;

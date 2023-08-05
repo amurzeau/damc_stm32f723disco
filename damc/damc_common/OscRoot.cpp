@@ -16,7 +16,10 @@ void OscRoot::printAllNodes() {
 	SPDLOG_INFO("Nodes:\n{}", getAsString().c_str());
 }
 
-void OscRoot::sendMessage(const OscNode* node, const OscArgument* arguments, size_t number) {
+void OscRoot::serializeMessage(std::function<void(std::string_view, uint8_t*, size_t)> processResult,
+                               const OscNode* node,
+                               const OscArgument* arguments,
+                               size_t number) {
 	tosc_message osc;
 	char format[256] = ",";
 	char* formatPtr = format + 1;
@@ -49,7 +52,8 @@ void OscRoot::sendMessage(const OscNode* node, const OscArgument* arguments, siz
 	}
 	*formatPtr++ = '\0';
 
-	if(tosc_writeMessageHeader(&osc, nodeFullAddress.c_str(), format, (char*) oscOutputMessage.get(), oscOutputMaxSize) != 0) {
+	if(tosc_writeMessageHeader(
+	       &osc, nodeFullAddress.c_str(), format, (char*) oscOutputMessage.get(), oscOutputMaxSize) != 0) {
 		SPDLOG_ERROR("failed to write OSC message");
 		return;
 	}
@@ -80,10 +84,20 @@ void OscRoot::sendMessage(const OscNode* node, const OscArgument* arguments, siz
 		}
 	}
 
-	SPDLOG_TRACE("Sending OSC message {} {}", nodeFullAddress, getArgumentVectorAsString(arguments, number));
-	for(OscConnector* connector : connectors) {
-		connector->sendOscMessage(oscOutputMessage.get(), tosc_getMessageLength(&osc));
-	}
+	processResult(nodeFullAddress, oscOutputMessage.get(), tosc_getMessageLength(&osc));
+}
+
+void OscRoot::sendMessage(const OscNode* node, const OscArgument* arguments, size_t number) {
+	serializeMessage(
+	    [this, arguments, number](std::string_view nodeFullAddress, uint8_t* data, size_t size) {
+		    SPDLOG_TRACE("Sending OSC message {} {}", nodeFullAddress, getArgumentVectorAsString(arguments, number));
+		    for(OscConnector* connector : connectors) {
+			    connector->sendOscMessage(data, size);
+		    }
+	    },
+	    node,
+	    arguments,
+	    number);
 }
 
 void OscRoot::loadNodeConfig(const std::map<std::string_view, std::vector<OscArgument>>& configValues) {
@@ -103,6 +117,12 @@ void OscRoot::loadNodeConfig(const std::map<std::string_view, std::vector<OscArg
 			node->execute(it->second);
 		}
 	}
+}
+
+void OscRoot::saveNodeConfig(const std::function<void(OscNode*, OscArgument*, size_t)>& nodeVisitorFunction) {
+	SPDLOG_DEBUG("Traversing OscNode to save configuration values");
+
+	visit(nodeVisitorFunction);
 }
 
 std::string OscRoot::getArgumentVectorAsString(const OscArgument* arguments, size_t number) {

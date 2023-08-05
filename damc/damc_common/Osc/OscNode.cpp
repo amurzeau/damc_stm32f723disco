@@ -91,15 +91,7 @@ void OscNode::getFullAddress(std::string* output) const {
 	constructFullName(output);
 }
 
-bool OscNode::visit(const std::function<bool(OscNode*)>* nodeVisitorFunction) {
-	if(nodeVisitorFunction) {
-		SPDLOG_DEBUG("Executing address {}", getFullAddress());
-		if(!(*nodeVisitorFunction)(this))
-			return false;
-	}
-
-	return true;
-}
+void OscNode::visit(const std::function<void(OscNode*, OscArgument*, size_t)>& nodeVisitorFunction) {}
 
 void OscNode::sendMessage(const OscArgument* arguments, size_t number) {
 	getRoot()->sendMessage(this, arguments, number);

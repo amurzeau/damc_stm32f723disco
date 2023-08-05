@@ -20,6 +20,8 @@ public:
 
 	std::string getAsString() const override;
 
+	void visit(const std::function<void(OscNode*, OscArgument*, size_t)>& nodeVisitorFunction) override;
+
 private:
 	T incrementAmount;
 	std::vector<std::unique_ptr<OscEndpoint>> subEndpoint;

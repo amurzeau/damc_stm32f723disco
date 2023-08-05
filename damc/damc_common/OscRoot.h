@@ -29,6 +29,10 @@ public:
 	void setOnOscValueChanged(std::function<void()> onOscValueChanged);
 
 	// Called by nodes
+	void serializeMessage(std::function<void(std::string_view, uint8_t*, size_t)> processResult,
+	                      const OscNode* node,
+	                      const OscArgument* arguments,
+	                      size_t number);
 	void sendMessage(const OscNode* node, const OscArgument* argument, size_t number);
 	bool isOscValueAuthority();
 	void notifyValueChanged();
@@ -36,6 +40,7 @@ public:
 	void addPendingConfigNode(OscNode* node);
 	void nodeRemoved(OscNode* node);
 	void loadNodeConfig(const std::map<std::string_view, std::vector<OscArgument>>& configValues);
+	void saveNodeConfig(const std::function<void(OscNode*, OscArgument*, size_t)>& nodeVisitorFunction);
 
 	static std::string getArgumentVectorAsString(const OscArgument* arguments, size_t number);
 

@@ -81,3 +81,9 @@ template<typename T> std::string OscVariable<T>::getAsString() const {
 		return std::to_string(this->getToOsc());
 	}
 }
+
+template<typename T>
+void OscVariable<T>::visit(const std::function<void(OscNode*, OscArgument*, size_t)>& nodeVisitorFunction) {
+	OscArgument valueToSend = this->getToOsc();
+	nodeVisitorFunction(this, &valueToSend, 1);
+}

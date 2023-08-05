@@ -28,7 +28,7 @@ public:
 	using OscNode::execute;
 	void execute(std::string_view address, const std::vector<OscArgument>& arguments) override;
 	virtual OscNode* getNode(std::string_view address) override;
-	bool visit(const std::function<bool(OscNode*)>* nodeVisitorFunction) override;
+	void visit(const std::function<void(OscNode*, OscArgument*, size_t)>& nodeVisitorFunction) override;
 
 	std::string getAsString() const override;
 
