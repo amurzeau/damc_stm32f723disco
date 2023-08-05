@@ -4,9 +4,6 @@
 
 #include <stm32f723e_discovery_qspi.h>
 
-#pragma GCC push_options
-#pragma GCC optimize("O0")
-
 OscStatePersist::OscStatePersist(OscRoot* oscRoot)
     : OscContainer(oscRoot, "config"),
       oscRoot(oscRoot),
@@ -43,7 +40,7 @@ void OscStatePersist::init() {
 
 	// Listen for config changes
 	oscRoot->setOnOscValueChanged([this]() { oscConfigChanged = true; });
-	oscSaveNow.addChangeCallback([this](bool value) {
+	oscSaveNow.setWriteCallback([this](bool value) {
 		if(value) {
 			saveState();
 		}

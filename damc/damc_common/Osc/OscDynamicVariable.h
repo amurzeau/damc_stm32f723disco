@@ -5,23 +5,25 @@
 
 template<typename T> class OscDynamicVariable : public OscContainer {
 public:
-	using underlying_type = T;
+	using readonly_type = typename OscReadOnlyType<T>::type;
 
 	OscDynamicVariable(OscContainer* parent, std::string_view name);
 	OscDynamicVariable(const OscDynamicVariable&) = delete;
 
-	std::vector<T> get();
 	void dump() override { notifyOsc(); }
+	void execute(const std::vector<OscArgument>& arguments) override;
 
 	std::string getAsString() const override;
 
-	void setReadCallback(std::function<std::vector<T>()> onReadCallback);
+	void setReadCallback(std::function<readonly_type()> onReadCallback);
+	void setWriteCallback(std::function<void(readonly_type)> onWriteCallback);
 
 protected:
 	void notifyOsc();
 
 private:
-	std::function<std::vector<T>()> onReadCallback;
+	std::function<readonly_type()> onReadCallback;
+	std::function<void(readonly_type)> onWriteCallback;
 };
 
 EXPLICIT_INSTANCIATE_OSC_VARIABLE(extern template, OscDynamicVariable)

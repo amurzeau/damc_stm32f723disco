@@ -6,7 +6,7 @@
 #include <FilteringChain.h>
 #include <Osc/OscContainer.h>
 #include <Osc/OscDynamicVariable.h>
-#include <Osc/OscReadOnlyVariable.h>
+#include <Osc/OscVariable.h>
 #include <OscRoot.h>
 #include <stdint.h>
 
@@ -28,7 +28,7 @@ protected:
 private:
 	OscRoot* oscRoot;
 	OscVariable<int32_t> oscSaveConfigCount;
-	OscVariable<bool> oscSaveNow;
+	OscDynamicVariable<bool> oscSaveNow;
 
 	uint32_t oscConfigSaveTimerPreviousTick;
 	bool oscConfigChanged;
