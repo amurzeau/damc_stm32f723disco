@@ -253,6 +253,7 @@ void AudioProcessor::mainLoop() {
 
 		TimeMeasure::timeMeasureFastTimer.endMeasure();
 	} else {
+		controls.mainLoop();
 		oscStatePersist.mainLoop();
 	}
 
