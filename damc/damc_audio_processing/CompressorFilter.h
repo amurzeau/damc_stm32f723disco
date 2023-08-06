@@ -1,6 +1,8 @@
 #pragma once
 
+#include "LoudnessMeter.h"
 #include <Osc/OscContainer.h>
+#include <Osc/OscReadOnlyVariable.h>
 #include <Osc/OscVariable.h>
 #include <array>
 #include <deque>
@@ -9,36 +11,39 @@
 
 class CompressorFilter : public OscContainer {
 protected:
-	struct PerChannelData {
-		float y1;
-		float yL;
-
-		size_t compressionHistoryPtr;
-		std::array<float, 128> compressionHistory;
-		std::deque<size_t> compressionMovingMaxDeque;
-
-		float speed;
-
-		float movingMax(float dbCompression);
-		float noProcessing(float dbCompression);
-	};
-
 public:
 	CompressorFilter(OscContainer* parent);
 	void init(size_t numChannel);
 	void reset(float fs);
 	void processSamples(float** samples, size_t count);
 
+	void onFastTimer();
+
 protected:
-	float doCompression(float sample, PerChannelData& perChannelData);
+	float doCompression(float levelPeak, float levelLoudness);
 	float gainComputer(float sample) const;
-	void levelDetector(float sample, PerChannelData& perChannelData);
+	void levelDetectorSmoothing(float sample);
+	float levelToDbPeak(float sample);
+	float levelToDbLoudnessLUFS(float sample);
+	float levelDetectorPeak(float sample);
+	float levelDetectorLoudnessLUFS(LoudnessMeter* loudnessMeter, float sample);
 
 private:
 	size_t numChannel;
-	std::vector<PerChannelData> perChannelData;
 
-	OscVariable<bool> enable;
+	// Level to dB function to use
+	using LevelToDbFunction = float (CompressorFilter::*)(float sample);
+	LevelToDbFunction levelDetector;
+	LevelToDbFunction levelToDb;
+	// Level detector state
+	float y1;
+	float yL;
+
+	// Loudness LUFS level detector
+	std::vector<LoudnessMeter> loudnessMeters;
+
+	OscVariable<bool> enablePeak;
+	OscVariable<bool> enableLoudness;
 	float fs = 48000;
 	float alphaR;
 	float alphaA;
@@ -49,6 +54,10 @@ private:
 	OscVariable<float> ratio;
 	float gainDiffRatio = 0;
 	OscVariable<float> kneeWidth;
-	uint32_t gainHoldSamples = 48000 / 20;  // 20Hz period
-	OscVariable<bool> useMovingMax;
+	OscVariable<float> lufsTarget;
+	OscVariable<float> lufsIntegrationTime;
+	OscVariable<float> lufsGate;
+
+	float lufsRealtimeLevel;
+	OscReadOnlyVariable<float> lufsMeter;
 };

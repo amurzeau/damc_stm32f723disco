@@ -130,4 +130,5 @@ float FilterChain::processSideChannelSample(float input) {
 
 void FilterChain::onFastTimer() {
 	peakMeter.onFastTimer();
+	compressorFilter.onFastTimer();
 }

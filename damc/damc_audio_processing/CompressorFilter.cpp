@@ -5,62 +5,117 @@
 #include <fastapprox/fastexp.h>
 #include <fastapprox/fastlog.h>
 #include <math.h>
+#include <stm32f7xx.h>
 #include <string.h>
+
+// Algorithm based on
+// https://www.eecs.qmul.ac.uk/~josh/documents/2012/GiannoulisMassbergReiss-dynamicrangecompression-JAES2012.pdf
 
 CompressorFilter::CompressorFilter(OscContainer* parent)
     : OscContainer(parent, "compressorFilter", 9),
-      enable(this, "enable", false),
+      enablePeak(this, "enable", false),
+      enableLoudness(this, "enableLoudness", false),
       attackTime(this, "attackTime", 0),
       releaseTime(this, "releaseTime", 2),
       threshold(this, "threshold", -50),
       makeUpGain(this, "makeUpGain", 0),
       ratio(this, "ratio", 1000),
       kneeWidth(this, "kneeWidth", 0),
-      useMovingMax(this, "useMovingMax", false) {
+      lufsTarget(this, "lufsTarget", -14),
+      lufsIntegrationTime(this, "lufsIntegTime", 0.144686434631885),
+      lufsGate(this, "lufsGate", -80),
+      lufsRealtimeLevel(-138),
+      lufsMeter(this, "lufsMeter", 0) {
 	attackTime.addChangeCallback([this](float oscValue) { alphaA = oscValue != 0 ? expf(-1 / (oscValue * fs)) : 0; });
 	releaseTime.addChangeCallback([this](float oscValue) { alphaR = oscValue != 0 ? expf(-1 / (oscValue * fs)) : 0; });
 	ratio.addChangeCallback([this](float oscValue) { gainDiffRatio = 1 - 1 / oscValue; });
+	lufsIntegrationTime.addChangeCallback([this](float oscValue) {
+		for(auto& loudnessMeter : loudnessMeters) {
+			loudnessMeter.setAveragingTime(oscValue);
+		}
+	});
+	lufsGate.addChangeCallback([this](float oscValue) {
+		for(auto& loudnessMeter : loudnessMeters) {
+			loudnessMeter.setGateLevel(oscValue);
+		}
+	});
 }
 
 void CompressorFilter::init(size_t numChannel) {
 	this->numChannel = numChannel;
-	perChannelData.resize(numChannel);
+	loudnessMeters.resize(numChannel);
 }
 
 void CompressorFilter::reset(float fs) {
 	this->fs = fs;
-	gainHoldSamples = (uint32_t) (fs / 20);
-	std::fill_n(perChannelData.begin(), numChannel, PerChannelData{});
+	y1 = yL = 0.f;
 }
 
 void CompressorFilter::processSamples(float** samples, size_t count) {
-	if(enable) {
+	if(enablePeak || enableLoudness) {
 		float staticGain = gainComputer(0) + makeUpGain;
 		for(size_t i = 0; i < count; i++) {
-			float largerCompressionDb = 0;
+			float levelPeak = 0;
+			float levelLoudness = 0;
+
 			for(size_t channel = 0; channel < numChannel; channel++) {
-				float dbGain = doCompression(samples[channel][i], perChannelData[channel]);
-				if(dbGain < largerCompressionDb)
-					largerCompressionDb = dbGain;
+				float sample = samples[channel][i];
+				if(enablePeak.get()) {
+					levelPeak = std::max(levelPeak, levelDetectorPeak(sample));
+				}
+				if(enableLoudness.get()) {
+					levelLoudness += levelDetectorLoudnessLUFS(&loudnessMeters[channel], sample);
+				}
 			}
 
+			float dbGain = doCompression(levelPeak, levelLoudness);
+
 			// db to ratio
-			float largerCompressionRatio = fastpow2(LOG10_VALUE_DIV_20 * (largerCompressionDb + staticGain));
+			float compressionRatio = fastpow2(LOG10_VALUE_DIV_20 * (dbGain + staticGain));
 
 			for(size_t channel = 0; channel < numChannel; channel++) {
-				samples[channel][i] = largerCompressionRatio * samples[channel][i];
+				samples[channel][i] = compressionRatio * samples[channel][i];
 			}
 		}
 	}
 }
 
-float CompressorFilter::doCompression(float sample, PerChannelData& perChannelData) {
-	if(sample == 0)
-		return 0;
+float CompressorFilter::doCompression(float levelPeak, float levelLoudness) {
+	// Compression with gain computer in the log domain
+	// This is the log domain detector with feedforward design
+	float dbSample = -INFINITY;
 
-	float dbSample = fastlog2(fabsf(sample)) / LOG10_VALUE_DIV_20;
-	levelDetector(gainComputer(dbSample), perChannelData);
-	return -perChannelData.yL;
+	if(enablePeak.get() && levelPeak != 0) {
+		dbSample = levelToDbPeak(levelPeak);
+	}
+	if(enableLoudness.get() && levelLoudness != 0) {
+		lufsRealtimeLevel = levelToDbLoudnessLUFS(levelLoudness);
+		dbSample = std::max(dbSample, lufsRealtimeLevel - lufsTarget.get());
+	}
+
+	if(dbSample == -INFINITY) {
+		return 0;
+	}
+
+	levelDetectorSmoothing(gainComputer(dbSample));
+	return -yL;
+}
+
+float CompressorFilter::levelDetectorPeak(float sample) {
+	return fabsf(sample);
+}
+
+float CompressorFilter::levelDetectorLoudnessLUFS(LoudnessMeter* loudnessMeter, float sample) {
+	loudnessMeter->processOneSample(sample);
+	return loudnessMeter->getSquaredAverage();
+}
+
+float CompressorFilter::levelToDbPeak(float sample) {
+	return fastlog2(sample) / LOG10_VALUE_DIV_20;
+}
+
+float CompressorFilter::levelToDbLoudnessLUFS(float sample) {
+	return LoudnessMeter::linearToLufs(sample);
 }
 
 float CompressorFilter::gainComputer(float dbSample) const {
@@ -75,29 +130,18 @@ float CompressorFilter::gainComputer(float dbSample) const {
 	}
 }
 
-float CompressorFilter::PerChannelData::movingMax(float dbCompression) {
-	if(!compressionMovingMaxDeque.empty() && compressionMovingMaxDeque.front() == compressionHistoryPtr)
-		compressionMovingMaxDeque.pop_front();
-
-	while(!compressionMovingMaxDeque.empty() && dbCompression >= compressionHistory[compressionMovingMaxDeque.back()])
-		compressionMovingMaxDeque.pop_back();
-
-	compressionMovingMaxDeque.push_back(compressionHistoryPtr);
-	compressionHistory[compressionHistoryPtr] = dbCompression;
-	compressionHistoryPtr = (compressionHistoryPtr + 1) % compressionHistory.size();
-
-	return compressionHistory[compressionMovingMaxDeque.front()];
+void CompressorFilter::levelDetectorSmoothing(float dbCompression) {
+	// Smooth decoupled peak detector (eq 17)
+	// Added moving max to try to reduce compression level changes
+	float decayedCompression = alphaR * y1 + (1 - alphaR) * dbCompression;
+	y1 = fmaxf(dbCompression, decayedCompression);
+	yL = alphaA * yL + (1 - alphaA) * y1;
 }
 
-float CompressorFilter::PerChannelData::noProcessing(float dbCompression) {
-	return dbCompression;
-}
-
-void CompressorFilter::levelDetector(float dbCompression, PerChannelData& perChannelData) {
-	float decayedCompression = alphaR * perChannelData.y1 + (1 - alphaR) * dbCompression;
-	if(useMovingMax)
-		perChannelData.y1 = fmaxf(perChannelData.movingMax(dbCompression), decayedCompression);
-	else
-		perChannelData.y1 = fmaxf(dbCompression, decayedCompression);
-	perChannelData.yL = alphaA * perChannelData.yL + (1 - alphaA) * perChannelData.y1;
+void CompressorFilter::onFastTimer() {
+	if(enableLoudness) {
+		lufsMeter.set(lufsRealtimeLevel);
+	} else {
+		lufsMeter.set(0);
+	}
 }
