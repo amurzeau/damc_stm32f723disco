@@ -21,8 +21,11 @@ public:
 protected:
 	void loadState();
 	void saveState();
-	void eraseSpi();
-	void writeSpi(uint8_t* data, size_t size);
+
+	void beginWrite();
+	void eraseNextBlockSpi();
+	void writeSpiPage(uint8_t* data, size_t size);
+	void writeMessage(uint8_t* data, size_t size);
 	void flushSpi();
 
 private:
@@ -36,4 +39,5 @@ private:
 
 	std::vector<uint8_t> buffer;
 	size_t spiWriteAddress;
+	size_t spiErasedAddress;
 };

@@ -47,13 +47,16 @@ void OscStatePersist::init() {
 	});
 }
 
-void OscStatePersist::eraseSpi() {
-	// Erase 32KB
-	for(size_t i = 0; i < 8; i++) {
-		BSP_QSPI_Erase_Block(i * 4096);
-	}
+void OscStatePersist::beginWrite() {
 	buffer.clear();
 	spiWriteAddress = 0;
+	spiErasedAddress = 0;
+}
+
+void OscStatePersist::eraseNextBlockSpi() {
+	// Erase 4KB
+	BSP_QSPI_Erase_Block(spiErasedAddress);
+	spiErasedAddress += 4096;
 }
 
 uint16_t checksum(uint8_t* data, size_t size) {
@@ -64,7 +67,17 @@ uint16_t checksum(uint8_t* data, size_t size) {
 	return sum;
 }
 
-void OscStatePersist::writeSpi(uint8_t* data, size_t size) {
+void OscStatePersist::writeSpiPage(uint8_t* data, size_t size) {
+	// Erase blocks that need to be written
+	while(spiWriteAddress + size > spiErasedAddress) {
+		eraseNextBlockSpi();
+	}
+	// Write page
+	BSP_QSPI_Write(data, spiWriteAddress, size);
+	spiWriteAddress += size;
+}
+
+void OscStatePersist::writeMessage(uint8_t* data, size_t size) {
 	size_t i;
 	uint16_t sum = checksum(data, size);
 	uint8_t messageSize[] = {
@@ -82,9 +95,7 @@ void OscStatePersist::writeSpi(uint8_t* data, size_t size) {
 
 	// Write completed pages to SPI flash
 	for(i = 0; i + 256 <= buffer.size(); i += 256) {
-		// Write page
-		BSP_QSPI_Write(&buffer[i], spiWriteAddress, 256);
-		spiWriteAddress += 256;
+		writeSpiPage(&buffer[i], 256);
 	}
 
 	// Remove all written data
@@ -92,9 +103,14 @@ void OscStatePersist::writeSpi(uint8_t* data, size_t size) {
 }
 
 void OscStatePersist::flushSpi() {
-	// Add message size
-	BSP_QSPI_Write(&buffer[0], spiWriteAddress, buffer.size());
-	buffer.clear();
+	// Write null message to mark end of data
+	writeMessage(nullptr, 0);
+
+	// Write remaining buffer data
+	if(buffer.size() > 0) {
+		writeSpiPage(&buffer[0], buffer.size());
+		buffer.clear();
+	}
 }
 
 void OscStatePersist::loadState() {
@@ -134,19 +150,19 @@ void OscStatePersist::saveState() {
 	oscNeedSaveConfig = false;
 	oscConfigChanged = false;
 
-	eraseSpi();
+	beginWrite();
 
 	// Store number of saves along with other configs
 	OscArgument argument = oscSaveConfigCount.getToOsc();
 	oscRoot->serializeMessage(
-	    [this](std::string_view nodeFullName, uint8_t* data, size_t size) { writeSpi(data, size); },
+	    [this](std::string_view nodeFullName, uint8_t* data, size_t size) { writeMessage(data, size); },
 	    &oscSaveConfigCount,
 	    &argument,
 	    1);
 
 	oscRoot->visit([this](OscNode* node, OscArgument* arguments, size_t number) {
 		oscRoot->serializeMessage(
-		    [this](std::string_view nodeFullName, uint8_t* data, size_t size) { writeSpi(data, size); },
+		    [this](std::string_view nodeFullName, uint8_t* data, size_t size) { writeMessage(data, size); },
 		    node,
 		    arguments,
 		    number);
