@@ -78,8 +78,6 @@ void OscContainer::execute(std::string_view address, const std::vector<OscArgume
 					return;
 				}
 			}
-			while(1)
-				;
 
 			SPDLOG_WARN("Address {} not found from {}", childAddressStr, getFullAddress());
 		}
