@@ -44,7 +44,7 @@ private:
 
 	OscVariable<bool> enablePeak;
 	OscVariable<bool> enableLoudness;
-	float fs = 48000;
+	float fs;
 	float alphaR;
 	float alphaA;
 	OscVariable<float> attackTime;

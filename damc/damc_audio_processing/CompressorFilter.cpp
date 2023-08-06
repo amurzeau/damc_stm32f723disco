@@ -26,6 +26,7 @@ CompressorFilter::CompressorFilter(OscContainer* parent)
       lufsGate(this, "lufsGate", -80),
       lufsRealtimeLevel(-138),
       lufsMeter(this, "lufsMeter", 0) {
+	reset(48000);
 	attackTime.addChangeCallback([this](float oscValue) { alphaA = oscValue != 0 ? expf(-1 / (oscValue * fs)) : 0; });
 	releaseTime.addChangeCallback([this](float oscValue) { alphaR = oscValue != 0 ? expf(-1 / (oscValue * fs)) : 0; });
 	ratio.addChangeCallback([this](float oscValue) { gainDiffRatio = 1 - 1 / oscValue; });
