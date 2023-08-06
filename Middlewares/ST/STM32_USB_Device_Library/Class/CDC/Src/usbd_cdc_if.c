@@ -93,7 +93,7 @@ struct USBD_CDC_CircularBuffer {
   uint32_t current_theorical_size; // Size without counting discarded data
   uint16_t write_index;
   uint16_t read_index;
-  uint8_t buffer[16384];
+  uint8_t buffer[CDC_DATA_HS_MAX_PACKET_SIZE];
   uint8_t usb_buffer[CDC_DATA_HS_MAX_PACKET_SIZE];
   uint8_t usb_busy;
 };
@@ -103,37 +103,6 @@ static struct USBD_CDC_CircularBuffer txBuffer;
 static USBD_HandleTypeDef *usb_pdev;
 
 /* Private functions ---------------------------------------------------------*/
-
-static void USB_CDC_IF_BUFFER_write_char(struct USBD_CDC_CircularBuffer* buffer, uint8_t c)
-{
-  assert(buffer->write_index < sizeof(buffer->buffer));
-  assert(buffer->read_index < sizeof(buffer->buffer));
-
-  uint16_t next_write_index = (buffer->write_index + 1) % sizeof(buffer->buffer);
-  if(next_write_index != buffer->read_index) {
-    // Buffer not full
-    buffer->buffer[buffer->write_index] = c;
-    assert(next_write_index < sizeof(buffer->buffer));
-    __DSB();
-    buffer->write_index = next_write_index;
-  }
-}
-
-static uint8_t USB_CDC_IF_BUFFER_read_char(struct USBD_CDC_CircularBuffer* buffer, uint8_t* c)
-{
-  if(buffer->read_index == buffer->write_index) {
-    // Buffer empty
-    return 0;
-  }
-
-  assert(buffer->read_index < sizeof(buffer->buffer));
-
-  *c = buffer->buffer[buffer->read_index];
-  __DSB();
-  buffer->read_index = (buffer->read_index + 1) % sizeof(buffer->buffer);
-
-  return 1;
-}
 
 static void USB_CDC_IF_sendPending() {
   if(txBuffer.usb_busy || !usb_pdev) {
@@ -184,6 +153,44 @@ static void USB_CDC_IF_sendPending() {
   } else {
     txBuffer.current_theorical_size = 0;
   }
+}
+
+static void USB_CDC_IF_BUFFER_write_char(struct USBD_CDC_CircularBuffer* buffer, uint8_t c)
+{
+  assert(buffer->write_index < sizeof(buffer->buffer));
+  assert(buffer->read_index < sizeof(buffer->buffer));
+
+  uint16_t next_write_index = (buffer->write_index + 1) % sizeof(buffer->buffer);
+
+  // Block until available space
+  if(next_write_index == buffer->read_index) {
+    USB_CDC_IF_sendPending();
+    while(next_write_index == buffer->read_index) {
+      __DSB();
+    }
+  }
+
+  // Buffer not full
+  buffer->buffer[buffer->write_index] = c;
+  assert(next_write_index < sizeof(buffer->buffer));
+  __DSB();
+  buffer->write_index = next_write_index;
+}
+
+static uint8_t USB_CDC_IF_BUFFER_read_char(struct USBD_CDC_CircularBuffer* buffer, uint8_t* c)
+{
+  if(buffer->read_index == buffer->write_index) {
+    // Buffer empty
+    return 0;
+  }
+
+  assert(buffer->read_index < sizeof(buffer->buffer));
+
+  *c = buffer->buffer[buffer->read_index];
+  __DSB();
+  buffer->read_index = (buffer->read_index + 1) % sizeof(buffer->buffer);
+
+  return 1;
 }
 
 /**
