@@ -16,7 +16,7 @@ public:
 	MultiChannelAudioBuffer();
 
 	static constexpr size_t CHANNEL_NUMBER = 2;
-	static constexpr size_t BUFFER_SIZE = 48 * 2;
+	static constexpr size_t BUFFER_SIZE = 48;
 
 	float data[CHANNEL_NUMBER][BUFFER_SIZE];
 	float* dataPointers[CHANNEL_NUMBER];
