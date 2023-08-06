@@ -36,9 +36,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "wm8994.h"
 
-#pragma GCC push_options
-#pragma GCC optimize("O0")
-
 /** @addtogroup BSP
   * @{
   */
