@@ -96,6 +96,7 @@ struct USBD_CDC_CircularBuffer {
   uint8_t buffer[CDC_DATA_HS_MAX_PACKET_SIZE];
   uint8_t usb_buffer[CDC_DATA_HS_MAX_PACKET_SIZE];
   uint8_t usb_busy;
+  uint8_t usb_idle; // USB didn't send data for more than 10ms
 };
 
 static struct USBD_CDC_CircularBuffer rxBuffer;
@@ -154,7 +155,7 @@ static void USB_CDC_IF_sendPending() {
     txBuffer.current_theorical_size = 0;
   }
 }
-
+uint32_t usb_cdc_timeout;
 static void USB_CDC_IF_BUFFER_write_char(struct USBD_CDC_CircularBuffer* buffer, uint8_t c)
 {
   assert(buffer->write_index < sizeof(buffer->buffer));
@@ -164,10 +165,22 @@ static void USB_CDC_IF_BUFFER_write_char(struct USBD_CDC_CircularBuffer* buffer,
 
   // Block until available space
   if(next_write_index == buffer->read_index) {
+    // If already idle since a previous write and still idle, don't wait at all
+    if(buffer->usb_idle) {
+      return;
+    }
+    buffer->usb_idle = 1;
     USB_CDC_IF_sendPending();
-    while(next_write_index == buffer->read_index) {
+    // 10ms timeout, if USB didn't sent anything, don't wait anymore to avoid blocking everything
+    uint32_t timeout = HAL_GetTick() + 1000;
+    while(next_write_index == buffer->read_index && HAL_GetTick() < timeout) {
       __DSB();
     }
+    if(next_write_index == buffer->read_index) {
+		usb_cdc_timeout = 1;
+      return;
+    }
+    buffer->usb_idle = 0;
   }
 
   // Buffer not full
@@ -381,6 +394,8 @@ static int8_t USB_CDC_IF_TransmitCplt(uint8_t *Buf, uint32_t *Len, uint8_t epnum
   UNUSED(epnum);
 
   txBuffer.usb_busy = 0;
+  txBuffer.usb_idle = 0;
+  usb_cdc_timeout = 0;
 
   USB_CDC_IF_sendPending();
 
