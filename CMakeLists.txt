@@ -91,12 +91,14 @@ install(FILES
 install(FILES
 	$<TARGET_FILE_DIR:${TARGET_NAME}>/${TARGET_NAME}.bin
 	$<TARGET_FILE_DIR:${TARGET_NAME}>/${TARGET_NAME}.hex
+	dist/README.stlink_dragdrop.txt
 	DESTINATION ./
 	COMPONENT stlink_dragdrop
 )
 
 install(FILES
 	$<TARGET_FILE:${TARGET_NAME}>
+	dist/README.stm32cubeprogrammer.txt
 	DESTINATION ./
 	COMPONENT stm32cubeprogrammer
 )
