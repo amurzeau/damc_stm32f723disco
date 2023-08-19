@@ -42,7 +42,19 @@ jobs:
           cmake -S . -B build -GNinja -DCMAKE_TOOLCHAIN_FILE=cmake/gcc-arm-none-eabi.cmake
           cmake --build build --target package --config Release
 
-      - name: Upload a Build Artifact
+      - name: Download damc-gui assets
+        uses: robinraju/release-downloader@v1.8
+        with:
+          repository: "amurzeau/damc"
+          latest: true
+          fileName: "damc-*-damc.*"
+          out-file-path: "build/damc-gui"
+
+      - name: Repackage damc-gui
+        run: |
+          bash dist/repackage-damc-gui.sh build/damc-gui
+
+      - name: Upload build artifact
         uses: actions/upload-artifact@v3
         with:
           # Artifact name
@@ -50,10 +62,20 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           path: build/*.zip
 
+      - name: Upload damc-gui artifact
+        uses: actions/upload-artifact@v3
+        with:
+          # Artifact name
+          name: "damc-gui" # optional, default is artifact
+          # A file, directory or wildcard pattern that describes what to upload
+          path: build/damc-gui/damc-gui-*.*
+
       - name: Publish
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: "build/*.zip"
+          files: |
+            build/*.zip
+            build/damc-gui/damc-gui-*.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

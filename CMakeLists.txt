@@ -109,4 +109,7 @@ set(CPACK_STRIP_FILES ON)
 set(CPACK_PACKAGE_VERSION ${DAMC_GIT_VERSION})
 set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
 
+# Remove system name from filename (it is "Generic" and this is not useful to have it)
+set(CPACK_PACKAGE_FILE_NAME "${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")
+
 include(CPack)
