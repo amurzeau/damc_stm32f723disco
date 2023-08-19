@@ -41,6 +41,9 @@ public:
 
 	void execute(std::string_view address, const std::vector<OscArgument>& arguments) override;
 
+	OscFlatArray<int32_t>& getOscKey() { return keys; }
+	std::vector<std::unique_ptr<T>>& getOscValues() { return value; }
+
 protected:
 	virtual void initializeItem(T*) {}
 	void updateNextKeyToMaxKey();

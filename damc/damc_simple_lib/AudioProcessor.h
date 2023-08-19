@@ -5,6 +5,7 @@
 #include "OscSerialClient.h"
 #include "TimeMeasure.h"
 #include <FilteringChain.h>
+#include <Osc/OscContainerArray.h>
 #include <Osc/OscDynamicVariable.h>
 #include <Osc/OscReadOnlyVariable.h>
 #include <OscRoot.h>

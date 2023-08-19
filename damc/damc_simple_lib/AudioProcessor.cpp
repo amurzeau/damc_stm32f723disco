@@ -80,6 +80,7 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
 	});
 
 	strips.resize(5);
+	strips.getOscKey().addCheckCallback([](const std::vector<int32_t>&) { return false; });
 
 	serialClient.init();
 	controls.init();
