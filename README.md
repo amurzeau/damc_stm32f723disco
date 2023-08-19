@@ -14,11 +14,11 @@ To do this, you must do the following:
 
 - Flash this firmware to a [32F723EDISCOVERY eval board](https://www.st.com/en/evaluation-tools/32f723ediscovery.html):
   - With STLINK Mass storage drag'n drop:
-    - Download `damc_stm32f723disco-vX.Y.Z-stlink_dragdrop.zip`
+    - Download [`damc_stm32f723disco-vX.Y.Z-stlink_dragdrop.zip`](https://github.com/amurzeau/usb_audio_loopback_stm32f723disco/releases)
     - Copy either `damc_stm32f723disco.hex` or `damc_stm32f723disco.bin` to the USB Mass storage device
     - This will flash your board
   - With [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html#get-software):
-    - Download `damc_stm32f723disco-vX.Y.Z-stm32cubeprogrammer.zip`
+    - Download [`damc_stm32f723disco-vX.Y.Z-stm32cubeprogrammer.zip`](https://github.com/amurzeau/usb_audio_loopback_stm32f723disco/releases)
     - Flash the board using [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html#get-software) and `damc_stm32f723disco.elf`
 - Power-up and connect the board using USB
   - Switch the power supply from STLINK USB cable to the USB HS cable by putting the jumper on USB HS on CN8 connector (under the board)
