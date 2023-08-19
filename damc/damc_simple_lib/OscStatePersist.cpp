@@ -8,7 +8,7 @@ OscStatePersist::OscStatePersist(OscRoot* oscRoot)
     : OscContainer(oscRoot, "config"),
       oscRoot(oscRoot),
       oscSaveConfigCount(this, "saveCount"),
-      oscSaveNow(this, "saveNow"),
+      oscSaveNow(this, "saveNow", false, false),
       oscConfigSaveTimerPreviousTick(0),
       oscConfigChanged(false),
       oscNeedSaveConfig(false) {}
@@ -39,8 +39,11 @@ void OscStatePersist::init() {
 	loadState();
 
 	// Listen for config changes
-	oscRoot->setOnOscValueChanged([this]() { oscConfigChanged = true; });
-	oscSaveNow.setWriteCallback([this](bool value) {
+	oscRoot->setOnOscValueChanged([this]() {
+		oscConfigChanged = true;
+		;
+	});
+	oscSaveNow.addChangeCallback([this](bool value) {
 		if(value) {
 			saveState();
 		}

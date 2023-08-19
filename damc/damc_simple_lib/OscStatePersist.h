@@ -31,7 +31,7 @@ protected:
 private:
 	OscRoot* oscRoot;
 	OscVariable<int32_t> oscSaveConfigCount;
-	OscDynamicVariable<bool> oscSaveNow;
+	OscVariable<bool> oscSaveNow;
 
 	uint32_t oscConfigSaveTimerPreviousTick;
 	bool oscConfigChanged;
