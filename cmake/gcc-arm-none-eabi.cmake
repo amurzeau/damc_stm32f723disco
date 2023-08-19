@@ -3,6 +3,7 @@ set(CMAKE_SYSTEM_PROCESSOR          arm)
 
 set(WINDOWS_ST_CLT_PATH "C:/ST/STM32CubeCLT/STM32CubeCLT/GNU-tools-for-STM32/bin/")
 set(MAC_ST_CLT_PATH "/opt/ST/STM32CubeCLT/GNU-tools-for-STM32/bin/")
+set(LINUX_ST_CLT_PATH "/opt/st/stm32cubeclt/GNU-tools-for-STM32/bin")
 
 # Try to find an STM32CubeIDE installation to use for the toolchain.
 file(GLOB TOOLCHAIN_DIRECTORIES
@@ -16,6 +17,7 @@ find_program(COMPILER_PATH
 	PATHS
 		${WINDOWS_ST_CLT_PATH}
 		${MAC_ST_CLT_PATH}
+		${LINUX_ST_CLT_PATH}
 		${TOOLCHAIN_DIRECTORIES}
 	REQUIRED
 )
