@@ -35,9 +35,6 @@ To do this, you must do the following:
 
 The supported audio format is 48000 Hz, Stereo, 16 bits.
 
-It is possible to run damc_gui interface to control audio processing.
-For this, you need damc (ex: damc-v2.0-win64-damc.zip) available here: https://github.com/amurzeau/damc/releases
-
 
 For each strip, audio is processed in this order:
 - Equalizers
