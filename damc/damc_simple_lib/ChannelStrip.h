@@ -15,8 +15,6 @@ public:
 	void onFastTimer();
 
 private:
-	OscVariable<bool> oscEnable;
-	OscVariable<int32_t> oscType;
 	OscVariable<std::string> oscName;
 	OscVariable<std::string> oscDisplayName;
 	OscReadOnlyVariable<int32_t> oscNumChannels;
