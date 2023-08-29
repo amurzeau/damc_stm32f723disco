@@ -144,7 +144,7 @@ uint8_t BSP_LCD_InitEx(uint32_t orientation)
   
   /* Default value for draw propriety */
   DrawProp.BackColor = 0xFFFF;
-  DrawProp.pFont     = &Font24;
+  DrawProp.pFont     = &LCD_DEFAULT_FONT;
   DrawProp.TextColor = 0x0000;
   
   /* Initialize LCD special pins GPIOs */
@@ -182,8 +182,6 @@ uint8_t BSP_LCD_InitEx(uint32_t orientation)
     {
       /* Default landscape orientation is selected */
     }
-    /* Initialize the font */
-    BSP_LCD_SetFont(&LCD_DEFAULT_FONT);
     
     ret = LCD_OK;   
   }
@@ -348,51 +346,58 @@ void BSP_LCD_DisplayChar(uint16_t Xpos, uint16_t Ypos, uint8_t Ascii)
   */
 void BSP_LCD_DisplayStringAt(uint16_t Xpos, uint16_t Ypos, const char *Text, Line_ModeTypdef Mode)
 {
-  uint16_t refcolumn = 1, i = 0;
-  uint32_t size = 0, xsize = 0; 
+  int16_t refcolumn, refline;
+  uint16_t i = 0;
+  uint32_t size = 0; 
   const char  *ptr = Text;
   
   /* Get the text size */
-  while (*ptr++) size ++ ;
-  
-  /* Characters number per line */
-  xsize = (BSP_LCD_GetXSize()/DrawProp.pFont->Width);
+  while (*ptr++) size ++;
   
   switch (Mode)
   {
   case CENTER_MODE:
     {
-      refcolumn = Xpos + ((xsize - size)* DrawProp.pFont->Width) / 2;
+      refcolumn = Xpos - (size * DrawProp.pFont->Width) / 2;
+	  refline = Ypos - DrawProp.pFont->Height / 2;
       break;
     }
   case LEFT_MODE:
     {
       refcolumn = Xpos;
+	  refline = Ypos;
       break;
     }
   case RIGHT_MODE:
     {
-      refcolumn =  - Xpos + ((xsize - size)*DrawProp.pFont->Width);
+      refcolumn =  Xpos - (size * DrawProp.pFont->Width);
+	  refline = Ypos;
       break;
     }    
   default:
     {
       refcolumn = Xpos;
+	  refline = Ypos;
       break;
     }
   }
   
   /* Check that the Start column is located in the screen */
-  if ((refcolumn < 1) || (refcolumn >= 0x8000))
+  if (refcolumn > BSP_LCD_GetXSize())
   {
-    refcolumn = 1;
+    refcolumn = 0;
+  }
+
+  if (refline > BSP_LCD_GetYSize())
+  {
+	refline = 0;
   }
 
   /* Send the string character by character on lCD */
   while ((*Text != 0) & (((BSP_LCD_GetXSize() - (i*DrawProp.pFont->Width)) & 0xFFFF) >= DrawProp.pFont->Width))
   {
     /* Display one character on LCD */
-    BSP_LCD_DisplayChar(refcolumn, Ypos, *Text);
+    BSP_LCD_DisplayChar(refcolumn, refline, *Text);
     /* Decrement the column position by 16 */
     refcolumn += DrawProp.pFont->Width;
     /* Point on the next character */

@@ -23,7 +23,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
-#include "init.h"
 #include "usbd_audio.h"
 #include "AudioCApi.h"
 #include "usbd_cdc_if.h"
@@ -138,7 +137,6 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
-  k_BspInit();
   DAMC_start();
 
   /* USER CODE END 2 */

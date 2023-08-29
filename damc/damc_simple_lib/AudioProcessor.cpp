@@ -51,7 +51,8 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
       fastTimerPreviousTick(0),
       nextTimerStripIndex(0),
       slowTimerPreviousTick(0),
-      slowTimerIndex(0) {
+      slowTimerIndex(0),
+      lcdController(&oscRoot) {
 	strips.setFactory([this, numChannels, sampleRate, maxNframes](OscContainer* parent, int index) {
 		using namespace std::literals;
 
@@ -88,6 +89,10 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
 }
 
 AudioProcessor::~AudioProcessor() {}
+
+void AudioProcessor::start() {
+	lcdController.start();
+}
 
 void AudioProcessor::interleavedToFloat(const int16_t* data_input,
                                         MultiChannelAudioBuffer* data_float,
@@ -254,5 +259,6 @@ void AudioProcessor::mainLoop() {
 	} else {
 		controls.mainLoop();
 		oscStatePersist.mainLoop();
+		lcdController.mainLoop();
 	}
 }

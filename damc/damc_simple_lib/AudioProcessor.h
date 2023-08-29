@@ -11,6 +11,7 @@
 #include <OscRoot.h>
 #include <OscStatePersist.h>
 #include <stdint.h>
+#include "LCDController.h"
 
 class MultiChannelAudioBuffer {
 public:
@@ -27,6 +28,8 @@ class AudioProcessor {
 public:
 	AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t maxNframes);
 	~AudioProcessor();
+
+	void start();
 
 	void processAudioInterleaved(const int16_t** input_endpoints,
 	                             size_t input_endpoints_number,
@@ -67,4 +70,6 @@ private:
 	MultiChannelAudioBuffer buffer[4];
 	int16_t codecBuffer[MultiChannelAudioBuffer::BUFFER_SIZE * MultiChannelAudioBuffer::CHANNEL_NUMBER]
 	    __attribute__((aligned(4)));
+
+	LCDController lcdController;
 };

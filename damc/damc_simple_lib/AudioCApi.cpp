@@ -12,6 +12,7 @@ void DAMC_init() {
 
 void DAMC_start() {
 	CodecAudio::instance.start();
+	AudioProcessor::getInstance()->start();
 }
 
 void DAMC_processAudioInterleaved(const int16_t** input_endpoints,

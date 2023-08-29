@@ -248,11 +248,11 @@ void ST7789H2_Init(void)
   ST7789H2_WriteReg(ST7789H2_NV_GAMMA_CTRL, parameter, 14); 
   
   /* Display ON command */
-  ST7789H2_DisplayOn();  
+  //ST7789H2_DisplayOn();  
   
   /* Tearing Effect Line On: Option (00h:VSYNC Interface OFF, 01h:VSYNC Interface ON) */
-  parameter[0] = 0x00;     
-  ST7789H2_WriteReg(ST7789H2_TEARING_EFFECT, parameter, 1);
+//   parameter[0] = 0x00;     
+//   ST7789H2_WriteReg(ST7789H2_TEARING_EFFECT, parameter, 1);
 
 }
 
@@ -306,11 +306,17 @@ void ST7789H2_SetOrientation(uint32_t orientation)
   */
 void ST7789H2_DisplayOn(void)
 {
+  uint8_t   parameter[1];
+
   /* Display ON command */
   ST7789H2_WriteReg(ST7789H2_DISPLAY_ON, (uint8_t*)NULL, 0);
 
   /* Sleep Out command */
   ST7789H2_WriteReg(ST7789H2_SLEEP_OUT, (uint8_t*)NULL, 0);
+
+  /* Tearing Effect Line On: Option (00h:VSYNC Interface OFF, 01h:VSYNC Interface ON) */
+  parameter[0] = 0x00;     
+  ST7789H2_WriteReg(ST7789H2_TEARING_EFFECT, parameter, 1);
 }
 
 /**
