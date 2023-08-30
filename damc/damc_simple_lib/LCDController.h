@@ -21,8 +21,10 @@ public:
 	static LCDController* instance;
 
 protected:
+	using TouchHandleCallback = void (*)(LCDController* thisInstance);
+	using MenuHandlerCallback = void (LCDController::*)();
+
 	enum Icon {
-		ICON_CONFIGURE,
 		ICON_ARROW_UP,
 		ICON_ARROW_DOWN,
 		ICON_ARROW_LEFT,
@@ -60,42 +62,58 @@ protected:
 		} data;
 	};
 
-	void drawIcon(Icon icon, int x, int y, int width, int height);
+	void drawIcon(Icon icon, int x, int y, int width, int height, TouchHandleCallback onClick);
 
 	void clearScreen();
 	void drawHeader();
-	void drawPanelButtonX1(PanelPosition panelIndex, const char* buttonName, bool buttonState);
+	void drawPanelButtonX1(PanelPosition panelIndex,
+	                       const char* buttonName,
+	                       bool buttonState,
+	                       TouchHandleCallback buttonClick);
 	void drawPanelButtonX2(PanelPosition panelIndex,
 	                       const char* button1Name,
 	                       bool button1State,
+	                       TouchHandleCallback button1Click,
 	                       const char* button2Name,
-	                       bool button2State);
+	                       bool button2State,
+	                       TouchHandleCallback button2Click);
 	void drawPanelConfigEnum(PanelPosition panelIndex,
 	                         const char* title,
 	                         const char* enumString,
 	                         bool arrowUpAvailable,
-	                         bool arrowDownAvailable);
-	void drawPanelConfigFloat(PanelPosition panelIndex, const char* title, float value, const char* valueSuffix);
+	                         bool arrowDownAvailable,
+	                         TouchHandleCallback upClick,
+	                         TouchHandleCallback downClick);
+	void drawPanelConfigFloat(PanelPosition panelIndex,
+	                          const char* title,
+	                          float value,
+	                          const char* valueSuffix,
+	                          TouchHandleCallback upClick,
+	                          TouchHandleCallback downClick);
 
 	void handleClick(int x, int y);
 
-	const char* getStripDisplayStringNode(size_t stripIndex);
-
-	void pushMenu(const char* previousMenuName);
+	void pushMenu(const char* menuName, MenuHandlerCallback menuHandler);
 	void popMenu();
+	void drawCurrentMenu();
+
+	void updateStripDisplayString();
 
 private:
 	OscRoot* oscRoot;
-	OscNode* oscStrips;
 
 	int touchX;
 	int touchY;
 	bool touchIsPressed;
 
 	// Screen metadata
-	const char* menuPath[10];
+	struct MenuInfo {
+		const char* name;
+		MenuHandlerCallback menuHandler;
+	};
+	MenuInfo menuHistory[10];
+	size_t menuHistorySize;
 
-	using TouchHandleCallback = void (*)(LCDController* thisInstance);
 	struct TouchHandler {
 		int x;
 		int y;
@@ -108,6 +126,7 @@ private:
 	// Menus state
 	struct MenusState {
 		size_t stripIndex;
+		const char* stripDisplayName;
 
 		OscReadOnlyVariable<bool>* muteNode;
 		OscReadOnlyVariable<float>* volumeNode;
@@ -117,30 +136,4 @@ private:
 		size_t expanderConfigIndex;
 	};
 	MenusState menusState;
-
-	struct ConfigMapping {
-		const char* oscName;
-		const char* displayName;
-	};
-
-	static constexpr ConfigMapping COMPRESSOR_CONFIG_NAMES[] = {
-	    {"makeUpgain", "St. Gain"},
-	    {"ratio", "Ratio"},
-	    {"kneeWidth", "K. Width"},
-	    {"threshold", "Thres"},
-	    {"releaseTime", "Release"},
-	    {"attackTime", "Attack"},
-	    {"lufsTarget", "L Target"},
-	    {"lufsIntegTime", "L Time"},
-	    {"lufsGate", "L Gate"},
-	};
-
-	static constexpr ConfigMapping EXPANDER_CONFIG_NAMES[] = {
-	    {"makeUpgain", "St. Gain"},
-	    {"ratio", "Ratio"},
-	    {"kneeWidth", "K. Width"},
-	    {"threshold", "Thres"},
-	    {"releaseTime", "Release"},
-	    {"attackTime", "Attack"},
-	};
 };
