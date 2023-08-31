@@ -64,7 +64,10 @@ protected:
 
 	void drawIcon(Icon icon, int x, int y, int width, int height, TouchHandleCallback onClick);
 
+	void lcdTurnOn();
+	void lcdTurnOff();
 	void clearScreen();
+
 	void drawHeader();
 	void drawPanelButtonX1(PanelPosition panelIndex,
 	                       const char* buttonName,
@@ -105,6 +108,8 @@ private:
 	int touchX;
 	int touchY;
 	bool touchIsPressed;
+	bool lcdIsOn;
+	uint32_t touchLastPressTime;
 
 	// Screen metadata
 	struct MenuInfo {

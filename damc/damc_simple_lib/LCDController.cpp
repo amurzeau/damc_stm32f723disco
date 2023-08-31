@@ -45,7 +45,14 @@ struct OscPanelLinkDeclaration {
 };
 
 LCDController::LCDController(OscRoot* oscRoot)
-    : oscRoot(oscRoot), touchX(0), touchY(0), menuHistorySize(0), menusState{} {
+    : oscRoot(oscRoot),
+      touchX(0),
+      touchY(0),
+      touchIsPressed(false),
+      lcdIsOn(false),
+      touchLastPressTime(0),
+      menuHistorySize(0),
+      menusState{} {
 	instance = this;
 	touchHandlers.reserve(5);
 }
@@ -69,18 +76,42 @@ void LCDController::start() {
 	pushMenu("DAMC", &LCDController::drawMenuMain);
 	drawCurrentMenu();
 
-	BSP_LCD_DisplayOn();
+	touchLastPressTime = HAL_GetTick();
+	lcdTurnOn();
 }
 
 void LCDController::mainLoop() {
 	TS_StateTypeDef TS_State;
+
+	uint32_t currentTick = HAL_GetTick();
+
 	BSP_TS_GetState(&TS_State);
 	if(TS_State.touchDetected > 0 && !touchIsPressed) {
 		touchIsPressed = true;
-		handleClick(240 - TS_State.touchX[0], TS_State.touchY[0]);
+		touchLastPressTime = currentTick;
+		if(!lcdIsOn) {
+			lcdTurnOn();
+		} else {
+			handleClick(240 - TS_State.touchX[0], TS_State.touchY[0]);
+		}
 	} else if(TS_State.touchDetected == 0 && touchIsPressed) {
 		touchIsPressed = false;
+	} else if(!touchIsPressed && lcdIsOn && touchLastPressTime + 30000 < currentTick) {
+		// Touchscreen not pressed and LCD is ON
+		// 30s elapsed => turn off LCD screen and backlight
+		lcdTurnOff();
 	}
+}
+
+void LCDController::lcdTurnOn() {
+	lcdIsOn = true;
+	BSP_LCD_DisplayOn();
+	HAL_GPIO_WritePin(LCD_BL_CTRL_GPIO_PORT, LCD_BL_CTRL_PIN, GPIO_PIN_SET);
+}
+void LCDController::lcdTurnOff() {
+	lcdIsOn = false;
+	HAL_GPIO_WritePin(LCD_BL_CTRL_GPIO_PORT, LCD_BL_CTRL_PIN, GPIO_PIN_RESET);
+	BSP_LCD_DisplayOff();
 }
 
 void LCDController::drawIcon(Icon icon, int x, int y, int width, int height, TouchHandleCallback onClick) {
