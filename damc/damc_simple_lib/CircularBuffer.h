@@ -32,7 +32,8 @@ public:
 
 private:
 	// Double buffer and dual channel
-	std::array<uint32_t, 48 * N> buffer;
+	// This must be 32 byte aligned for cache handling
+	std::array<uint32_t, 48 * N> buffer __attribute__((aligned(32)));
 	size_t out_write_offset;
 	size_t in_read_offset;
 };
