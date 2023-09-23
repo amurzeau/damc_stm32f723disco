@@ -590,9 +590,10 @@ static enum USBD_COMPOSITE_ClassId endpoint_mapping[] = {
   */
 static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
+  static USBD_COMPOSITE_HandleTypeDef handleData;
   USBD_COMPOSITE_HandleTypeDef *handle;
 
-  handle = (USBD_COMPOSITE_HandleTypeDef *)USBD_malloc(sizeof(USBD_COMPOSITE_HandleTypeDef));
+  handle = &handleData;
 
   if (handle == NULL)
   {

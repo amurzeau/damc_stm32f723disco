@@ -265,10 +265,11 @@ static volatile uint32_t *SCB_DEMCR = (volatile uint32_t *)0xE000EDFC; //address
 static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
   UNUSED(cfgidx);
+  static USBD_AUDIO_HandleTypeDef haudioData;
   USBD_AUDIO_HandleTypeDef *haudio;
 
   /* Allocate Audio structure */
-  haudio = (USBD_AUDIO_HandleTypeDef *)USBD_malloc(sizeof(USBD_AUDIO_HandleTypeDef));
+  haudio = &haudioData;
 
   if (haudio == NULL)
   {
@@ -426,7 +427,7 @@ static uint8_t USBD_AUDIO_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	  pdev->ep_out[AUDIO_INTERRUPT_EP & 0xFU].is_used = 0U;
 	  pdev->ep_out[AUDIO_INTERRUPT_EP & 0xFU].bInterval = 0U;
 
-    (void)USBD_free(pdev->pClassDataCmsit[pdev->classId]);
+    //(void)USBD_free(pdev->pClassDataCmsit[pdev->classId]);
     pdev->pClassDataCmsit[pdev->classId] = NULL;
   }
 

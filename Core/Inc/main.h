@@ -54,6 +54,8 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
+void MPU_Config(int enable_psram);
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

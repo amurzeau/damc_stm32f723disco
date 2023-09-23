@@ -7,7 +7,6 @@
 #include <array>
 #include <deque>
 #include <stddef.h>
-#include <vector>
 
 class CompressorFilter : public OscContainer {
 protected:
@@ -40,7 +39,7 @@ private:
 	float yL;
 
 	// Loudness LUFS level detector
-	std::vector<LoudnessMeter> loudnessMeters;
+	std::array<LoudnessMeter, 2> loudnessMeters;
 
 	OscVariable<bool> enablePeak;
 	OscVariable<bool> enableLoudness;

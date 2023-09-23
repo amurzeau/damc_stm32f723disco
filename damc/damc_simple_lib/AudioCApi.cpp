@@ -2,6 +2,7 @@
 #include "AudioProcessor.h"
 #include "CodecAudio.h"
 #include "TimeMeasure.h"
+#include "main.h"
 #include "usbd_audio.h"
 
 void DAMC_init() {
@@ -55,6 +56,8 @@ uint16_t DAMC_getControlFromUSB(uint8_t unit_id, uint8_t control_selector, uint8
  * @retval None
  */
 extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
+	// Ensure PSRAM is not acceeded while in audio interrupt
+	//MPU_Config(0);
 	TimeMeasure::on1msElapsed();
 
 	TimeMeasure::timeMeasure[TMI_AudioProcessing].beginMeasure();
@@ -86,6 +89,7 @@ extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
 	}
 
 	TimeMeasure::timeMeasure[TMI_AudioProcessing].endMeasure();
+	//MPU_Config(1);
 }
 /**
  * @brief Tx Transfer Half completed callback.

@@ -64,13 +64,11 @@ void PeriphCommonClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART6_UART_Init(void);
-static void MX_FMC_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 static void SystemClock_Config_24MhzHSE(void);
 static void PeriphCommonClock_Config_24MhzHSE(void);
-static void MPU_Config(void);
 
 /* USER CODE END PFP */
 
@@ -88,7 +86,7 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-  MPU_Config();
+  MPU_Config(1);
 
   /* USER CODE END 1 */
 
@@ -124,6 +122,9 @@ int main(void)
 	  PeriphCommonClock_Config_24MhzHSE();
   }
 
+  // Initialize PSRAM as external RAM before DAMC_init as DAMC will use the heap on the PSRAM
+  BSP_PSRAM_Init();
+
   DAMC_init();
 
   /* USER CODE END SysInit */
@@ -133,7 +134,6 @@ int main(void)
   MX_I2C1_Init();
   MX_USART6_UART_Init();
   MX_USB_DEVICE_Init();
-  MX_FMC_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
@@ -395,60 +395,6 @@ static void MX_USART6_UART_Init(void)
 
   /* USER CODE END USART6_Init 2 */
 
-}
-
-/* FMC initialization function */
-static void MX_FMC_Init(void)
-{
-
-  /* USER CODE BEGIN FMC_Init 0 */
-
-  /* USER CODE END FMC_Init 0 */
-
-  FMC_NORSRAM_TimingTypeDef Timing = {0};
-
-  /* USER CODE BEGIN FMC_Init 1 */
-
-  /* USER CODE END FMC_Init 1 */
-
-  /** Perform the SRAM1 memory initialization sequence
-  */
-  hsram1.Instance = FMC_NORSRAM_DEVICE;
-  hsram1.Extended = FMC_NORSRAM_EXTENDED_DEVICE;
-  /* hsram1.Init */
-  hsram1.Init.NSBank = FMC_NORSRAM_BANK1;
-  hsram1.Init.DataAddressMux = FMC_DATA_ADDRESS_MUX_DISABLE;
-  hsram1.Init.MemoryType = FMC_MEMORY_TYPE_PSRAM;
-  hsram1.Init.MemoryDataWidth = FMC_NORSRAM_MEM_BUS_WIDTH_16;
-  hsram1.Init.BurstAccessMode = FMC_BURST_ACCESS_MODE_DISABLE;
-  hsram1.Init.WaitSignalPolarity = FMC_WAIT_SIGNAL_POLARITY_LOW;
-  hsram1.Init.WaitSignalActive = FMC_WAIT_TIMING_BEFORE_WS;
-  hsram1.Init.WriteOperation = FMC_WRITE_OPERATION_DISABLE;
-  hsram1.Init.WaitSignal = FMC_WAIT_SIGNAL_DISABLE;
-  hsram1.Init.ExtendedMode = FMC_EXTENDED_MODE_DISABLE;
-  hsram1.Init.AsynchronousWait = FMC_ASYNCHRONOUS_WAIT_DISABLE;
-  hsram1.Init.WriteBurst = FMC_WRITE_BURST_DISABLE;
-  hsram1.Init.ContinuousClock = FMC_CONTINUOUS_CLOCK_SYNC_ONLY;
-  hsram1.Init.WriteFifo = FMC_WRITE_FIFO_ENABLE;
-  hsram1.Init.PageSize = FMC_PAGE_SIZE_NONE;
-  /* Timing */
-  Timing.AddressSetupTime = 15;
-  Timing.AddressHoldTime = 15;
-  Timing.DataSetupTime = 255;
-  Timing.BusTurnAroundDuration = 15;
-  Timing.CLKDivision = 16;
-  Timing.DataLatency = 17;
-  Timing.AccessMode = FMC_ACCESS_MODE_A;
-  /* ExtTiming */
-
-  if (HAL_SRAM_Init(&hsram1, &Timing, NULL) != HAL_OK)
-  {
-    Error_Handler( );
-  }
-
-  /* USER CODE BEGIN FMC_Init 2 */
-
-  /* USER CODE END FMC_Init 2 */
 }
 
 /**
@@ -833,7 +779,7 @@ void PeriphCommonClock_Config_24MhzHSE(void)
  * @param None
  * @retval None
  */
-static void MPU_Config(void)
+void MPU_Config(int enable_psram)
 {
  MPU_Region_InitTypeDef MPU_InitStruct;
 
@@ -885,19 +831,49 @@ static void MPU_Config(void)
 
  HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
-  /* Configure the MPU attributes for PSRAM with recomended configurations:
-    Normal memory, Shareable, write-back */
+  /* Configure the MPU attributes for PSRAM as cacheable non executable RAM
+   * Write-though no allocate offer good PSRAM performance while not slowing
+   * down audio processing too much:
+   * mode            audio   timers
+   * no cache ord    17     75
+   * no cache normal 17     74
+   * write-b no-a    19     27
+   * write-b alloc   20     25
+   * write-t no-a    17.5   34
+   *
+   * mode            usb    audio   timers  total
+   * no cache ord    4.43   16      2.5     23
+   * no cache normal 4.43   16      2.4     23
+   * write-b no-a    4.44   16      0.92    21.7
+   * write-b alloc
+   * write-t no-a    4.44   16      1.2     22
+   */
  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
- MPU_InitStruct.BaseAddress = 0x64000000;
- MPU_InitStruct.Size = MPU_REGION_SIZE_512KB;
- MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
- MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
+ MPU_InitStruct.BaseAddress = 0x60000000;
+ MPU_InitStruct.Size = MPU_REGION_SIZE_512KB; // PSRAM has 1MB but only 512KB is available due to wiring.
+ MPU_InitStruct.AccessPermission = enable_psram ? MPU_REGION_FULL_ACCESS : MPU_REGION_NO_ACCESS;
+ MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
  MPU_InitStruct.IsCacheable = MPU_ACCESS_CACHEABLE;
- MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
+ MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
  MPU_InitStruct.Number = MPU_REGION_NUMBER3;
  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
  MPU_InitStruct.SubRegionDisable = 0x00;
- MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+ MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
+
+ HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  /* Configure the MPU attributes for LCD Normal memory, Shareable */
+ MPU_InitStruct.Enable = MPU_REGION_ENABLE;
+ MPU_InitStruct.BaseAddress = 0x64000000;
+ MPU_InitStruct.Size = MPU_REGION_SIZE_32B;
+ MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
+ MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
+ MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE; // Don't cache LCD data
+ MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
+ MPU_InitStruct.Number = MPU_REGION_NUMBER4;
+ MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
+ MPU_InitStruct.SubRegionDisable = 0x00;
+ MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
 
  HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
@@ -907,12 +883,12 @@ static void MPU_Config(void)
  MPU_InitStruct.Size = MPU_REGION_SIZE_64MB;
  MPU_InitStruct.AccessPermission = MPU_REGION_FULL_ACCESS;
  MPU_InitStruct.IsBufferable = MPU_ACCESS_NOT_BUFFERABLE;
- MPU_InitStruct.IsCacheable = MPU_ACCESS_CACHEABLE;
+ MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
  MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
- MPU_InitStruct.Number = MPU_REGION_NUMBER4;
+ MPU_InitStruct.Number = MPU_REGION_NUMBER5;
  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
  MPU_InitStruct.SubRegionDisable = 0x0;
- MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
+ MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
 
 
  HAL_MPU_ConfigRegion(&MPU_InitStruct);
@@ -925,7 +901,7 @@ static void MPU_Config(void)
  MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
  MPU_InitStruct.IsCacheable = MPU_ACCESS_NOT_CACHEABLE;
  MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
- MPU_InitStruct.Number = MPU_REGION_NUMBER5;
+ MPU_InitStruct.Number = MPU_REGION_NUMBER6;
  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
  MPU_InitStruct.SubRegionDisable = 0x0;
  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;

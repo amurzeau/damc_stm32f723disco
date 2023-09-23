@@ -180,9 +180,10 @@ static uint8_t CDCCmdEpAdd = CDC_CMD_EP;
 static uint8_t USBD_CDC_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
   UNUSED(cfgidx);
+  static USBD_CDC_HandleTypeDef hcdcData;
   USBD_CDC_HandleTypeDef *hcdc;
 
-  hcdc = (USBD_CDC_HandleTypeDef *)USBD_malloc(sizeof(USBD_CDC_HandleTypeDef));
+  hcdc = &hcdcData;
 
   if (hcdc == NULL)
   {
@@ -306,7 +307,7 @@ static uint8_t USBD_CDC_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   if (pdev->pClassDataCmsit[CI_CDCClass] != NULL)
   {
     ((USBD_CDC_ItfTypeDef *)pdev->pUserData[CI_CDCClass])->DeInit();
-    (void)USBD_free(pdev->pClassDataCmsit[CI_CDCClass]);
+    //(void)USBD_free(pdev->pClassDataCmsit[CI_CDCClass]);
     pdev->pClassDataCmsit[CI_CDCClass] = NULL;
   }
 

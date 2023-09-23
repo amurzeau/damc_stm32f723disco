@@ -129,8 +129,16 @@ uint8_t BSP_PSRAM_Init(void)
   /* PSRAM device configuration */
   /* Timing configuration derived from system clock (up to 216Mhz)
      for 108Mhz as PSRAM clock frequency */
+//   Timing.AddressSetupTime      = 2;  // ADDSET: Minimum 20ns to HighZ from possible previous read exluding 3 HCLK (13.9ns) from bus turn around
+//   Timing.AddressHoldTime       = 0;  // Don't care in asynchronous mode
+//   Timing.DataSetupTime         = 10; // DATAST: Minimum 60ns read/write total duration (including ADDSET)
+//                                      // For writes, it must be at least 45ns
+//   Timing.BusTurnAroundDuration = 0;  // Bus turnaround 0ns, we use ADDSET for read-to-write (memory will release data bus while in ADDSET phase)
+//   Timing.CLKDivision           = 2;  // Don't care in asynchronous mode
+//   Timing.DataLatency           = 0;  // Don't care in asynchronous mode
+//   Timing.AccessMode            = FMC_ACCESS_MODE_A; // Don't care, extended mode disabled
   Timing.AddressSetupTime      = 9;
-  Timing.AddressHoldTime       = 2;
+  Timing.AddressHoldTime       = 2; // Don't care
   Timing.DataSetupTime         = 6;
   Timing.BusTurnAroundDuration = 1;
   Timing.CLKDivision           = 2;

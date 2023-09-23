@@ -21,25 +21,34 @@ FilterChain::FilterChain(OscContainer* parent,
                          OscReadOnlyVariable<int32_t>* oscSampleRate)
     : OscContainer(parent, "filterChain", 10),
       // reverbFilters(this, "reverbFilter"),
-      eqFilters(this, "eqFilters"),
+      oscEqFilters(this, "eqFilters"),
+      eqFilters{
+          EqFilter{&oscEqFilters, Utils::toString(0)},
+          EqFilter{&oscEqFilters, Utils::toString(1)},
+          EqFilter{&oscEqFilters, Utils::toString(2)},
+          EqFilter{&oscEqFilters, Utils::toString(3)},
+          EqFilter{&oscEqFilters, Utils::toString(4)},
+          EqFilter{&oscEqFilters, Utils::toString(5)},
+          EqFilter{&oscEqFilters, Utils::toString(6)},
+          EqFilter{&oscEqFilters, Utils::toString(7)},
+          EqFilter{&oscEqFilters, Utils::toString(8)},
+          EqFilter{&oscEqFilters, Utils::toString(9)},
+      },
       compressorFilter(this),
       expanderFilter(this),
       peakMeter(parent, oscNumChannel, oscSampleRate),
       delay(this, "delay", 0),
-      volume(this, "balance", 1.0f),
+      oscVolume(this, "balance", 1.0f),
+      volume{1.0f, 1.0f},
       masterVolume(this, "volume", 1.0f),
       mute(this, "mute", false),
       reverseAudioSignal(this, "reverseAudioSignal", false) {
-	//	reverbFilters.setFactory(
-	//	    [](OscContainer* parent, int name) { return new ReverbFilter(parent, Utils::toString(name)); });
-	eqFilters.setFactory([](OscContainer* parent, int name) { return new EqFilter(parent, Utils::toString(name)); });
-
 	delay.addChangeCallback([this](int32_t newValue) {
 		for(DelayFilter& filter : delayFilters) {
 			filter.setParameters(newValue);
 		}
 	});
-	volume.setOscConverters(&LogScaleToOsc, &LogScaleFromOsc);
+	oscVolume.setOscConverters(&LogScaleToOsc, &LogScaleFromOsc);
 	masterVolume.setOscConverters(&LogScaleToOsc, &LogScaleFromOsc);
 
 	oscNumChannel->addChangeCallback([this](int32_t newValue) {
@@ -49,14 +58,11 @@ FilterChain::FilterChain(OscContainer* parent,
 }
 
 void FilterChain::updateNumChannels(size_t numChannel) {
-	delayFilters.resize(numChannel + 1);  // +1 for side channel
 	// reverbFilters.resize(numChannel);
-	volume.resize(numChannel);
-
-	eqFilters.resize(10);
+	oscVolume.resize(numChannel);
 
 	for(auto& filter : eqFilters) {
-		filter->init(numChannel);
+		filter.init(numChannel);
 	}
 
 	compressorFilter.init(numChannel);
@@ -72,7 +78,7 @@ void FilterChain::reset(float fs) {
 	//	}
 
 	for(auto& filter : eqFilters) {
-		filter->reset(fs);
+		filter.reset(fs);
 	}
 
 	compressorFilter.reset(fs);
@@ -92,7 +98,7 @@ void FilterChain::processSamples(float** samples, size_t numChannel, size_t coun
 	}
 
 	for(auto& filter : eqFilters) {
-		filter->processSamples(samples, count);
+		filter.processSamples(samples, count);
 	}
 
 	expanderFilter.processSamples(samples, count);
@@ -103,7 +109,7 @@ void FilterChain::processSamples(float** samples, size_t numChannel, size_t coun
 	//	}
 
 	for(uint32_t channel = 0; channel < numChannel; channel++) {
-		float volume = this->volume.at(channel).get() * masterVolume;
+		float volume = this->volume[channel] * masterVolume;
 		float peak = 0;
 		for(size_t i = 0; i < count; i++) {
 			samples[channel][i] *= volume;
@@ -131,4 +137,8 @@ float FilterChain::processSideChannelSample(float input) {
 void FilterChain::onFastTimer() {
 	peakMeter.onFastTimer();
 	compressorFilter.onFastTimer();
+
+	for(size_t i = 0; i < volume.size(); i++) {
+		volume[i] = oscVolume.at(i).get();
+	}
 }

@@ -13,6 +13,8 @@
 #include <stm32f7xx_hal.h>
 #include <usbd_conf.h>
 
+using namespace std::literals;  // for std::strinv_view literal ""sv
+
 volatile AudioProcessor* audio_processor;
 
 MultiChannelAudioBuffer::MultiChannelAudioBuffer() {
@@ -32,7 +34,14 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
       oscRoot(true),
       serialClient(&oscRoot),
       controls(&oscRoot),
-      strips(&oscRoot, "strip"),
+      oscStrips(&oscRoot, "strip"),
+      strips{
+          ChannelStrip{&oscStrips, 0, "master"sv, numChannels, sampleRate, maxNframes},
+          ChannelStrip{&oscStrips, 1, "comp"sv, numChannels, sampleRate, maxNframes},
+          ChannelStrip{&oscStrips, 2, "mic"sv, numChannels, sampleRate, maxNframes},
+          ChannelStrip{&oscStrips, 3, "out-record"sv, numChannels, sampleRate, maxNframes},
+          ChannelStrip{&oscStrips, 4, "mic-feedback"sv, numChannels, sampleRate, maxNframes},
+      },
       oscStatePersist(&oscRoot),
       oscTimeMeasure{
           {&oscRoot, "timeUsbInterrupt"},
@@ -46,43 +55,15 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
           {&oscRoot, "timePerLoopFastTimer"},
           {&oscRoot, "timePerLoopOscInput"},
       },
-      memoryAvailable(&oscRoot, "memoryAvailable"),
-      memoryUsed(&oscRoot, "memoryUsed"),
+      fastMemoryAvailable(&oscRoot, "fastMemoryAvailable"),
+      fastMemoryUsed(&oscRoot, "fastMemoryUsed"),
+      slowMemoryAvailable(&oscRoot, "memoryAvailable"),
+      slowMemoryUsed(&oscRoot, "memoryUsed"),
       fastTimerPreviousTick(0),
       nextTimerStripIndex(0),
       slowTimerPreviousTick(0),
       slowTimerIndex(0),
       lcdController(&oscRoot) {
-	strips.setFactory([this, numChannels, sampleRate, maxNframes](OscContainer* parent, int index) {
-		using namespace std::literals;
-
-		std::string_view name;
-		switch(index) {
-			case 0:
-				name = "master"sv;
-				break;
-			case 1:
-				name = "comp"sv;
-				break;
-			case 2:
-				name = "mic"sv;
-				break;
-			case 3:
-				name = "out-record"sv;
-				break;
-			case 4:
-				name = "mic-feedback"sv;
-				break;
-			default:
-				name = Utils::toString(index);
-				break;
-		}
-		return new ChannelStrip(parent, index, name, numChannels, sampleRate, maxNframes);
-	});
-
-	strips.resize(5);
-	strips.getOscKey().addCheckCallback([](const std::vector<int32_t>&) { return false; });
-
 	serialClient.init();
 	controls.init();
 	oscStatePersist.init();
@@ -161,7 +142,7 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	interleavedToFloat(input_endpoints[1], &buffer[0], nframes);
 
 	// Process comp
-	strips.at(1).processSamples(buffer[0].dataPointers, numChannels, nframes);
+	strips[1].processSamples(buffer[0].dataPointers, numChannels, nframes);
 
 	// Import endpoint OUT 0 into float
 	interleavedToFloat(input_endpoints[0], &buffer[1], nframes);
@@ -205,8 +186,11 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 }
 
 extern "C" uint8_t* __sbrk_heap_end;  // end of heap
+extern "C" uint8_t _sdata;            // start of RAM
 extern "C" uint8_t _end;              // end of static data in RAM (start of heap)
 extern "C" uint8_t _estack;           // start of RAM (end of RAM as stack grows backward)
+extern "C" uint8_t _sheap;            // start of PSRAM (heap)
+extern "C" uint8_t _eheap;            // end of PSRAM (heap)
 extern "C" uint8_t _Min_Stack_Size;   // minimal stack size
 void AudioProcessor::mainLoop() {
 	// Do at most one thing to avoid taking too much time here
@@ -243,12 +227,19 @@ void AudioProcessor::mainLoop() {
 				}
 				break;
 			case 2:
-				OscArgument used_memory = static_cast<int32_t>((uint32_t) __sbrk_heap_end - (uint32_t) &_end);
-				memoryUsed.sendMessage(&used_memory, 1);
+				OscArgument used_fast_memory = static_cast<int32_t>((uint32_t) &_end - (uint32_t) &_sdata);
+				fastMemoryUsed.sendMessage(&used_fast_memory, 1);
 
-				OscArgument available_memory = static_cast<int32_t>((uint32_t) &_estack - (uint32_t) &_Min_Stack_Size -
-				                                                    (uint32_t) __sbrk_heap_end);
-				memoryAvailable.sendMessage(&available_memory, 1);
+				OscArgument available_fast_memory =
+				    static_cast<int32_t>((uint32_t) &_estack - (uint32_t) &_Min_Stack_Size - (uint32_t) &_end);
+				fastMemoryAvailable.sendMessage(&available_fast_memory, 1);
+
+				OscArgument used_slow_memory = static_cast<int32_t>((uint32_t) __sbrk_heap_end - (uint32_t) &_sheap);
+				slowMemoryUsed.sendMessage(&used_slow_memory, 1);
+
+				OscArgument available_slow_memory =
+				    static_cast<int32_t>((uint32_t) &_eheap - (uint32_t) __sbrk_heap_end);
+				slowMemoryAvailable.sendMessage(&available_slow_memory, 1);
 				break;
 		}
 		slowTimerIndex++;

@@ -44,7 +44,7 @@ CompressorFilter::CompressorFilter(OscContainer* parent)
 
 void CompressorFilter::init(size_t numChannel) {
 	this->numChannel = numChannel;
-	loudnessMeters.resize(numChannel);
+	// loudnessMeters.resize(numChannel);
 }
 
 void CompressorFilter::reset(float fs) {

@@ -3,7 +3,7 @@
 #include <Osc/OscContainer.h>
 #include <Osc/OscVariable.h>
 #include <stddef.h>
-#include <vector>
+#include <array>
 
 class ExpanderFilter : public OscContainer {
 public:
@@ -19,8 +19,8 @@ protected:
 
 private:
 	size_t numChannel;
-	std::vector<float> previousPartialGainComputerOutput;
-	std::vector<float> previousLevelDetectorOutput;
+	std::array<float, 2> previousPartialGainComputerOutput;
+	std::array<float, 2> previousLevelDetectorOutput;
 
 	OscVariable<bool> enable;
 	float fs = 48000;

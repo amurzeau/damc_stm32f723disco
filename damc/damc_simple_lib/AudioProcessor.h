@@ -2,6 +2,7 @@
 
 #include "ChannelStrip.h"
 #include "Controls.h"
+#include "LCDController.h"
 #include "OscSerialClient.h"
 #include "TimeMeasure.h"
 #include <FilteringChain.h>
@@ -10,8 +11,8 @@
 #include <Osc/OscReadOnlyVariable.h>
 #include <OscRoot.h>
 #include <OscStatePersist.h>
+#include <array>
 #include <stdint.h>
-#include "LCDController.h"
 
 class MultiChannelAudioBuffer {
 public:
@@ -53,14 +54,17 @@ private:
 	OscRoot oscRoot;
 	OscSerialClient serialClient;
 	Controls controls;
-	OscContainerArray<ChannelStrip> strips;
+	OscContainer oscStrips;
+	std::array<ChannelStrip, 5> strips;
 	OscStatePersist oscStatePersist;
 
 	OscReadOnlyVariable<int32_t> oscTimeMeasure[TMI_NUMBER];
 	OscReadOnlyVariable<int32_t> oscTimeMeasureMaxPerLoop[TMI_NUMBER];
 
-	OscDynamicVariable<int32_t> memoryAvailable;
-	OscDynamicVariable<int32_t> memoryUsed;
+	OscDynamicVariable<int32_t> fastMemoryAvailable;
+	OscDynamicVariable<int32_t> fastMemoryUsed;
+	OscDynamicVariable<int32_t> slowMemoryAvailable;
+	OscDynamicVariable<int32_t> slowMemoryUsed;
 
 	uint32_t fastTimerPreviousTick;
 	uint32_t nextTimerStripIndex;

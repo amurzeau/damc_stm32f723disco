@@ -34,8 +34,8 @@ private:
 	std::vector<float> levelsDb;
 	// std::mutex peakMutex;
 	int samplesInPeaks;
-	std::vector<float> peaksPerChannel;
-	std::vector<float> peaksPerChannelToSend;
+	std::array<float, 2> peaksPerChannel;
+	std::array<float, 2> peaksPerChannelToSend;
 	std::string oscPeakGlobalPath;
 	std::string oscPeakPerChannelPath;
 	std::vector<OscArgument> oscPeakPerChannelArguments;
