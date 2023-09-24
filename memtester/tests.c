@@ -53,21 +53,13 @@ int compare_regions(ulv *bufa, ulv *bufb, size_t count) {
     size_t i;
     ulv *p1 = bufa;
     ulv *p2 = bufb;
-    off_t physaddr;
 
     for (i = 0; i < count; i++, p1++, p2++) {
         if (*p1 != *p2) {
-            if (use_phys) {
-                physaddr = physaddrbase + (i * sizeof(ul));
-                fprintf(stderr, 
-                        "FAILURE: " FMT_TARGET " != " FMT_TARGET " at physical address " FMT_TARGET ".\n",
-                        (ul) *p1, (ul) *p2, physaddr);
-            } else {
-                fprintf(stderr, 
-                        "FAILURE: " FMT_TARGET " != " FMT_TARGET " at offset " FMT_TARGET ".\n",
-                        (ul) *p1, (ul) *p2, (ul) (i * sizeof(ul)));
-                error();
-            }
+            fprintf(stderr, 
+                    "FAILURE: " FMT_TARGET " != " FMT_TARGET " at offset " FMT_TARGET ".\n",
+                    (ul) *p1, (ul) *p2, (ul) (i * sizeof(ul)));
+            error();
             /* printf("Skipping to next test..."); */
             r = -1;
         }
@@ -79,7 +71,6 @@ int test_stuck_address(ulv *bufa, size_t count) {
     ulv *p1 = bufa;
     unsigned int j;
     size_t i;
-    off_t physaddr;
 
     printf("           ");
     fflush(stdout);
@@ -98,17 +89,10 @@ int test_stuck_address(ulv *bufa, size_t count) {
         p1 = (ulv *) bufa;
         for (i = 0; i < count; i++, p1++) {
             if (*p1 != (((j + i) % 2) == 0 ? (ul) p1 : ~((ul) p1))) {
-                if (use_phys) {
-                    physaddr = physaddrbase + (i * sizeof(ul));
-                    fprintf(stderr, 
-                            "FAILURE: possible bad address line at physical address " FMT_TARGET ".\n",
-                            physaddr);
-                } else {
-                    fprintf(stderr, 
-                            "FAILURE: possible bad address line at offset " FMT_TARGET ".\n",
-                            (ul) (i * sizeof(ul)));
-                    error();
-                }
+                fprintf(stderr, 
+                        "FAILURE: possible bad address line at offset " FMT_TARGET ".\n",
+                        (ul) (i * sizeof(ul)));
+                error();
                 printf("Skipping to next test...\n");
                 fflush(stdout);
                 return -1;
@@ -123,7 +107,6 @@ int test_stuck_address(ulv *bufa, size_t count) {
 int test_random_value(ulv *bufa, ulv *bufb, size_t count) {
     ulv *p1 = bufa;
     ulv *p2 = bufb;
-    ul j = 0;
     size_t i;
 
     putchar(' ');
@@ -136,11 +119,6 @@ int test_random_value(ulv *bufa, ulv *bufb, size_t count) {
 		}
 		p1++;
 		p2++;
-        if (!(i % PROGRESSOFTEN)) {
-            putchar('\b');
-            putchar(progress[++j % PROGRESSLEN]);
-            fflush(stdout);
-        }
     }
     printf("\b \b");
     fflush(stdout);
