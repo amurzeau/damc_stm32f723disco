@@ -791,7 +791,7 @@ void MPU_Config(int enable_psram)
  /* Disable the MPU */
  HAL_MPU_Disable();
 
- /* Configure the MPU as Strongly ordered for not defined regions */
+ /* Configure the MPU as no access by default, except for peripherals */
  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
  MPU_InitStruct.BaseAddress = 0x00;
  MPU_InitStruct.Size = MPU_REGION_SIZE_4GB;
@@ -801,7 +801,12 @@ void MPU_Config(int enable_psram)
  MPU_InitStruct.IsShareable = MPU_ACCESS_SHAREABLE;
  MPU_InitStruct.Number = MPU_REGION_NUMBER0;
  MPU_InitStruct.TypeExtField = MPU_TEX_LEVEL0;
- MPU_InitStruct.SubRegionDisable = 0x87; // Disable region for peripherals
+ // Disable region for peripherals:
+ // Each region is 512MB
+ // Disabled regions:
+ // 0x40000000 - 0x5FFFFFFF: STM32 peripherals
+ // 0xE0000000 - 0xFFFFFFFF: Cortex M7 internal peripherals
+ MPU_InitStruct.SubRegionDisable = 0x84;
  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_DISABLE;
 
  HAL_MPU_ConfigRegion(&MPU_InitStruct);
