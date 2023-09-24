@@ -119,7 +119,8 @@ SRAM_HandleTypeDef psramHandle;
   */
 uint8_t BSP_PSRAM_Init(void)
 {
-  static FMC_NORSRAM_TimingTypeDef Timing;  
+  static FMC_NORSRAM_TimingTypeDef ReadTiming;
+  static FMC_NORSRAM_TimingTypeDef WriteTiming;
   static uint8_t psram_status = PSRAM_ERROR;
   
   /* PSRAM device configuration */
@@ -129,21 +130,31 @@ uint8_t BSP_PSRAM_Init(void)
   /* PSRAM device configuration */
   /* Timing configuration derived from system clock (up to 216Mhz)
      for 108Mhz as PSRAM clock frequency */
-//   Timing.AddressSetupTime      = 2;  // ADDSET: Minimum 20ns to HighZ from possible previous read exluding 3 HCLK (13.9ns) from bus turn around
-//   Timing.AddressHoldTime       = 0;  // Don't care in asynchronous mode
-//   Timing.DataSetupTime         = 10; // DATAST: Minimum 60ns read/write total duration (including ADDSET)
-//                                      // For writes, it must be at least 45ns
-//   Timing.BusTurnAroundDuration = 0;  // Bus turnaround 0ns, we use ADDSET for read-to-write (memory will release data bus while in ADDSET phase)
-//   Timing.CLKDivision           = 2;  // Don't care in asynchronous mode
-//   Timing.DataLatency           = 0;  // Don't care in asynchronous mode
-//   Timing.AccessMode            = FMC_ACCESS_MODE_A; // Don't care, extended mode disabled
-  Timing.AddressSetupTime      = 9;
-  Timing.AddressHoldTime       = 2; // Don't care
-  Timing.DataSetupTime         = 6;
-  Timing.BusTurnAroundDuration = 1;
-  Timing.CLKDivision           = 2;
-  Timing.DataLatency           = 2;
-  Timing.AccessMode            = FMC_ACCESS_MODE_A;
+  ReadTiming.AddressSetupTime      = 4;  // ADDSET+ADDHLD: +2 HCLK margin, only 13 is stricly required for ADDSET+ADDHLD+DATAST for 60ns access, but sometimes memtester still fails on read
+  ReadTiming.AddressHoldTime       = 1;  // ADDHLD, must be at least 1
+  ReadTiming.DataSetupTime         = 10; // DATAST: Minimum 60ns read total duration (including ADDSET)
+                                     // For reads, it must be at least 25ns
+  ReadTiming.BusTurnAroundDuration = 4;  // Bus turnaround after read, at least 1 so chip select is never held for too long, 20ns before HighZ from NOE released (1+4 HCLK)
+  ReadTiming.CLKDivision           = 2;  // Don't care in asynchronous mode
+  ReadTiming.DataLatency           = 0;  // Don't care in asynchronous mode
+  ReadTiming.AccessMode            = FMC_ACCESS_MODE_D; // Use mode D to avoid long period with chip select active
+
+  
+  WriteTiming.AddressSetupTime      = 1;  // ADDSET+ADDHLD: Minimum 20ns to HighZ from possible previous read exluding 3 HCLK (13.9ns) from bus turn around
+  WriteTiming.AddressHoldTime       = 1;  // ADDHLD, must be at least 1
+  WriteTiming.DataSetupTime         = 10; // DATAST: Minimum 55ns write total duration (including ADDSET)
+                                          // For writes, it must be at least 45ns
+  WriteTiming.BusTurnAroundDuration = 1;  // Bus turnaround after read, at least 1 so chip select is never held for too long
+  WriteTiming.CLKDivision           = 2;  // Don't care in asynchronous mode
+  WriteTiming.DataLatency           = 0;  // Don't care in asynchronous mode
+  WriteTiming.AccessMode            = FMC_ACCESS_MODE_D; // Use mode D to avoid long period with chip select active
+//   Timing.AddressSetupTime      = 9;
+//   Timing.AddressHoldTime       = 2; // Don't care
+//   Timing.DataSetupTime         = 6;
+//   Timing.BusTurnAroundDuration = 1;
+//   Timing.CLKDivision           = 2;
+//   Timing.DataLatency           = 2;
+//   Timing.AccessMode            = FMC_ACCESS_MODE_A;
   
   psramHandle.Init.NSBank             = FMC_NORSRAM_BANK1;
   psramHandle.Init.DataAddressMux     = FMC_DATA_ADDRESS_MUX_DISABLE;
@@ -154,7 +165,7 @@ uint8_t BSP_PSRAM_Init(void)
   psramHandle.Init.WaitSignalActive   = FMC_WAIT_TIMING_BEFORE_WS;
   psramHandle.Init.WriteOperation     = FMC_WRITE_OPERATION_ENABLE;
   psramHandle.Init.WaitSignal         = FMC_WAIT_SIGNAL_DISABLE;
-  psramHandle.Init.ExtendedMode       = FMC_EXTENDED_MODE_DISABLE;
+  psramHandle.Init.ExtendedMode       = FMC_EXTENDED_MODE_ENABLE; // Use extended mode for mode D
   psramHandle.Init.AsynchronousWait   = FMC_ASYNCHRONOUS_WAIT_DISABLE;
   psramHandle.Init.WriteBurst         = PSRAM_WRITEBURST;
   psramHandle.Init.WriteFifo          = FMC_WRITE_FIFO_ENABLE; // Enable Write FIFO to avoid errata
@@ -163,7 +174,7 @@ uint8_t BSP_PSRAM_Init(void)
   
   /* PSRAM controller initialization */
   BSP_PSRAM_MspInit(&psramHandle, NULL); /* __weak function can be rewritten by the application */
-  if(HAL_SRAM_Init(&psramHandle, &Timing, &Timing) != HAL_OK)
+  if(HAL_SRAM_Init(&psramHandle, &ReadTiming, &WriteTiming) != HAL_OK)
   {
     psram_status = PSRAM_ERROR;
   }
