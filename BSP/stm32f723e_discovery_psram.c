@@ -157,7 +157,7 @@ uint8_t BSP_PSRAM_Init(void)
   psramHandle.Init.ExtendedMode       = FMC_EXTENDED_MODE_DISABLE;
   psramHandle.Init.AsynchronousWait   = FMC_ASYNCHRONOUS_WAIT_DISABLE;
   psramHandle.Init.WriteBurst         = PSRAM_WRITEBURST;
-  psramHandle.Init.WriteFifo          = FMC_WRITE_FIFO_DISABLE;
+  psramHandle.Init.WriteFifo          = FMC_WRITE_FIFO_ENABLE; // Enable Write FIFO to avoid errata
   psramHandle.Init.PageSize           = FMC_PAGE_SIZE_NONE;  
   psramHandle.Init.ContinuousClock    = CONTINUOUSCLOCK_FEATURE;
   
