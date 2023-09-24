@@ -648,7 +648,9 @@ static uint8_t QSPI_ResetMemory(QSPI_HandleTypeDef *hqspi)
   }
 
   /* After reset CMD, 1000ms requested if QSPI memory SWReset occured during full chip erase operation */
-  HAL_Delay( 1000 );
+  // HAL_Delay( 1000 );
+  // We never use full chip reset, so no need to wait 1s
+  HAL_Delay( 40 );
 
   /* Configure automatic polling mode to wait the WIP bit=0 */
   s_config.Match           = 0;
