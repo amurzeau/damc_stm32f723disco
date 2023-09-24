@@ -13,8 +13,7 @@
  */
 
 #include <limits.h>
-
-#define rand32() ((unsigned int) rand() | ( (unsigned int) rand() << 16))
+#include "memtester.h"
 
 #if (ULONG_MAX == 4294967295UL)
     #define FMT_TARGET "0x%08lx"

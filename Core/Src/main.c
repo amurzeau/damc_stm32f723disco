@@ -26,6 +26,8 @@
 #include "usbd_audio.h"
 #include "AudioCApi.h"
 #include "usbd_cdc_if.h"
+#include "memtester.h"
+#include "stm32f723e_discovery_psram.h"
 
 /* USER CODE END Includes */
 
@@ -122,15 +124,18 @@ int main(void)
 	  PeriphCommonClock_Config_24MhzHSE();
   }
 
+  MX_GPIO_Init();
   // Initialize PSRAM as external RAM before DAMC_init as DAMC will use the heap on the PSRAM
   BSP_PSRAM_Init();
+
+  // memtester_stm32((void*)0x60000000, 512*1024, 10);
+
 
   DAMC_init();
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
   MX_I2C1_Init();
   MX_USART6_UART_Init();
   MX_USB_DEVICE_Init();

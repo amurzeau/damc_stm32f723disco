@@ -22,6 +22,11 @@
 #include "sizes.h"
 #include "memtester.h"
 
+#define fflush(...)
+#define fprintf(...)
+#define printf(...)
+#define putchar(...)
+
 char progress[] = "-\\|/";
 #define PROGRESSLEN 4
 #define PROGRESSOFTEN 2500
@@ -38,6 +43,10 @@ union {
 } mword16;
 
 /* Function definitions. */
+
+void  __attribute__ ((noinline)) error() {
+	while(1);
+}
 
 int compare_regions(ulv *bufa, ulv *bufb, size_t count) {
     int r = 0;
@@ -57,6 +66,7 @@ int compare_regions(ulv *bufa, ulv *bufb, size_t count) {
                 fprintf(stderr, 
                         "FAILURE: " FMT_TARGET " != " FMT_TARGET " at offset " FMT_TARGET ".\n",
                         (ul) *p1, (ul) *p2, (ul) (i * sizeof(ul)));
+                error();
             }
             /* printf("Skipping to next test..."); */
             r = -1;
@@ -97,6 +107,7 @@ int test_stuck_address(ulv *bufa, size_t count) {
                     fprintf(stderr, 
                             "FAILURE: possible bad address line at offset " FMT_TARGET ".\n",
                             (ul) (i * sizeof(ul)));
+                    error();
                 }
                 printf("Skipping to next test...\n");
                 fflush(stdout);
@@ -118,7 +129,13 @@ int test_random_value(ulv *bufa, ulv *bufb, size_t count) {
     putchar(' ');
     fflush(stdout);
     for (i = 0; i < count; i++) {
-        *p1++ = *p2++ = rand_ul();
+		ul value = rand_ul();
+        *p1 = *p2 = value;
+		if(*p1 != value || *p2 != value) {
+			while(1);
+		}
+		p1++;
+		p2++;
         if (!(i % PROGRESSOFTEN)) {
             putchar('\b');
             putchar(progress[++j % PROGRESSLEN]);
