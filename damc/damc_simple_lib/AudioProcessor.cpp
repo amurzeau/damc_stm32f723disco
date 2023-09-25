@@ -194,8 +194,7 @@ extern "C" uint8_t _eheap;            // end of PSRAM (heap)
 extern "C" uint8_t _Min_Stack_Size;   // minimal stack size
 void AudioProcessor::mainLoop() {
 	// Do at most one thing to avoid taking too much time here
-	if(serialClient.mainLoop())
-		return;
+	serialClient.mainLoop();
 
 	uint32_t currentTick = HAL_GetTick();
 	// Do onFastTimer every 100ms
@@ -210,7 +209,9 @@ void AudioProcessor::mainLoop() {
 			nextTimerStripIndex = 0;
 
 		TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
-	} else if(currentTick >= slowTimerPreviousTick + 1000 / 3) {
+	}
+
+	if(currentTick >= slowTimerPreviousTick + 1000 / 3) {
 		TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
 
 		slowTimerPreviousTick = currentTick;
@@ -247,9 +248,9 @@ void AudioProcessor::mainLoop() {
 			slowTimerIndex = 0;
 
 		TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
-	} else {
-		controls.mainLoop();
-		oscStatePersist.mainLoop();
-		lcdController.mainLoop();
 	}
+
+	controls.mainLoop();
+	oscStatePersist.mainLoop();
+	lcdController.mainLoop();
 }
