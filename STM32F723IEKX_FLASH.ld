@@ -51,7 +51,7 @@ MEMORY
 {
   RAM     (xrw)    : ORIGIN = 0x20000000,   LENGTH = 256K
   FLASH    (rx)    : ORIGIN = 0x08000000,   LENGTH = 512K
-  PSRAM   (xrw)    : ORIGIN = 0x60000000,   LENGTH = 1M
+  PSRAM   (xrw)    : ORIGIN = 0x60000000,   LENGTH = 512K
 }
 
 /* Sections */
