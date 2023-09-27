@@ -718,7 +718,7 @@ static void FMC_BANK2_Init(void)
   FMC_NORSRAM_TimingTypeDef  sram_timing;
 
   /* GPIO configuration for FMC signals (LCD) */
-  FMC_BANK2_MspInit();
+  // FMC_BANK2_MspInit();
 
   /* PSRAM device configuration */
   hsram.Instance  = FMC_NORSRAM_DEVICE;
@@ -737,7 +737,7 @@ static void FMC_BANK2_Init(void)
   hsram.Init.ExtendedMode       = FMC_EXTENDED_MODE_DISABLE;
   hsram.Init.AsynchronousWait   = FMC_ASYNCHRONOUS_WAIT_DISABLE;
   hsram.Init.WriteBurst         = FMC_WRITE_BURST_DISABLE;
-  hsram.Init.WriteFifo          = FMC_WRITE_FIFO_DISABLE;
+  hsram.Init.WriteFifo          = FMC_WRITE_FIFO_ENABLE;
   hsram.Init.PageSize           = FMC_PAGE_SIZE_NONE;
   hsram.Init.ContinuousClock    = FMC_CONTINUOUS_CLOCK_SYNC_ONLY;
 
