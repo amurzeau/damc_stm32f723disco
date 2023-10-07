@@ -26,6 +26,6 @@ protected:
 	void readInBuffer(uint32_t* data, size_t word_size);
 
 private:
-	CircularBuffer<2> out_buffer;
-	CircularBuffer<2> in_buffer;
+	CircularBuffer<4> out_buffer;
+	CircularBuffer<4> in_buffer;
 };

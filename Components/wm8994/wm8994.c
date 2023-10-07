@@ -451,7 +451,7 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
     break; 
   }
 
-  if(input_device == INPUT_DEVICE_DIGITAL_MIC1_MIC2)
+  if(input_device == INPUT_DEVICE_DIGITAL_MIC1_MIC2 || output_device == OUTPUT_DEVICE_BOTH)
   {
   /* AIF1 Word Length = 16-bits, AIF1 Format = DSP mode */
   counter += CODEC_IO_Write(DeviceAddr, 0x300, 0x4018);    
@@ -473,7 +473,7 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
 
   if (output_device > 0)  /* Audio output selected */
   {
-    if (output_device == OUTPUT_DEVICE_HEADPHONE)
+    if (output_device == OUTPUT_DEVICE_HEADPHONE || output_device == OUTPUT_DEVICE_BOTH)
     {
       /* Select DAC1 (Left) to Left Headphone Output PGA (HPOUT1LVOL) path */
       counter += CODEC_IO_Write(DeviceAddr, 0x2D, 0x0100);
@@ -502,18 +502,24 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
       counter += CODEC_IO_Write(DeviceAddr, 0x420, 0x0000);
     }
 
-    if (output_device == OUTPUT_DEVICE_SPEAKER)
+    if (output_device == OUTPUT_DEVICE_SPEAKER || output_device == OUTPUT_DEVICE_BOTH)
     {
       /* Analog Output Configuration */
 
       /* Enable SPKRVOL PGA, Enable SPKMIXR, Enable SPKLVOL PGA, Enable SPKMIXL */
       counter += CODEC_IO_Write(DeviceAddr, 0x03, 0x0300);
 
-      /* Left Speaker Mixer Volume = 0dB */
-      counter += CODEC_IO_Write(DeviceAddr, 0x22, 0x0000);
+      /* Left Speaker Mixer Volume = 0dB, Reference is VMID */
+      counter += CODEC_IO_Write(DeviceAddr, 0x22, 0x0100);
 
-      /* Speaker output mode = Class D, Right Speaker Mixer Volume = 0dB ((0x23, 0x0100) = class AB)*/
-      counter += CODEC_IO_Write(DeviceAddr, 0x23, 0x0000);
+      /* Speaker output mode = Class AB, Right Speaker Mixer Volume = 0dB ((0x23, 0x0100) = class AB)*/
+      counter += CODEC_IO_Write(DeviceAddr, 0x23, 0x0100);
+
+      /* SPKMIXL to SPKOUTL, SPKMIXR to SPKOUTR */
+      counter += CODEC_IO_Write(DeviceAddr, 0x24, 0x0011);
+
+      /* No speaker boost */
+      counter += CODEC_IO_Write(DeviceAddr, 0x25, 0x0000);
 
       /* Unmute DAC2 (Left) to Left Speaker Mixer (SPKMIXL) path,
       Unmute DAC2 (Right) to Right Speaker Mixer (SPKMIXR) path */
@@ -559,7 +565,7 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
 	if (output_device == OUTPUT_DEVICE_SPEAKER) {
 		/* Enable Left Output Mixer (MIXOUTL), Enable Right Output Mixer (MIXOUTR) */
 		/* idem for SPKOUTL and SPKOUTR */
-		counter += CODEC_IO_Write(DeviceAddr, 0x03, /*0x0030 |*/ 0x0300);
+		//counter += CODEC_IO_Write(DeviceAddr, 0x03, /*0x0030 |*/ 0x0300);
 	}
 
     /* Enable DC Servo and trigger start-up mode on left and right channels */

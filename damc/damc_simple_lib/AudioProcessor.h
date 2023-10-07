@@ -47,6 +47,11 @@ public:
 protected:
 	void interleavedToFloat(const int16_t* data_input, MultiChannelAudioBuffer* data_float, size_t nframes);
 	void floatToInterleaved(MultiChannelAudioBuffer* data_float, int16_t* data_output, size_t nframes);
+	void interleavedToFloatCodec(const int16_t* data_input, MultiChannelAudioBuffer* data_float0, size_t nframes);
+	void floatToInterleavedCodec(MultiChannelAudioBuffer* data_float0,
+	                             MultiChannelAudioBuffer* data_float1,
+	                             int16_t* data_output,
+	                             size_t nframes);
 	void mixAudio(MultiChannelAudioBuffer* mixed_data, MultiChannelAudioBuffer* data_to_add, size_t nframes);
 
 private:
@@ -55,8 +60,8 @@ private:
 	OscRoot oscRoot;
 	OscSerialClient serialClient;
 	Controls controls;
-	OscFixedArray<ChannelStrip, 5> oscStrips;
-	std::array<ChannelStrip, 5> strips;
+	OscFixedArray<ChannelStrip, 6> oscStrips;
+	std::array<ChannelStrip, 6> strips;
 	OscStatePersist oscStatePersist;
 
 	OscReadOnlyVariable<int32_t> oscTimeMeasure[TMI_NUMBER];
@@ -72,8 +77,8 @@ private:
 	uint32_t slowTimerPreviousTick;
 	uint32_t slowTimerIndex;
 
-	MultiChannelAudioBuffer buffer[4];
-	int16_t codecBuffer[MultiChannelAudioBuffer::BUFFER_SIZE * MultiChannelAudioBuffer::CHANNEL_NUMBER]
+	MultiChannelAudioBuffer buffer[5];
+	int16_t codecBuffer[MultiChannelAudioBuffer::BUFFER_SIZE * MultiChannelAudioBuffer::CHANNEL_NUMBER * 2]
 	    __attribute__((aligned(4)));
 
 	LCDController lcdController;

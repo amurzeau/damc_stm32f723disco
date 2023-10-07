@@ -949,7 +949,7 @@ uint8_t BSP_AUDIO_IN_OUT_Init(uint16_t InputDevice, uint16_t OutputDevice, uint3
     {
       slot_active = CODEC_AUDIOFRAME_SLOT_13;
     }
-    else if (InputDevice == INPUT_DEVICE_DIGITAL_MIC1_MIC2)
+    else if (InputDevice == INPUT_DEVICE_DIGITAL_MIC1_MIC2 || OutputDevice == OUTPUT_DEVICE_BOTH)
     {
       slot_active = CODEC_AUDIOFRAME_SLOT_0123;
     }    
@@ -1354,10 +1354,11 @@ static void SAIx_In_Init(uint32_t SaiOutMode, uint32_t SlotActive, uint32_t Audi
   FS Polarity: FS active Low
   FS Offset: FS asserted one bit before the first bit of slot 0 */
   haudio_out_sai.FrameInit.FrameLength = 64;
-  haudio_out_sai.FrameInit.ActiveFrameLength = 32;
-  haudio_out_sai.FrameInit.FSDefinition = SAI_FS_CHANNEL_IDENTIFICATION;
-  haudio_out_sai.FrameInit.FSPolarity = SAI_FS_ACTIVE_LOW;
+  haudio_out_sai.FrameInit.ActiveFrameLength = 1;
+  haudio_out_sai.FrameInit.FSDefinition = SAI_FS_STARTFRAME;
+  haudio_out_sai.FrameInit.FSPolarity = SAI_FS_ACTIVE_HIGH;
   haudio_out_sai.FrameInit.FSOffset = SAI_FS_BEFOREFIRSTBIT;
+  haudio_in_sai.FrameInit = haudio_out_sai.FrameInit;
 
   /* Configure SAI Block_x Slot
   Slot First Bit Offset: 0
@@ -1403,11 +1404,11 @@ static void SAIx_In_Init(uint32_t SaiOutMode, uint32_t SlotActive, uint32_t Audi
   FS Definition: Start frame + Channel Side identification
   FS Polarity: FS active Low
   FS Offset: FS asserted one bit before the first bit of slot 0 */
-  haudio_in_sai.FrameInit.FrameLength = 64;
-  haudio_in_sai.FrameInit.ActiveFrameLength = 32;
-  haudio_in_sai.FrameInit.FSDefinition = SAI_FS_CHANNEL_IDENTIFICATION;
-  haudio_in_sai.FrameInit.FSPolarity = SAI_FS_ACTIVE_LOW;
-  haudio_in_sai.FrameInit.FSOffset = SAI_FS_BEFOREFIRSTBIT;
+//   haudio_in_sai.FrameInit.FrameLength = 64;
+//   haudio_in_sai.FrameInit.ActiveFrameLength = 32;
+//   haudio_in_sai.FrameInit.FSDefinition = SAI_FS_CHANNEL_IDENTIFICATION;
+//   haudio_in_sai.FrameInit.FSPolarity = SAI_FS_ACTIVE_LOW;
+//   haudio_in_sai.FrameInit.FSOffset = SAI_FS_BEFOREFIRSTBIT;
   
   /* Configure SAI Block_x Slot
   Slot First Bit Offset: 0
