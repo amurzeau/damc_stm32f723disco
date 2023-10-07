@@ -1,4 +1,5 @@
 #include "DelayFilter.h"
+#include <stm32f7xx.h>
 
 #include <math.h>
 #include <string.h>
@@ -31,15 +32,22 @@ float DelayFilter::processOneSample(float input) {
 }
 
 void DelayFilter::setParameters(unsigned int delay) {
-	int powerOfTwo;
+	size_t powerOfTwo;
 	int targetDelay = delay;
-
-	this->delay = delay;
 
 	powerOfTwo = 0;
 	while((1 << powerOfTwo) < (targetDelay + 1))
 		powerOfTwo++;
+
+	// Disable delay processing while we are readjusting buffers and indexes
+	this->delay = 0;
+	__DSB();
+
 	this->power2Size = powerOfTwo;
-	this->delayedSamples.resize(1 << power2Size, 0);
-	outputIndex = (inputIndex + this->delayedSamples.size() - targetDelay) & ((1 << power2Size) - 1);
+	this->delayedSamples.resize(1 << powerOfTwo, 0);
+
+	outputIndex = (inputIndex + this->delayedSamples.size() - targetDelay) & ((1 << powerOfTwo) - 1);
+
+	__DSB();
+	this->delay = delay;
 }
