@@ -12,8 +12,8 @@ PeakMeter::PeakMeter(OscContainer* parent,
       oscPeakGlobal(parent, "meter"),
       oscPeakPerChannel(parent, "meter_per_channel"),
       samplesInPeaks(0),
-      oscEnablePeakUpdate(parent, "meter_enable_per_channel", false),
-      peaksPerChannel{0.0f, 0.0f} {
+      peaksPerChannel{0.0f, 0.0f},
+      oscEnablePeakUpdate(parent, "meter_enable_per_channel", false) {
 	oscNumChannel->addChangeCallback([this](int32_t newValue) {
 		levelsDb.resize(newValue, -192);
 		oscPeakPerChannelArguments.reserve(levelsDb.size());
