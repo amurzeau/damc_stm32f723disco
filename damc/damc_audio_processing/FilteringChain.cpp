@@ -21,7 +21,7 @@ FilterChain::FilterChain(OscContainer* parent,
                          OscReadOnlyVariable<int32_t>* oscSampleRate)
     : OscContainer(parent, "filterChain", 10),
       // reverbFilters(this, "reverbFilter"),
-      oscEqFilters(this, "eqFilters"),
+      oscEqFilters(this, "eqFilters", &eqFilters),
       eqFilters{
           EqFilter{&oscEqFilters, Utils::toString(0)},
           EqFilter{&oscEqFilters, Utils::toString(1)},

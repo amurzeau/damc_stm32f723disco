@@ -34,7 +34,7 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
       oscRoot(true),
       serialClient(&oscRoot),
       controls(&oscRoot),
-      oscStrips(&oscRoot, "strip"),
+      oscStrips(&oscRoot, "strip", &strips),
       strips{
           ChannelStrip{&oscStrips, 0, "master"sv, numChannels, sampleRate, maxNframes},
           ChannelStrip{&oscStrips, 1, "comp"sv, numChannels, sampleRate, maxNframes},
@@ -142,7 +142,7 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	interleavedToFloat(input_endpoints[1], &buffer[0], nframes);
 
 	// Process comp
-	strips[1].processSamples(buffer[0].dataPointers, numChannels, nframes);
+	strips.at(1).processSamples(buffer[0].dataPointers, numChannels, nframes);
 
 	// Import endpoint OUT 0 into float
 	interleavedToFloat(input_endpoints[0], &buffer[1], nframes);

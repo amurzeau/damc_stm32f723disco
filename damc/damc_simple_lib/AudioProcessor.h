@@ -8,6 +8,7 @@
 #include <FilteringChain.h>
 #include <Osc/OscContainerArray.h>
 #include <Osc/OscDynamicVariable.h>
+#include <Osc/OscFixedArray.h>
 #include <Osc/OscReadOnlyVariable.h>
 #include <OscRoot.h>
 #include <OscStatePersist.h>
@@ -54,7 +55,7 @@ private:
 	OscRoot oscRoot;
 	OscSerialClient serialClient;
 	Controls controls;
-	OscContainer oscStrips;
+	OscFixedArray<ChannelStrip, 5> oscStrips;
 	std::array<ChannelStrip, 5> strips;
 	OscStatePersist oscStatePersist;
 

@@ -9,7 +9,7 @@
 #include "ReverbFilter.h"
 #include <Osc/OscArray.h>
 #include <Osc/OscContainer.h>
-#include <Osc/OscContainerArray.h>
+#include <Osc/OscFixedArray.h>
 #include <Osc/OscVariable.h>
 #include <array>
 #include <stddef.h>
@@ -30,9 +30,9 @@ protected:
 	void updateNumChannels(size_t numChannel);
 
 private:
-	std::array<DelayFilter, 2 + 1> delayFilters;  // +1 for side channel
+	std::array<DelayFilter, 2> delayFilters;
 	// OscContainerArray<ReverbFilter> reverbFilters;
-	OscContainer oscEqFilters;
+	OscFixedArray<EqFilter, 10> oscEqFilters;
 	std::array<EqFilter, 10> eqFilters;
 	CompressorFilter compressorFilter;
 	ExpanderFilter expanderFilter;
