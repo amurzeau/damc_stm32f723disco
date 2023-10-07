@@ -15,7 +15,7 @@ public:
 	void getParameters(unsigned int& delay) { delay = this->delay; }
 
 private:
-	std::vector<float> delayedSamples;
+	float* delayedSamples;
 	unsigned int delay;
 	size_t inputIndex;
 	size_t outputIndex;
