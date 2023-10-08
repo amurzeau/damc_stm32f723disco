@@ -101,7 +101,7 @@ extern "C" void BSP_AUDIO_OUT_TransferComplete_CallBack(void) {
 	BSP_AUDIO_OUT_HalfTransfer_CallBack();
 }
 
-CircularBuffer<3> usbBuffers[3];
+CircularBuffer<uint32_t, 3> usbBuffers[3];
 int32_t diff_usb[3];
 int32_t expected_buff[3];
 int32_t usb_buff[3];
