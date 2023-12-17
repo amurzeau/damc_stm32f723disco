@@ -12,14 +12,15 @@
 #include <stm32f723e_discovery_audio.h>
 #include <string.h>
 
-template<int N> class CircularBuffer {
+template<typename T, int N> class CircularBuffer {
 public:
 	CircularBuffer();
 
-	void writeOutBuffer(uint32_t dma_read_offset, const uint32_t* data, size_t word_size);
-	size_t readInBuffer(uint32_t dma_write_offset, uint32_t* data, size_t word_size);
+	void writeOutBuffer(uint32_t dma_read_offset, const T* data, size_t word_size);
+	size_t readInBuffer(uint32_t dma_write_offset, T* data, size_t word_size);
 	void* getBuffer() { return &buffer[0]; }
-	size_t getSize() { return buffer.size() * sizeof(buffer[0]); }
+	constexpr size_t getElementSize() { return sizeof(buffer[0]); }
+	size_t getSize() { return buffer.size() * getElementSize(); }
 	size_t getCount() { return buffer.size(); }
 	size_t getAvailableReadForDMA(uint32_t dma_read_offset) {
 		return (buffer.size() + out_write_offset - dma_read_offset) % buffer.size();
@@ -32,16 +33,18 @@ public:
 
 private:
 	// Double buffer and dual channel
-	std::array<uint32_t, 48 * N> buffer;
+	// This must be 32 byte aligned for cache handling
+	std::array<T, 48 * N> buffer __attribute__((aligned(32)));
 	size_t out_write_offset;
 	size_t in_read_offset;
 };
 
-template<int N> CircularBuffer<N>::CircularBuffer() {
+template<typename T, int N> CircularBuffer<T, N>::CircularBuffer() {
 	memset(buffer.data(), 0, buffer.size() * sizeof(buffer[0]));
 }
 
-template<int N> void CircularBuffer<N>::writeOutBuffer(uint32_t dma_read_offset, const uint32_t* data, size_t nframes) {
+template<typename T, int N>
+void CircularBuffer<T, N>::writeOutBuffer(uint32_t dma_read_offset, const T* data, size_t nframes) {
 	uint16_t start = out_write_offset;
 	uint16_t size = nframes;
 
@@ -72,7 +75,8 @@ template<int N> void CircularBuffer<N>::writeOutBuffer(uint32_t dma_read_offset,
 	out_write_offset = end;
 }
 
-template<int N> size_t CircularBuffer<N>::readInBuffer(uint32_t dma_write_offset, uint32_t* data, size_t nframes) {
+template<typename T, int N>
+size_t CircularBuffer<T, N>::readInBuffer(uint32_t dma_write_offset, T* data, size_t nframes) {
 	uint16_t start = in_read_offset;
 
 	uint16_t end = dma_write_offset;
@@ -110,7 +114,7 @@ template<int N> size_t CircularBuffer<N>::readInBuffer(uint32_t dma_write_offset
 
 	// If not enough data to fill the buffer, add samples using
 	// the same value as the last one.
-	uint32_t fill_sample = total_size > 0 ? data[total_size - 1] : 0;
+	T fill_sample = total_size > 0 ? data[total_size - 1] : T{};
 	for(size_t i = total_size; i < nframes; i++) {
 		data[i] = fill_sample;
 	}

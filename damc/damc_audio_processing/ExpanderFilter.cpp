@@ -19,12 +19,15 @@ ExpanderFilter::ExpanderFilter(OscContainer* parent)
 	attackTime.addChangeCallback([this](float oscValue) { alphaA = oscValue != 0 ? expf(-1 / (oscValue * fs)) : 0; });
 	releaseTime.addChangeCallback([this](float oscValue) { alphaR = oscValue != 0 ? expf(-1 / (oscValue * fs)) : 0; });
 	ratio.addChangeCallback([this](float oscValue) { gainDiffRatio = oscValue - 1; });
+
+	std::fill_n(previousLevelDetectorOutput.begin(), previousLevelDetectorOutput.size(), 0.0f);
+	std::fill_n(previousPartialGainComputerOutput.begin(), previousPartialGainComputerOutput.size(), 0.0f);
 }
 
 void ExpanderFilter::init(size_t numChannel) {
 	this->numChannel = numChannel;
-	previousPartialGainComputerOutput.resize(numChannel);
-	previousLevelDetectorOutput.resize(numChannel);
+	// previousPartialGainComputerOutput.resize(numChannel);
+	// previousLevelDetectorOutput.resize(numChannel);
 }
 
 void ExpanderFilter::reset(float fs) {

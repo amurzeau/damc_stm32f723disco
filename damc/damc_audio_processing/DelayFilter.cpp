@@ -1,16 +1,17 @@
 #include "DelayFilter.h"
+#include <stm32f7xx.h>
 
 #include <math.h>
 #include <string.h>
 
-DelayFilter::DelayFilter() {
+DelayFilter::DelayFilter() : delayedSamples(nullptr) {
 	this->inputIndex = 0;
 	this->outputIndex = 0;
 	setParameters(0);
 }
 
 void DelayFilter::reset() {
-	std::fill(this->delayedSamples.begin(), this->delayedSamples.end(), 0);
+	memset(this->delayedSamples, 0, (1 << power2Size));
 }
 
 void DelayFilter::processSamples(float* samples, size_t count) {
@@ -31,15 +32,35 @@ float DelayFilter::processOneSample(float input) {
 }
 
 void DelayFilter::setParameters(unsigned int delay) {
-	int powerOfTwo;
-	int targetDelay = delay;
-
-	this->delay = delay;
+	size_t powerOfTwo;
+	unsigned int targetDelay = delay;
 
 	powerOfTwo = 0;
-	while((1 << powerOfTwo) < (targetDelay + 1))
+	while((1u << powerOfTwo) < (targetDelay + 1u))
 		powerOfTwo++;
+
+	// Disable delay processing while we are readjusting buffers and indexes
+	this->delay = 0;
+	__DSB();
+
+	if(this->delayedSamples) {
+		free(this->delayedSamples);
+		this->delayedSamples = nullptr;
+	}
+
+	size_t arraySize = 1 << powerOfTwo;
+
+	if(delay > 0) {
+		this->delayedSamples = (float*) calloc(arraySize, sizeof(float));
+		if(this->delayedSamples == nullptr) {
+			// Not enough memory
+			return;
+		}
+	}
+
 	this->power2Size = powerOfTwo;
-	this->delayedSamples.resize(1 << power2Size, 0);
-	outputIndex = (inputIndex + this->delayedSamples.size() - targetDelay) & ((1 << power2Size) - 1);
+	this->outputIndex = (this->inputIndex + arraySize - targetDelay) & (arraySize - 1);
+
+	__DSB();
+	this->delay = delay;
 }

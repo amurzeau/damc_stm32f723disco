@@ -41,11 +41,17 @@ _estack = ORIGIN(RAM) + LENGTH(RAM); /* end of "RAM" Ram type memory */
 _Min_Heap_Size = 0x200; /* required amount of heap */
 _Min_Stack_Size = 0x400; /* required amount of stack */
 
+/* Heap start and end addresses in PSRAM */
+_sheap = ORIGIN(PSRAM); /* start of "PSRAM" Ram type memory */
+_eheap = ORIGIN(PSRAM) + LENGTH(PSRAM); /* end of "PSRAM" Ram type memory */
+/* _eheap = _estack - _Min_Stack_Size; */
+
 /* Memories definition */
 MEMORY
 {
-  RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 256K
-  FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 512K
+  RAM     (xrw)    : ORIGIN = 0x20000000,   LENGTH = 256K
+  FLASH    (rx)    : ORIGIN = 0x08000000,   LENGTH = 512K
+  PSRAM   (xrw)    : ORIGIN = 0x60000000,   LENGTH = 512K
 }
 
 /* Sections */
@@ -170,13 +176,21 @@ SECTIONS
     __bss_end__ = _ebss;
   } >RAM
 
-  /* User_heap_stack section, used to check that there is enough "RAM" Ram  type memory left */
-  ._user_heap_stack :
+  /* User_heap section, used to check that there is enough "PSRAM" Ram  type memory left */
+  ._user_heap :
+  {
+    . = ALIGN(8);
+    PROVIDE ( _sheap = . );
+    . = . + _Min_Heap_Size;
+    . = ALIGN(8);
+  } >PSRAM
+
+  /* User_stack section, used to check that there is enough "RAM" Ram type memory left */
+  ._user_stack :
   {
     . = ALIGN(8);
     PROVIDE ( end = . );
     PROVIDE ( _end = . );
-    . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
   } >RAM

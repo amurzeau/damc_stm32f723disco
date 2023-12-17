@@ -9,18 +9,18 @@ PeakMeter::PeakMeter(OscContainer* parent,
                      OscReadOnlyVariable<int32_t>* oscSampleRate)
     : oscRoot(parent->getRoot()),
       oscSampleRate(oscSampleRate),
-	  oscPeakGlobal(parent, "meter"),
-	  oscPeakPerChannel(parent, "meter_per_channel"),
+      oscPeakGlobal(parent, "meter"),
+      oscPeakPerChannel(parent, "meter_per_channel"),
       samplesInPeaks(0),
+      peaksPerChannel{0.0f, 0.0f},
       oscEnablePeakUpdate(parent, "meter_enable_per_channel", false) {
-
 	oscNumChannel->addChangeCallback([this](int32_t newValue) {
 		levelsDb.resize(newValue, -192);
 		oscPeakPerChannelArguments.reserve(levelsDb.size());
 
 		// peakMutex.lock();
-		peaksPerChannel.resize(newValue, 0);
-		peaksPerChannelToSend.resize(newValue, 0);
+		// peaksPerChannel.resize(newValue, 0);
+		// peaksPerChannelToSend.resize(newValue, 0);
 		// loudnessMeters.resize(newValue);
 		// peakMutex.unlock();
 		//		for(auto& loudnessMeter : loudnessMeters) {
@@ -50,11 +50,12 @@ void PeakMeter::onFastTimer() {
 	int samples;
 	int32_t sampleRate = oscSampleRate->get();
 
-	std::fill(peaksPerChannelToSend.begin(), peaksPerChannelToSend.end(), 0);
-
 	// peakMutex.lock();
 	samples = this->samplesInPeaks;
-	peaksPerChannelToSend.swap(this->peaksPerChannel);
+	for(size_t i = 0; i < peaksPerChannelToSend.size(); i++) {
+		peaksPerChannelToSend[i] = peaksPerChannel[i];
+		peaksPerChannel[i] = 0;
+	}
 	this->samplesInPeaks = 0;
 	// peakMutex.unlock();
 

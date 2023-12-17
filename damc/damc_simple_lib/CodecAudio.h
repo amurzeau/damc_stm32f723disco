@@ -26,6 +26,10 @@ protected:
 	void readInBuffer(uint32_t* data, size_t word_size);
 
 private:
-	CircularBuffer<2> out_buffer;
-	CircularBuffer<2> in_buffer;
+	struct CodecFrame {
+		int16_t headphone[2];
+		int16_t speaker[2];
+	};
+	CircularBuffer<CodecFrame, 2> out_buffer;
+	CircularBuffer<CodecFrame, 2> in_buffer;
 };

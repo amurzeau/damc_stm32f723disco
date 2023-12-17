@@ -9,8 +9,9 @@
 #include "ReverbFilter.h"
 #include <Osc/OscArray.h>
 #include <Osc/OscContainer.h>
-#include <Osc/OscContainerArray.h>
+#include <Osc/OscFixedArray.h>
 #include <Osc/OscVariable.h>
+#include <array>
 #include <stddef.h>
 
 class FilterChain : public OscContainer {
@@ -29,15 +30,17 @@ protected:
 	void updateNumChannels(size_t numChannel);
 
 private:
-	std::vector<DelayFilter> delayFilters;
+	std::array<DelayFilter, 2> delayFilters;
 	// OscContainerArray<ReverbFilter> reverbFilters;
-	OscContainerArray<EqFilter> eqFilters;
+	OscFixedArray<EqFilter, 10> oscEqFilters;
+	std::array<EqFilter, 10> eqFilters;
 	CompressorFilter compressorFilter;
 	ExpanderFilter expanderFilter;
 	PeakMeter peakMeter;
 
 	OscVariable<int32_t> delay;
-	OscArray<float> volume;
+	OscArray<float> oscVolume;
+	std::array<float, 2> volume;
 	OscVariable<float> masterVolume;
 	OscVariable<bool> mute;
 	OscVariable<bool> reverseAudioSignal;

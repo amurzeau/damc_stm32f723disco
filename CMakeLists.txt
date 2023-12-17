@@ -30,6 +30,7 @@ file(GLOB_RECURSE SOURCE_LIST
 	Drivers/*.c Drivers/*.h Drivers/*.cpp
 	Middlewares/*.c Middlewares/*.h Middlewares/*.cpp
 	USB_DEVICE/*.c USB_DEVICE/*.h USB_DEVICE/*.cpp
+	memtester/*.c memtester/*.h memtester/*.cpp
 )
 
 add_executable(${TARGET_NAME} ${SOURCE_LIST})
@@ -63,6 +64,7 @@ target_include_directories(
     ${PROJECT_SOURCE_DIR}/damc/damc_simple_lib
     ${PROJECT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/COMPOSITE/Inc
     ${PROJECT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
+    ${PROJECT_SOURCE_DIR}/memtester
 )
 
 target_compile_options(
@@ -72,12 +74,15 @@ target_compile_options(
     "$<$<NOT:$<CONFIG:Debug>>:-O3>"
 	-Wall
 	-Wno-psabi
+	-ffast-math
+	-flto
 )
 
 target_link_options(
     ${TARGET_NAME} PRIVATE
     -T ${PROJECT_SOURCE_DIR}/STM32F723IEKX_FLASH.ld
 )
+set_target_properties(${TARGET_NAME} PROPERTIES LINK_DEPENDS ${PROJECT_SOURCE_DIR}/STM32F723IEKX_FLASH.ld)
 
 install(FILES
 	$<TARGET_FILE:${TARGET_NAME}>

@@ -119,7 +119,8 @@ SRAM_HandleTypeDef psramHandle;
   */
 uint8_t BSP_PSRAM_Init(void)
 {
-  static FMC_NORSRAM_TimingTypeDef Timing;  
+  static FMC_NORSRAM_TimingTypeDef ReadTiming;
+  static FMC_NORSRAM_TimingTypeDef WriteTiming;
   static uint8_t psram_status = PSRAM_ERROR;
   
   /* PSRAM device configuration */
@@ -129,13 +130,31 @@ uint8_t BSP_PSRAM_Init(void)
   /* PSRAM device configuration */
   /* Timing configuration derived from system clock (up to 216Mhz)
      for 108Mhz as PSRAM clock frequency */
-  Timing.AddressSetupTime      = 9;
-  Timing.AddressHoldTime       = 2;
-  Timing.DataSetupTime         = 6;
-  Timing.BusTurnAroundDuration = 1;
-  Timing.CLKDivision           = 2;
-  Timing.DataLatency           = 2;
-  Timing.AccessMode            = FMC_ACCESS_MODE_A;
+  ReadTiming.AddressSetupTime      = 4;  // ADDSET+ADDHLD: +2 HCLK margin, only 13 is stricly required for ADDSET+ADDHLD+DATAST for 60ns access, but sometimes memtester still fails on read
+  ReadTiming.AddressHoldTime       = 1;  // ADDHLD, must be at least 1
+  ReadTiming.DataSetupTime         = 10; // DATAST: Minimum 60ns read total duration (including ADDSET)
+                                     // For reads, it must be at least 25ns
+  ReadTiming.BusTurnAroundDuration = 4;  // Bus turnaround after read, at least 1 so chip select is never held for too long, 20ns before HighZ from NOE released (1+4 HCLK)
+  ReadTiming.CLKDivision           = 2;  // Don't care in asynchronous mode
+  ReadTiming.DataLatency           = 0;  // Don't care in asynchronous mode
+  ReadTiming.AccessMode            = FMC_ACCESS_MODE_D; // Use mode D to avoid long period with chip select active
+
+  
+  WriteTiming.AddressSetupTime      = 1;  // ADDSET+ADDHLD: Minimum 20ns to HighZ from possible previous read exluding 3 HCLK (13.9ns) from bus turn around
+  WriteTiming.AddressHoldTime       = 1;  // ADDHLD, must be at least 1
+  WriteTiming.DataSetupTime         = 10; // DATAST: Minimum 55ns write total duration (including ADDSET)
+                                          // For writes, it must be at least 45ns
+  WriteTiming.BusTurnAroundDuration = 1;  // Bus turnaround after read, at least 1 so chip select is never held for too long
+  WriteTiming.CLKDivision           = 2;  // Don't care in asynchronous mode
+  WriteTiming.DataLatency           = 0;  // Don't care in asynchronous mode
+  WriteTiming.AccessMode            = FMC_ACCESS_MODE_D; // Use mode D to avoid long period with chip select active
+//   Timing.AddressSetupTime      = 9;
+//   Timing.AddressHoldTime       = 2; // Don't care
+//   Timing.DataSetupTime         = 6;
+//   Timing.BusTurnAroundDuration = 1;
+//   Timing.CLKDivision           = 2;
+//   Timing.DataLatency           = 2;
+//   Timing.AccessMode            = FMC_ACCESS_MODE_A;
   
   psramHandle.Init.NSBank             = FMC_NORSRAM_BANK1;
   psramHandle.Init.DataAddressMux     = FMC_DATA_ADDRESS_MUX_DISABLE;
@@ -146,16 +165,16 @@ uint8_t BSP_PSRAM_Init(void)
   psramHandle.Init.WaitSignalActive   = FMC_WAIT_TIMING_BEFORE_WS;
   psramHandle.Init.WriteOperation     = FMC_WRITE_OPERATION_ENABLE;
   psramHandle.Init.WaitSignal         = FMC_WAIT_SIGNAL_DISABLE;
-  psramHandle.Init.ExtendedMode       = FMC_EXTENDED_MODE_DISABLE;
+  psramHandle.Init.ExtendedMode       = FMC_EXTENDED_MODE_ENABLE; // Use extended mode for mode D
   psramHandle.Init.AsynchronousWait   = FMC_ASYNCHRONOUS_WAIT_DISABLE;
   psramHandle.Init.WriteBurst         = PSRAM_WRITEBURST;
-  psramHandle.Init.WriteFifo          = FMC_WRITE_FIFO_DISABLE;
+  psramHandle.Init.WriteFifo          = FMC_WRITE_FIFO_ENABLE; // Enable Write FIFO to avoid errata
   psramHandle.Init.PageSize           = FMC_PAGE_SIZE_NONE;  
   psramHandle.Init.ContinuousClock    = CONTINUOUSCLOCK_FEATURE;
   
   /* PSRAM controller initialization */
   BSP_PSRAM_MspInit(&psramHandle, NULL); /* __weak function can be rewritten by the application */
-  if(HAL_SRAM_Init(&psramHandle, &Timing, &Timing) != HAL_OK)
+  if(HAL_SRAM_Init(&psramHandle, &ReadTiming, &WriteTiming) != HAL_OK)
   {
     psram_status = PSRAM_ERROR;
   }
@@ -298,24 +317,31 @@ __weak void BSP_PSRAM_MspInit(SRAM_HandleTypeDef  *hsram, void *Params)
   gpio_init_structure.Alternate = GPIO_AF12_FMC;
 
   /* GPIOD configuration: GPIO_PIN_7 is  FMC_NE1 , GPIO_PIN_11 ans GPIO_PIN_12 are PSRAM_A16 and PSRAM_A17 */
+  /* LCD_PSRAM_D2, LCD_PSRAM_D3, LCD_PSRAM_NOE, LCD_PSRAM_NWE, PSRAM_NE1, LCD_PSRAM_D13, 
+     LCD_PSRAM_D14, LCD_PSRAM_D15, PSRAM_A16, PSRAM_A17, LCD_PSRAM_D0, LCD_PSRAM_D1 */
   gpio_init_structure.Pin   = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_7 | GPIO_PIN_8 |\
                               GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_14 | GPIO_PIN_15;
    
   HAL_GPIO_Init(GPIOD, &gpio_init_structure);
 
   /* GPIOE configuration */  
+  /* PSRAM_NBL0, PSRAM_NBL1, LCD_PSRAM_D4, LCD_PSRAM_D5, LCD_PSRAM_D6, LCD_PSRAM_D7, 
+     LCD_PSRAM_D8, LCD_PSRAM_D9, LCD_PSRAM_D10, LCD_PSRAM_D11, LCD_PSRAM_D12 */
   gpio_init_structure.Pin   = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11 |\
                               GPIO_PIN_12 |GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
   HAL_GPIO_Init(GPIOE, &gpio_init_structure);
   
   /* GPIOF configuration */  
+  /* PSRAM_A0, PSRAM_A1, PSRAM_A2, PSRAM_A3, PSRAM_A4, PSRAM_A5, 
+     PSRAM_A6, PSRAM_A7, PSRAM_A8, PSRAM_A9 */
   gpio_init_structure.Pin   = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 |\
                               GPIO_PIN_5 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15; 
   HAL_GPIO_Init(GPIOF, &gpio_init_structure);
 
   /* GPIOG configuration */  
+  /* PSRAM_A10, PSRAM_A11, PSRAM_A12, PSRAM_A13, PSRAM_A14, PSRAM_A15, LCD_NE */
   gpio_init_structure.Pin   = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 |\
-                              GPIO_PIN_5; 
+                              GPIO_PIN_5 | GPIO_PIN_9; 
   HAL_GPIO_Init(GPIOG, &gpio_init_structure); 
   
   /* Configure common DMA parameters */
