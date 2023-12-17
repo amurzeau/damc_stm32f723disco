@@ -31,13 +31,17 @@ void EqFilter::reset(float fs) {
 void EqFilter::processSamples(float** samples, size_t count) {
 	if(enabled) {
 		for(size_t channel = 0; channel < biquadFilters.size(); channel++) {
-			BiquadFilter& biquadFilter = biquadFilters[channel];
+			// Using local variable for biquadFilter allow keeping the state in registers
+			// while processing all samples.
+			BiquadFilter biquadFilter = biquadFilters[channel];
 			float* outputChannel = samples[channel];
 			const float* inputChannel = samples[channel];
 
 			for(size_t i = 0; i < count; i++) {
 				outputChannel[i] = biquadFilter.put(inputChannel[i]);
 			}
+
+			biquadFilters[channel] = biquadFilter;
 		}
 	}
 }

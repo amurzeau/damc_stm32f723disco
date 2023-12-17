@@ -74,6 +74,8 @@ target_compile_options(
     "$<$<NOT:$<CONFIG:Debug>>:-O3>"
 	-Wall
 	-Wno-psabi
+	-ffast-math
+	-flto
 )
 
 target_link_options(
