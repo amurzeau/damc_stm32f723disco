@@ -3,6 +3,7 @@
 #include "BiquadFilter.h"
 #include <Osc/OscContainer.h>
 #include <Osc/OscVariable.h>
+#include <array>
 #include <complex>
 #include <stddef.h>
 
@@ -24,7 +25,7 @@ private:
 	OscVariable<float> gain;
 	OscVariable<float> Q;
 
-	std::vector<BiquadFilter> biquadFilters;
+	std::array<BiquadFilter, 2> biquadFilters;
 
 	void computeFilter();
 };

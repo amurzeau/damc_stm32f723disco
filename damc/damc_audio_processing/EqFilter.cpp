@@ -20,7 +20,7 @@ EqFilter::EqFilter(OscContainer* parent, const std::string_view& name)
 }
 
 void EqFilter::init(size_t numChannel) {
-	biquadFilters.resize(numChannel);
+	// biquadFilters.resize(numChannel);
 }
 
 void EqFilter::reset(float fs) {
