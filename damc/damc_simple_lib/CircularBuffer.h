@@ -8,8 +8,7 @@
 
 #include <assert.h>
 #include <math.h>
-#include <stm32f723e_discovery.h>
-#include <stm32f723e_discovery_audio.h>
+#include <stm32f7xx.h>
 #include <string.h>
 
 template<typename T, int N> class CircularBuffer {

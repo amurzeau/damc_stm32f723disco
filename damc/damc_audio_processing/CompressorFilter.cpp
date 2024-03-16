@@ -5,7 +5,6 @@
 #include <fastapprox/fastexp.h>
 #include <fastapprox/fastlog.h>
 #include <math.h>
-#include <stm32f7xx.h>
 #include <string.h>
 
 // Algorithm based on

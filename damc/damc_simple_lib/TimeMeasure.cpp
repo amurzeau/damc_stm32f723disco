@@ -1,6 +1,5 @@
 #include "TimeMeasure.h"
 #include <stm32f7xx.h>
-#include <stm32f7xx_hal_rcc.h>
 #include <string.h>
 
 uint32_t TimeMeasure::clock_per_us = 1;
