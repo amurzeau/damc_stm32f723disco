@@ -852,11 +852,11 @@ static uint8_t* USBD_COMPOSITE_GetUsrStrDescriptor(struct _USBD_HandleTypeDef *p
 	int user_index = index - USBD_AUDIO_STR_FIRST_INDEX;
 
 	static const char* USER_STRINGS[] = {
-	    "DAMC Out Master",
-	    "DAMC Out Comp",
+	    "Master",
+	    "Comp",
 	    "DAMC Out 3",
 	    "DAMC Out 4",
-	    "DAMC In Mic",
+	    "Mic",
 	    "DAMC In 2",
 	    "DAMC In 3",
 	    "DAMC In 4",
