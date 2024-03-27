@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CircularBuffer.h"
+#include "tlv320aic3254.h"
 #include <array>
 #include <stdint.h>
 #include <vector>
@@ -28,8 +29,8 @@ protected:
 private:
 	struct CodecFrame {
 		int16_t headphone[2];
-		int16_t speaker[2];
 	};
 	CircularBuffer<CodecFrame, 2> out_buffer;
 	CircularBuffer<CodecFrame, 2> in_buffer;
+	CodecInit codecInit;
 };

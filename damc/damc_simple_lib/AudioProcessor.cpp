@@ -190,7 +190,7 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 
 	// Get codec MIC data
 	CodecAudio::instance.processAudioInterleavedInput(codecBuffer, nframes);
-	interleavedToFloatCodec(codecBuffer, &buffer[3], nframes);
+	interleavedToFloat(codecBuffer, &buffer[3], nframes);
 
 	// Process mic
 	strips.at(2).processSamples(buffer[3].dataPointers, numChannels, nframes);
@@ -211,7 +211,7 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	strips.at(5).processSamples(buffer[4].dataPointers, numChannels, nframes);
 
 	// Output float data to codec headphones and speakers
-	floatToInterleavedCodec(&buffer[2], &buffer[4], codecBuffer, nframes);
+	floatToInterleaved(&buffer[2], codecBuffer, nframes);
 
 	// Output processed audio to codec and retrieve MIC
 	CodecAudio::instance.processAudioInterleavedOutput(codecBuffer, nframes);

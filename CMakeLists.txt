@@ -69,8 +69,8 @@ target_include_directories(
 
 target_compile_options(
     ${TARGET_NAME} PRIVATE
-    "$<$<CONFIG:Debug>:-g3>"
-    "$<$<NOT:$<CONFIG:Debug>>:-g>"
+    -ggdb3
+	-gdwarf-4
     "$<$<NOT:$<CONFIG:Debug>>:-O3>"
 	-Wall
 	-Wno-psabi
