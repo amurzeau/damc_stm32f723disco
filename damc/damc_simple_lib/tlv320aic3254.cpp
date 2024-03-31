@@ -208,8 +208,7 @@ void CodecInit::init_codec() {
 	}
 	*/
 
-	writeI2c(0, 0);               // Select page 0
-	uint8_t value = readI2c(75);  // Expected: 0xEE
+	writeI2c(0, 0);  // Select page 0
 
 	// PLL_CLK = PLL_CLKIN (13.5Mhz) / P * R * J.D
 	// 13.5Mhz / P >= 10Mhz and <= 20Mhz
@@ -278,11 +277,11 @@ void CodecInit::init_codec() {
 	writeI2c(123, 0b00000011);  // Reference Power-up Configuration Register, power up in 120ms
 
 	// Configurations and background noise level with MICPGA +20dB:
-	// - MICBIAS @1.7V, common mode 0.9V: -70dB
-	// - MICBIAS @2.5V, common mode 0.9V: -62dB
-	// - MICBIAS @AVDD, common mode 0.9V: -64dB
-	// - MICBIAS @LDOIN, common mode 0.9V: -67dB
-	// - MICBIAS @2.075V, common mode 0.75V: -59dB
+	// - MICBIAS @1.7V, @AVDD, common mode 0.9V: -70dB
+	// - MICBIAS @2.5V, @AVDD, common mode 0.9V: -62dB
+	// - MICBIAS direct, @AVDD, common mode 0.9V: -64dB
+	// - MICBIAS direct, @LDOIN, common mode 0.9V: -67dB
+	// - MICBIAS @2.075V, @AVDD, common mode 0.75V: -59dB
 	writeI2c(51, 0b01010000);  // MICBIAS Configuration Register, enable MICBIAS @1.7V
 
 	writeI2c(9, 0b00001100);  // Output Driver Power Control LOL LOR on
@@ -305,15 +304,15 @@ void CodecInit::init_codec() {
 	// IN2R to Left MICPGA-
 	writeI2c(54, 0b00110000);  // Left MICPGA Negative Terminal Input Routing Configuration Register
 
-	// IN2L to Right MICPGA+
-	writeI2c(55, 0b00000011);  // Right MICPGA Positive Terminal Input Routing Configuration Register
+	// IN1R to Right MICPGA+
+	writeI2c(55, 0b11000000);  // Right MICPGA Positive Terminal Input Routing Configuration Register
 	// IN1L to Right MICPGA-
 	writeI2c(57, 0b00110000);  // Right MICPGA Negative Terminal Input Routing Configuration Register
 
 	writeI2c(58, 0b00001100);  // Floating Input Configuration Register, IN3 weakly driven
 
-	writeI2c(59, 0b00101000);  // Left MICPGA Volume Control Register, Left MICPGA = 0dB
-	writeI2c(60, 0b00101000);  // Right MICPGA Volume Control Register, Left MICPGA = 0dB
+	writeI2c(59, 40);  // Left MICPGA Volume Control Register, Left MICPGA = 20dB
+	writeI2c(60, 40);  // Right MICPGA Volume Control Register, Left MICPGA = 20dB
 
 	// Biquad high pass filter on ADC
 	int32_t b0 = 0x7ffada00;
