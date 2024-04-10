@@ -16,7 +16,7 @@ public:
 
 private:
 	OscVariable<std::string> oscName;
-	OscVariable<std::string> oscDisplayName;
+	OscReadOnlyVariable<std::string> oscDisplayName;
 	OscReadOnlyVariable<int32_t> oscNumChannels;
 	OscReadOnlyVariable<int32_t> oscSampleRate;
 	FilterChain filterChain;
