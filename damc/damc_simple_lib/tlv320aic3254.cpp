@@ -261,16 +261,62 @@ void CodecInit::init_codec() {
 	writeI2c(60, 1);  // DAC Signal Processing Block Control Register, PRB_P1
 	writeI2c(61, 1);  // ADC Signal Processing Block Control Register, PRB_R1
 
+	// Biquad high pass filter on ADC
+	int32_t b0 = 0x7ffada00;
+	int32_t b1 = 0x80052600;
+	int32_t a1 = 0x7ff5b500;
+	uint8_t reg = 24;
+
+	// Left First order IIR
+	if(1) {
+		writeI2c(0, 8);  // Select page 8
+		writeI2c(reg++, b0 >> 24);
+		writeI2c(reg++, b0 >> 16);
+		writeI2c(reg++, b0 >> 8);
+		writeI2c(reg++, b0);
+
+		writeI2c(reg++, b1 >> 24);
+		writeI2c(reg++, b1 >> 16);
+		writeI2c(reg++, b1 >> 8);
+		writeI2c(reg++, b1);
+
+		writeI2c(reg++, a1 >> 24);
+		writeI2c(reg++, a1 >> 16);
+		writeI2c(reg++, a1 >> 8);
+		writeI2c(reg++, a1);
+
+		// Right First order IIR
+		writeI2c(0, 9);  // Select page 9
+		reg = 32;
+		writeI2c(reg++, b0 >> 24);
+		writeI2c(reg++, b0 >> 16);
+		writeI2c(reg++, b0 >> 8);
+		writeI2c(reg++, b0);
+
+		writeI2c(reg++, b1 >> 24);
+		writeI2c(reg++, b1 >> 16);
+		writeI2c(reg++, b1 >> 8);
+		writeI2c(reg++, b1);
+
+		writeI2c(reg++, a1 >> 24);
+		writeI2c(reg++, a1 >> 16);
+		writeI2c(reg++, a1 >> 8);
+		writeI2c(reg++, a1);
+	}
+
 	// Power
 	writeI2c(0, 1);           // Select page 1
+	writeI2c(2, 0b10100000);  // LDO Control Register, DVDD and AVDD LDO Powered up 1.77V
 	writeI2c(1, 0b00001000);  // Power Configuration Register, Disable connection of AVDD with DVDD
-	writeI2c(2, 0b10100001);  // LDO Control Register, DVDD and AVDD LDO Powered up 1.77V
+	writeI2c(2, 0b10100001);  // LDO Control Register, Enable master analog control
 
 	writeI2c(10, 0b00000001);   // Common Mode Control CM 0.9V LDOIN 1.8-3.6V
+	writeI2c(61, 0b00000000);   // ADC Power Tune Configuration Register, PTM_R4
 	writeI2c(3, 0b00000000);    // Left DAC is Class AB and PTM_P3/P4
 	writeI2c(4, 0b00000000);    // Right DAC is Class AB and PTM_P3/P4
-	writeI2c(61, 0b00000000);   // ADC Power Tune Configuration Register, PTM_R4
+	writeI2c(71, 0x32);  // Analog Input Quick Charging Configuration Register, Analog inputs power up time is 3.1 ms
 	writeI2c(123, 0b00000011);  // Reference Power-up Configuration Register, power up in 120ms
+	HAL_Delay(100);             // Delay for supply rail powerup
 
 	// Headset detection function
 	writeI2c(56, 0b00000000);  // SCLK/MFP3 Function Control Register SCLK/MFP3 is disabled
@@ -283,8 +329,8 @@ void CodecInit::init_codec() {
 	// - MICBIAS direct, @LDOIN, common mode 0.9V: -67dB
 	// - MICBIAS @2.075V, @AVDD, common mode 0.75V: -59dB
 	// MICBIAS not using direc power supply have very high 10khz noise with no load, codec broken ?
-	writeI2c(51, 0b01111000);  // MICBIAS Configuration Register, enable MICBIAS @1.7V
-// Bit 7: reserved
+	writeI2c(51, 0b01010000);  // MICBIAS Configuration Register, enable MICBIAS @1.7V
+	// Bit 7: reserved
 	// Bit 6: ON/off
 	// Bit 5-4: 1.25V, 1.7V, 2.5V, power supply
 	// Bit 3: AVDD, LDOIN
@@ -306,63 +352,32 @@ void CodecInit::init_codec() {
 	writeI2c(18, 0b00000000);  // LOL Driver Gain Setting Register, LOL unmuted
 	writeI2c(19, 0b00000000);  // LOR Driver Gain Setting Register, LOR unmuted
 
-	// IN1R to Left MICPGA+
-	writeI2c(52, 0b00000011);  // Left MICPGA Positive Terminal Input Routing Configuration Register
-	// IN2R to Left MICPGA-
-	writeI2c(54, 0b00110000);  // Left MICPGA Negative Terminal Input Routing Configuration Register
+	if(1) {
+		// IN1R to Left MICPGA+
+		writeI2c(52, 0b00000001);  // Left MICPGA Positive Terminal Input Routing Configuration Register
+		// CM (GND) to Left MICPGA-
+		writeI2c(54, 0b00010000);  // Left MICPGA Negative Terminal Input Routing Configuration Register
 
-	// IN1R to Right MICPGA+
-	writeI2c(55, 0b11000000);  // Right MICPGA Positive Terminal Input Routing Configuration Register
-	// IN1L to Right MICPGA-
-	writeI2c(57, 0b00110000);  // Right MICPGA Negative Terminal Input Routing Configuration Register
+		// IN2L to Right MICPGA+
+		writeI2c(55, 0b00000001);  // Right MICPGA Positive Terminal Input Routing Configuration Register
+		// CM (GND) to Right MICPGA-
+		writeI2c(57, 0b00010000);  // Right MICPGA Negative Terminal Input Routing Configuration Register
+	} else {
+		// IN2L to Left MICPGA+
+		writeI2c(52, 0b00010000);  // Left MICPGA Positive Terminal Input Routing Configuration Register
+		// CM (GND) to Left MICPGA-
+		writeI2c(54, 0b01000000);  // Left MICPGA Negative Terminal Input Routing Configuration Register
+
+		// IN2L to Right MICPGA+
+		writeI2c(55, 0b00000001);  // Right MICPGA Positive Terminal Input Routing Configuration Register
+		// CM (GND) to Right MICPGA-
+		writeI2c(57, 0b01000000);  // Right MICPGA Negative Terminal Input Routing Configuration Register
+	}
 
 	writeI2c(58, 0b00001100);  // Floating Input Configuration Register, IN3 weakly driven
 
 	writeI2c(59, 40);  // Left MICPGA Volume Control Register, Left MICPGA = 20dB
 	writeI2c(60, 40);  // Right MICPGA Volume Control Register, Left MICPGA = 20dB
-
-	// Biquad high pass filter on ADC
-	int32_t b0 = 0x7ffada00;
-	int32_t b1 = 0x80052600;
-	int32_t a1 = 0x7ff5b500;
-	uint8_t reg = 24;
-
-	// Left First order IIR
-	if(1) {
-	writeI2c(0, 8);  // Select page 8
-	writeI2c(reg++, b0 >> 24);
-	writeI2c(reg++, b0 >> 16);
-	writeI2c(reg++, b0 >> 8);
-	writeI2c(reg++, b0);
-
-	writeI2c(reg++, b1 >> 24);
-	writeI2c(reg++, b1 >> 16);
-	writeI2c(reg++, b1 >> 8);
-	writeI2c(reg++, b1);
-
-	writeI2c(reg++, a1 >> 24);
-	writeI2c(reg++, a1 >> 16);
-	writeI2c(reg++, a1 >> 8);
-	writeI2c(reg++, a1);
-
-	// Right First order IIR
-	writeI2c(0, 9);  // Select page 9
-	reg = 32;
-	writeI2c(reg++, b0 >> 24);
-	writeI2c(reg++, b0 >> 16);
-	writeI2c(reg++, b0 >> 8);
-	writeI2c(reg++, b0);
-
-	writeI2c(reg++, b1 >> 24);
-	writeI2c(reg++, b1 >> 16);
-	writeI2c(reg++, b1 >> 8);
-	writeI2c(reg++, b1);
-
-	writeI2c(reg++, a1 >> 24);
-	writeI2c(reg++, a1 >> 16);
-	writeI2c(reg++, a1 >> 8);
-	writeI2c(reg++, a1);
-}
 
 	// Enable ADC/DAC
 	writeI2c(0, 0);            // Select page 0
