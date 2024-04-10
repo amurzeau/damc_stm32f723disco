@@ -257,10 +257,6 @@ void CodecInit::init_codec() {
 	writeI2c(52, 0b00010100);  // GPIO/MFP5 Control Register GPIO/MFP5 is INT1
 	writeI2c(55, 0b00000110);  //  MISO/MFP4 Function Control Register is CLKOUT
 
-	// Headset detection function
-	writeI2c(56, 0b00000000);  // SCLK/MFP3 Function Control Register SCLK/MFP3 is disabled
-	writeI2c(67, 0b10000000);  // Headset Detection Configuration Register Enable headset detection
-
 	// Processing block
 	writeI2c(60, 1);  // DAC Signal Processing Block Control Register, PRB_P1
 	writeI2c(61, 1);  // ADC Signal Processing Block Control Register, PRB_R1
@@ -276,13 +272,24 @@ void CodecInit::init_codec() {
 	writeI2c(61, 0b00000000);   // ADC Power Tune Configuration Register, PTM_R4
 	writeI2c(123, 0b00000011);  // Reference Power-up Configuration Register, power up in 120ms
 
+	// Headset detection function
+	writeI2c(56, 0b00000000);  // SCLK/MFP3 Function Control Register SCLK/MFP3 is disabled
+	// writeI2c(67, 0b10000000);  // Headset Detection Configuration Register Enable headset detection
+
 	// Configurations and background noise level with MICPGA +20dB:
 	// - MICBIAS @1.7V, @AVDD, common mode 0.9V: -70dB
 	// - MICBIAS @2.5V, @AVDD, common mode 0.9V: -62dB
 	// - MICBIAS direct, @AVDD, common mode 0.9V: -64dB
 	// - MICBIAS direct, @LDOIN, common mode 0.9V: -67dB
 	// - MICBIAS @2.075V, @AVDD, common mode 0.75V: -59dB
-	writeI2c(51, 0b01010000);  // MICBIAS Configuration Register, enable MICBIAS @1.7V
+	// MICBIAS not using direc power supply have very high 10khz noise with no load, codec broken ?
+	writeI2c(51, 0b01111000);  // MICBIAS Configuration Register, enable MICBIAS @1.7V
+// Bit 7: reserved
+	// Bit 6: ON/off
+	// Bit 5-4: 1.25V, 1.7V, 2.5V, power supply
+	// Bit 3: AVDD, LDOIN
+	// Bit 2-0: reserved
+	// writeI2c(51, 0b00000000);  // MICBIAS disabled
 
 	writeI2c(9, 0b00001100);  // Output Driver Power Control LOL LOR on
 	HAL_Delay(1000);          // Delay for supply rail powerup
@@ -321,6 +328,7 @@ void CodecInit::init_codec() {
 	uint8_t reg = 24;
 
 	// Left First order IIR
+	if(1) {
 	writeI2c(0, 8);  // Select page 8
 	writeI2c(reg++, b0 >> 24);
 	writeI2c(reg++, b0 >> 16);
@@ -354,6 +362,7 @@ void CodecInit::init_codec() {
 	writeI2c(reg++, a1 >> 16);
 	writeI2c(reg++, a1 >> 8);
 	writeI2c(reg++, a1);
+}
 
 	// Enable ADC/DAC
 	writeI2c(0, 0);            // Select page 0
