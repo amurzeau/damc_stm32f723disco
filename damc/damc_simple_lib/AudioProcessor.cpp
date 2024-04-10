@@ -36,12 +36,14 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
       controls(&oscRoot),
       oscStrips(&oscRoot, "strip", &strips),
       strips{
+          // Also change in OscStatePersist
           ChannelStrip{&oscStrips, 0, "master"sv, numChannels, sampleRate, maxNframes},
           ChannelStrip{&oscStrips, 1, "comp"sv, numChannels, sampleRate, maxNframes},
-          ChannelStrip{&oscStrips, 2, "mic"sv, numChannels, sampleRate, maxNframes},
-          ChannelStrip{&oscStrips, 3, "out-record"sv, numChannels, sampleRate, maxNframes},
-          ChannelStrip{&oscStrips, 4, "mic-feedback"sv, numChannels, sampleRate, maxNframes},
-          ChannelStrip{&oscStrips, 5, "speakers"sv, numChannels, sampleRate, maxNframes},
+          ChannelStrip{&oscStrips, 2, "mic1"sv, numChannels, sampleRate, maxNframes},
+          ChannelStrip{&oscStrips, 3, "mic2"sv, numChannels, sampleRate, maxNframes},
+          ChannelStrip{&oscStrips, 4, "out-record"sv, numChannels, sampleRate, maxNframes},
+          ChannelStrip{&oscStrips, 5, "mic-feedback"sv, numChannels, sampleRate, maxNframes},
+          ChannelStrip{&oscStrips, 6, "speakers"sv, numChannels, sampleRate, maxNframes},
       },
       oscStatePersist(&oscRoot),
       oscTimeMeasure{
@@ -129,6 +131,17 @@ void AudioProcessor::mixAudio(MultiChannelAudioBuffer* mixed_data,
 	}
 }
 
+void AudioProcessor::mixAudioStereoToDualMono(MultiChannelAudioBuffer* dual_mono,
+                                              MultiChannelAudioBuffer* output2,
+                                              size_t nframes) {
+	for(uint32_t frame = 0; frame < nframes; frame++) {
+		float mixed = dual_mono->data[1][frame];
+		output2->data[0][frame] = mixed;
+		output2->data[1][frame] = mixed;
+		dual_mono->data[1][frame] = dual_mono->data[0][frame];
+	}
+}
+
 void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
                                              size_t input_endpoints_number,
                                              int16_t** output_endpoints,
@@ -149,21 +162,24 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	 *                                                      |    |
 	 * IN 0 (mic input)               <----------(+)---[3]--+   [4]
 	 *                                            |              |
-	 *                                            +--------------*--[2]--< Codec mic
+	 *                                            +-------------(+)--[2]--< Codec mic 1
+	 *                                                           \---[6]--< Codec mic 2
 	 * ChannelStrip:
 	 *   [0]: master (OUT 0 + compressed OUT 1)
 	 *   [1]: compressor for OUT 1
-	 *   [2]: mic
-	 *   [3]: output record loopback
-	 *   [4]: mic feedback
-	 *   [5]: speakers
+	 *   [2]: mic1
+	 *   [3]: mic2
+	 *   [4]: output record loopback
+	 *   [5]: mic feedback
+	 *   [6]: speakers
 	 *
 	 * Intermediate variables:
 	 *  - #0: OUT 1 processing
 	 *  - #1: OUT 0 processing then mix of OUT 0 + OUT 1 then out-record processing then IN 0
 	 *  - #2: Codec Headphones mix
-	 *  - #3: Codec MIC input then MIC processing (then added into buffer #1) then mic-feedback processing
-	 *  - #4: speaker output
+	 *  - #3: Codec MIC 1 input then MIC processing (then added into buffer #1) then mic-feedback processing
+	 *  - #4: Codec MIC 2 input then mixed with MIC 1
+	 *  - #5: speaker output
 	 */
 
 	// Import endpoint OUT 1 (compressed audio) into float
@@ -183,32 +199,41 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 
 	// Copy output as it has multiple destination
 	memcpy(&buffer[2].data, &buffer[1].data, sizeof(buffer[1].data));
-	memcpy(&buffer[4].data, &buffer[1].data, sizeof(buffer[1].data));
+	memcpy(&buffer[5].data, &buffer[1].data, sizeof(buffer[1].data));
 
 	// Process out-record for IN 0
-	strips.at(3).processSamples(buffer[1].dataPointers, numChannels, nframes);
+	strips.at(4).processSamples(buffer[1].dataPointers, numChannels, nframes);
 
 	// Get codec MIC data
 	CodecAudio::instance.processAudioInterleavedInput(codecBuffer, nframes);
 	interleavedToFloat(codecBuffer, &buffer[3], nframes);
 
-	// Process mic
+	// Split each mono mic input to 2 buffers
+	mixAudioStereoToDualMono(&buffer[3], &buffer[4], nframes);
+
+	// Process mic 1
 	strips.at(2).processSamples(buffer[3].dataPointers, numChannels, nframes);
 
-	// Mix mic and out-record into IN 0
+	// Process mic 2
+	strips.at(3).processSamples(buffer[4].dataPointers, numChannels, nframes);
+
+	// Mix mic 1 and mic 2
+	mixAudio(&buffer[3], &buffer[4], nframes);
+
+	// Mix mics and out-record into IN 0
 	mixAudio(&buffer[1], &buffer[3], nframes);
 
 	// Output float data to USB endpoint IN 0
 	floatToInterleaved(&buffer[1], output_endpoints[0], nframes);
 
 	// Process mic-feedback
-	strips.at(4).processSamples(buffer[3].dataPointers, numChannels, nframes);
+	strips.at(5).processSamples(buffer[3].dataPointers, numChannels, nframes);
 
 	// Mix mic-feedback with master
 	mixAudio(&buffer[2], &buffer[3], nframes);
 
 	// Process speakers
-	strips.at(5).processSamples(buffer[4].dataPointers, numChannels, nframes);
+	strips.at(6).processSamples(buffer[5].dataPointers, numChannels, nframes);
 
 	// Output float data to codec headphones and speakers
 	floatToInterleaved(&buffer[2], codecBuffer, nframes);
