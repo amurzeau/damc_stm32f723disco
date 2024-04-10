@@ -21,14 +21,9 @@ void OscStatePersist::init() {
 	// Load default config
 	using namespace std::literals;
 	const std::map<std::string_view, std::vector<OscArgument>> default_config = {
-	    {"/strip/1/filterChain/compressorFilter/makeUpGain", {float{-1.f}}},
-	    {"/strip/0/display_name", {"master"sv}},
-	    {"/strip/1/display_name", {"comp"sv}},
-	    {"/strip/2/display_name", {"mic"sv}},
-	    {"/strip/3/display_name", {"out-record"sv}},
-	    {"/strip/4/display_name", {"mic-feedback"sv}},
 	    {"/strip/0/filterChain/volume", {float{-25.f}}},
 	    {"/strip/1/filterChain/compressorFilter/enable", {true}},
+	    {"/strip/1/filterChain/compressorFilter/makeUpGain", {float{-1.f}}},
 	    {"/strip/3/filterChain/mute", {true}},
 	    {"/strip/4/filterChain/mute", {true}},
 	};
