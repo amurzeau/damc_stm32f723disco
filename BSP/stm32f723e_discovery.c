@@ -590,7 +590,7 @@ static HAL_StatusTypeDef I2Cx_ReadMultiple(I2C_HandleTypeDef *i2c_handler, uint8
 {
   HAL_StatusTypeDef status = HAL_OK;
 
-  status = HAL_I2C_Mem_Read(i2c_handler, Addr, (uint16_t)Reg, MemAddress, Buffer, Length, 1000);
+  status = HAL_I2C_Mem_Read(i2c_handler, Addr, (uint16_t)Reg, MemAddress, Buffer, Length, 100);
 
   /* Check the communication status */
   if(status != HAL_OK)
