@@ -318,10 +318,6 @@ void CodecInit::init_codec() {
 	writeI2c(123, 0b00000011);  // Reference Power-up Configuration Register, power up in 120ms
 	HAL_Delay(100);             // Delay for supply rail powerup
 
-	// Headset detection function
-	writeI2c(56, 0b00000000);  // SCLK/MFP3 Function Control Register SCLK/MFP3 is disabled
-	// writeI2c(67, 0b10000000);  // Headset Detection Configuration Register Enable headset detection
-
 	// Configurations and background noise level with MICPGA +20dB:
 	// - MICBIAS @1.7V, @AVDD, common mode 0.9V: -70dB
 	// - MICBIAS @2.5V, @AVDD, common mode 0.9V: -62dB
@@ -392,6 +388,10 @@ void CodecInit::init_codec() {
 
 	// writeI2c(83, 0b01101000);  // ADC Left volume = -12dB
 	// writeI2c(84, 0b01101000);  // ADC Right volume = -12dB
+
+	// Headset detection function
+	writeI2c(56, 0b00000000);  // SCLK/MFP3 Function Control Register SCLK/MFP3 is disabled
+	// writeI2c(67, 0b10000000);  // Headset Detection Configuration Register Enable headset detection
 }
 
 void CodecInit::startTxDMA(void* buffer, size_t size) {
