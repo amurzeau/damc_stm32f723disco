@@ -645,10 +645,10 @@ static uint8_t USBD_AUDIO_EP0_TxReady(USBD_HandleTypeDef *pdev)
   * @param  pdev: device instance
   * @retval status
   */
-uint32_t missed_sofs;
-uint32_t last_frame_number_gap;
-uint32_t duplicate_sofs;
-uint32_t long_sofs;
+__attribute__((used)) uint32_t missed_sofs;
+__attribute__((used)) uint32_t last_frame_number_gap;
+__attribute__((used)) uint32_t duplicate_sofs;
+__attribute__((used)) uint32_t long_sofs;
 static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
 {
   PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;

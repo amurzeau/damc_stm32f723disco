@@ -101,12 +101,12 @@ extern "C" void BSP_AUDIO_OUT_TransferComplete_CallBack(void) {
 	BSP_AUDIO_OUT_HalfTransfer_CallBack();
 }
 
-CircularBuffer<uint32_t, 3> usbBuffers[3];
-int32_t diff_usb[3];
-int32_t expected_buff[3];
-int32_t usb_buff[3];
-int32_t dma_pos_at_usb[3];
-int32_t div_ratio = 1;
+__attribute__((used)) CircularBuffer<uint32_t, 3> usbBuffers[3];
+__attribute__((used)) int32_t diff_usb[3];
+__attribute__((used)) int32_t expected_buff[3];
+__attribute__((used)) int32_t usb_buff[3];
+__attribute__((used)) int32_t dma_pos_at_usb[3];
+__attribute__((used)) int32_t div_ratio = 1;
 uint32_t DAMC_getUSBFeedbackValue(enum DAMC_USB_Buffer_e index) {
 	uint32_t feedback = 6 << 16;  // nominal value: 6 samples per microframe
 
@@ -134,8 +134,8 @@ uint32_t DAMC_getUSBFeedbackValue(enum DAMC_USB_Buffer_e index) {
 	return feedback;
 }
 
-int32_t diff_usb_before_adjust[3];
-int32_t is_underdma;
+__attribute__((used)) int32_t diff_usb_before_adjust[3];
+__attribute__((used)) int32_t is_underdma;
 uint32_t DAMC_getUSBInSizeValue(enum DAMC_USB_Buffer_e index) {
 	uint32_t usb_in_size = 48 << 16;  // nominal value: 48 samples per microframe
 
@@ -164,7 +164,7 @@ uint32_t DAMC_getUSBInSizeValue(enum DAMC_USB_Buffer_e index) {
 	return usb_in_size;
 }
 
-uint32_t available_usb_buffer[3];
+__attribute__((used)) uint32_t available_usb_buffer[3];
 void DAMC_writeAudioSample(enum DAMC_USB_Buffer_e index, const void* data, size_t size) {
 	usbBuffers[index].writeOutBuffer(usbBuffers[index].getReadPos(), (const uint32_t*) data, size);
 	available_usb_buffer[index] = usbBuffers[index].getAvailableReadForDMA(usbBuffers[index].getReadPos());
