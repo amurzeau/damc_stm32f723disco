@@ -811,7 +811,7 @@ void MPU_Config(int enable_psram)
 
  HAL_MPU_ConfigRegion(&MPU_InitStruct);
 
- /* Configure the MPU as cacheable non executable SRAM */
+ /* Configure the MPU as cacheable non executable SRAM (write back, read/write allocate) */
  MPU_InitStruct.Enable = MPU_REGION_ENABLE;
  MPU_InitStruct.BaseAddress = 0x20000000;
  MPU_InitStruct.Size = MPU_REGION_SIZE_512MB;

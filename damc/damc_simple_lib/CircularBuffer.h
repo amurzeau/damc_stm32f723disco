@@ -11,7 +11,7 @@
 #include <stm32f7xx.h>
 #include <string.h>
 
-template<typename T, int N> class CircularBuffer {
+template<typename T, int N, bool do_manage_cache> class CircularBuffer {
 public:
 	CircularBuffer();
 
@@ -38,12 +38,12 @@ private:
 	size_t in_read_offset;
 };
 
-template<typename T, int N> CircularBuffer<T, N>::CircularBuffer() {
+template<typename T, int N, bool do_manage_cache> CircularBuffer<T, N, do_manage_cache>::CircularBuffer() {
 	memset(buffer.data(), 0, buffer.size() * sizeof(buffer[0]));
 }
 
-template<typename T, int N>
-void CircularBuffer<T, N>::writeOutBuffer(uint32_t dma_read_offset, const T* data, size_t nframes) {
+template<typename T, int N, bool do_manage_cache>
+void CircularBuffer<T, N, do_manage_cache>::writeOutBuffer(uint32_t dma_read_offset, const T* data, size_t nframes) {
 	uint16_t start = out_write_offset;
 	uint16_t size = nframes;
 
@@ -70,12 +70,17 @@ void CircularBuffer<T, N>::writeOutBuffer(uint32_t dma_read_offset, const T* dat
 	}
 
 	assert(end < buffer.size());
-	SCB_CleanDCache_by_Addr((uint32_t*) buffer.data(), buffer.size() * sizeof(buffer[0]));
+	if(do_manage_cache) {
+		SCB_CleanDCache_by_Addr((uint32_t*) buffer.data(), buffer.size() * sizeof(buffer[0]));
+	} else {
+		__DSB();
+	}
+	assert(out_write_offset == start);
 	out_write_offset = end;
 }
 
-template<typename T, int N>
-size_t CircularBuffer<T, N>::readInBuffer(uint32_t dma_write_offset, T* data, size_t nframes) {
+template<typename T, int N, bool do_manage_cache>
+size_t CircularBuffer<T, N, do_manage_cache>::readInBuffer(uint32_t dma_write_offset, T* data, size_t nframes) {
 	uint16_t start = in_read_offset;
 
 	uint16_t end = dma_write_offset;
@@ -86,13 +91,15 @@ size_t CircularBuffer<T, N>::readInBuffer(uint32_t dma_write_offset, T* data, si
 
 	if(size > nframes) {
 		size = nframes;
-		end = (in_read_offset + size) % buffer.size();
+		end = (start + size) % buffer.size();
 	}
 	assert(end < buffer.size());
 
 	uint16_t total_size = 0;
 
-	SCB_InvalidateDCache_by_Addr((uint32_t*) buffer.data(), buffer.size() * sizeof(buffer[0]));
+	if(do_manage_cache) {
+		SCB_InvalidateDCache_by_Addr((uint32_t*) buffer.data(), buffer.size() * sizeof(buffer[0]));
+	}
 
 	if(end < start) {
 		// Copy between start and end of buffer
@@ -118,6 +125,10 @@ size_t CircularBuffer<T, N>::readInBuffer(uint32_t dma_write_offset, T* data, si
 		data[i] = fill_sample;
 	}
 
+	if(!do_manage_cache) {
+		__DSB();
+	}
+	assert(in_read_offset == start);
 	in_read_offset = end;
 
 	return size;
