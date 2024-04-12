@@ -30,7 +30,7 @@ private:
 	struct CodecFrame {
 		int16_t headphone[2];
 	};
-	CircularBuffer<CodecFrame, 2> out_buffer;
-	CircularBuffer<CodecFrame, 2> in_buffer;
+	CircularBuffer<CodecFrame, 2, true> out_buffer;
+	CircularBuffer<CodecFrame, 2, true> in_buffer;
 	CodecInit codecInit;
 };
