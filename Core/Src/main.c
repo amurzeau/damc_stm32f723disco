@@ -130,6 +130,8 @@ int main(void)
 
   // memtester_stm32((void*)0x60000000, 512*1024, 10);
 
+  // Enable Flush-To-Zero to avoid denormals
+  FPU->FPDSCR |= FPU_FPDSCR_FZ_Msk;
 
   DAMC_init();
 
