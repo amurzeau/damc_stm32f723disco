@@ -34,9 +34,11 @@ public:
 	std::complex<float> getResponse(float f0, float fs);
 
 private:
-	// Use offset of 0.5 to avoid denormals
-	float s1 = 0.5;
-	float s2 = 0.5;
 	float b_coefs[3] = {};
 	float a_coefs[2] = {};
+
+	float input1 = 0;
+	float input2 = 0;
+	float output1 = 0;
+	float output2 = 0;
 };

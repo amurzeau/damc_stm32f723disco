@@ -19,9 +19,14 @@ float BiquadFilter::put(float input) {
 	const float* const a = a_coefs;
 	const float* const b = b_coefs;
 
-	float y = b[0] * input + s1 - 0.5;
-	s1 = s2 + b[1] * input - a[0] * y;
-	s2 = b[2] * input - a[1] * y + 0.5;
+	// Direct form 1 implementation, leads to better performance than Transposed direct form 2. (18% cpu in audio
+	// processing vs 20% for 10 EqFilters (percentages without other processing))
+	float y = b[0] * input + b[1] * input1 + b[2] * input2 - a[0] * output1 - a[1] * output2;
+
+	input2 = input1;
+	input1 = input;
+	output2 = output1;
+	output1 = y;
 
 	return y;
 }
@@ -37,14 +42,8 @@ std::complex<float> BiquadFilter::getResponse(float f0, float fs) {
 	return (b[0] + b[1] * z_1 + b[2] * z_2) / (std::complex<float>(1) + a[0] * z_1 + a[1] * z_2);
 }
 
-void BiquadFilter::computeFilter(bool enabled,
-                                 FilterType filterType,
-                                 float f0,
-                                 float fs,
-                                 float gain,
-                                 float Q,
-                                 float a_coefs[3],
-                                 float b_coefs[3]) {
+void BiquadFilter::computeFilter(
+    bool enabled, FilterType filterType, float f0, float fs, float gain, float Q, float a_coefs[3], float b_coefs[3]) {
 	if(!enabled || Q == 0 || fs == 0) {
 		b_coefs[0] = 1;
 		b_coefs[1] = 0;
@@ -53,9 +52,9 @@ void BiquadFilter::computeFilter(bool enabled,
 		a_coefs[1] = 0;
 		a_coefs[2] = 0;
 	} else {
-		float A = pow(10, gain / 40);
-		float w0 = 2 * M_PI * f0 / fs;
-		float alpha = sin(w0) / (2 * Q);
+		double A = pow(10.0, gain / 40.0);
+		double w0 = 2.0 * M_PI * f0 / fs;
+		double alpha = sin(w0) / (2.0 * Q);
 
 		switch(filterType) {
 			default:
