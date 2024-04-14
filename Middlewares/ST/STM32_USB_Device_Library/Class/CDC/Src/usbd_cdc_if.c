@@ -93,7 +93,7 @@ struct USBD_CDC_CircularBuffer {
   uint32_t current_theorical_size; // Size without counting discarded data
   uint16_t write_index;
   uint16_t read_index;
-  uint8_t buffer[CDC_DATA_HS_MAX_PACKET_SIZE];
+  uint8_t buffer[CDC_DATA_HS_MAX_PACKET_SIZE*2];
   uint8_t usb_buffer[CDC_DATA_HS_MAX_PACKET_SIZE];
   uint8_t usb_busy;
   uint8_t usb_idle; // USB didn't send data for more than 10ms
@@ -104,6 +104,19 @@ static struct USBD_CDC_CircularBuffer txBuffer;
 static USBD_HandleTypeDef *usb_pdev;
 
 /* Private functions ---------------------------------------------------------*/
+
+static void USB_CDC_IF_receiveIfReady() {
+  if(rxBuffer.usb_busy || !usb_pdev) {
+    return;
+  }
+
+  uint16_t max_size = (rxBuffer.read_index - rxBuffer.write_index - 1 + sizeof(rxBuffer.buffer)) % sizeof(rxBuffer.buffer);
+  if(max_size >= CDC_DATA_HS_OUT_PACKET_SIZE) {
+	// Enough room to receive a packet, start reception
+	rxBuffer.usb_busy = 1;
+  	USBD_CDC_ReceivePacket(usb_pdev);
+  }
+}
 
 static void USB_CDC_IF_sendPending() {
   if(txBuffer.usb_busy || !usb_pdev) {
@@ -220,9 +233,11 @@ static int8_t USB_CDC_IF_Init(USBD_HandleTypeDef *pdev)
   usb_pdev = pdev;
 
   txBuffer.usb_busy = 0;
+  rxBuffer.usb_busy = 0;
 
   USBD_CDC_SetRxBuffer(pdev, rxBuffer.usb_buffer);
   USB_CDC_IF_sendPending();
+  // No need to start receiving, this is already done in usbd_cdc.c
 
   return (0);
 }
@@ -341,6 +356,8 @@ static int8_t USB_CDC_IF_Receive(uint8_t *Buf, uint32_t *Len)
   uint16_t size = *Len;
   uint16_t max_size = (rxBuffer.read_index - rxBuffer.write_index - 1 + sizeof(rxBuffer.buffer)) % sizeof(rxBuffer.buffer);
 
+  rxBuffer.usb_busy = 0;
+
   rxBuffer.current_theorical_size += size;
   if(rxBuffer.max_write_size < rxBuffer.current_theorical_size)
     rxBuffer.max_write_size = rxBuffer.current_theorical_size;
@@ -370,7 +387,7 @@ static int8_t USB_CDC_IF_Receive(uint8_t *Buf, uint32_t *Len)
   __DSB();
   rxBuffer.write_index = end;
 
-  USBD_CDC_ReceivePacket(usb_pdev);
+  USB_CDC_IF_receiveIfReady();
 
   return (0);
 }
@@ -423,6 +440,9 @@ void USB_CDC_IF_TX_write(const uint8_t *Buf, uint32_t Len)
 uint32_t USB_CDC_IF_RX_read(uint8_t *Buf, uint32_t max_len)
 {
   size_t i = 0;
+  
+  USB_CDC_IF_receiveIfReady();
+
   while(i < max_len && USB_CDC_IF_BUFFER_read_char(&rxBuffer, &Buf[i])) {
     i++;
   }
