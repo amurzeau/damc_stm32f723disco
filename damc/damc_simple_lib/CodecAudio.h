@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CircularBuffer.h"
-#include "tlv320aic3254.h"
+#include "CodecDamcHATInit.h"
 #include <array>
 #include <stdint.h>
 #include <vector>
@@ -32,5 +32,5 @@ private:
 	};
 	CircularBuffer<CodecFrame, 2, true> out_buffer;
 	CircularBuffer<CodecFrame, 2, true> in_buffer;
-	CodecInit codecInit;
+	CodecDamcHATInit codecDamcHATInit;
 };

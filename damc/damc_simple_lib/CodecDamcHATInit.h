@@ -11,7 +11,7 @@ void DMA2_Stream3_IRQHandler(void);
 void DMA2_Stream5_IRQHandler(void);
 }
 
-class CodecInit {
+class CodecDamcHATInit {
 public:
 	void init();
 	void init_sai();

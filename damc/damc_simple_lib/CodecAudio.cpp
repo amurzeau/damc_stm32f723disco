@@ -22,9 +22,9 @@ void CodecAudio::start() {
 	// Size in words (16 bits)
 	// BSP_AUDIO_IN_Record((uint16_t*) in_buffer.getBuffer(), in_buffer.getSize() / 2);
 
-	codecInit.init();
-	codecInit.startTxDMA(out_buffer.getBuffer(), out_buffer.getSize());
-	codecInit.startRxDMA(in_buffer.getBuffer(), in_buffer.getSize());
+	codecDamcHATInit.init();
+	codecDamcHATInit.startTxDMA(out_buffer.getBuffer(), out_buffer.getSize());
+	codecDamcHATInit.startRxDMA(in_buffer.getBuffer(), in_buffer.getSize());
 }
 
 volatile uint32_t diff_dma_out;
@@ -42,13 +42,13 @@ void CodecAudio::processAudioInterleavedInput(int16_t* data_output, size_t nfram
 }
 
 uint32_t CodecAudio::getDMAOutPos() {
-	uint32_t dma_pos = codecInit.getTxRemainingCount();
+	uint32_t dma_pos = codecDamcHATInit.getTxRemainingCount();
 	uint16_t dma_read_offset = out_buffer.getCount() - ((dma_pos + 1) / (out_buffer.getElementSize() / 2));
 	return dma_read_offset;
 }
 
 uint32_t CodecAudio::getDMAInPos() {
-	uint32_t dma_pos = codecInit.getRxRemainingCount();
+	uint32_t dma_pos = codecDamcHATInit.getRxRemainingCount();
 	uint16_t dma_write_offset = in_buffer.getCount() - ((dma_pos + 1) / (in_buffer.getElementSize() / 2));
 	return dma_write_offset;
 }

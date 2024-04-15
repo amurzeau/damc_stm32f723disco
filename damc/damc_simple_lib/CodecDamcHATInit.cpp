@@ -1,11 +1,11 @@
-#include "tlv320aic3254.h"
+#include "CodecDamcHATInit.h"
 #include <stdlib.h>
 #include <stm32f723e_discovery.h>
 #include <stm32f7xx_hal_gpio.h>
 
 #pragma GCC optimize("O0")
 
-static CodecInit* codec = nullptr;
+static CodecDamcHATInit* codec = nullptr;
 
 /* HAT DMA2 */
 extern "C" void DMA2_Stream3_IRQHandler(void) {
@@ -16,7 +16,7 @@ extern "C" void DMA2_Stream5_IRQHandler(void) {
 	HAL_DMA_IRQHandler(codec->hsai_rx.hdmarx);
 }
 
-void CodecInit::init() {
+void CodecDamcHATInit::init() {
 	codec = this;
 
 	__HAL_RCC_I2C2_CLK_ENABLE();
@@ -60,7 +60,7 @@ void CodecInit::init() {
 	setTpaEn(true);
 }
 
-void CodecInit::init_sai() {
+void CodecDamcHATInit::init_sai() {
 	__HAL_RCC_SAI1_CLK_ENABLE();
 	__HAL_RCC_DMA2_CLK_ENABLE();
 
@@ -196,7 +196,7 @@ void CodecInit::init_sai() {
 	__HAL_SAI_ENABLE(&hsai_tx);
 }
 
-void CodecInit::init_codec() {
+void CodecDamcHATInit::init_codec() {
 	// Reset Audio Codec
 	setReset(false);
 	HAL_Delay(2);  // Delay for 2mS for reset of codec
@@ -394,32 +394,32 @@ void CodecInit::init_codec() {
 	// writeI2c(67, 0b10000000);  // Headset Detection Configuration Register Enable headset detection
 }
 
-void CodecInit::startTxDMA(void* buffer, size_t size) {
+void CodecDamcHATInit::startTxDMA(void* buffer, size_t size) {
 	/* Update the Media layer and enable it for play */
 	HAL_SAI_Transmit_DMA(&hsai_tx, (uint8_t*) buffer, size / 2);
 }
 
-void CodecInit::startRxDMA(void* buffer, size_t size) {
+void CodecDamcHATInit::startRxDMA(void* buffer, size_t size) {
 	/* Update the Media layer and enable it for play */
 	HAL_SAI_Receive_DMA(&hsai_rx, (uint8_t*) buffer, size / 2);
 }
 
-uint16_t CodecInit::getTxRemainingCount(void) {
+uint16_t CodecDamcHATInit::getTxRemainingCount(void) {
 	return __HAL_DMA_GET_COUNTER(hsai_tx.hdmatx);
 }
 
-uint16_t CodecInit::getRxRemainingCount(void) {
+uint16_t CodecDamcHATInit::getRxRemainingCount(void) {
 	return __HAL_DMA_GET_COUNTER(hsai_rx.hdmarx);
 }
 
-void CodecInit::writeI2c(uint8_t address, uint8_t value) {
+void CodecDamcHATInit::writeI2c(uint8_t address, uint8_t value) {
 	HAL_StatusTypeDef status = HAL_I2C_Mem_Write(&hi2c, 0x30, address, 1, &value, 1, 1000);
 	if(status != HAL_OK) {
 		value = 0;
 	}
 }
 
-uint8_t CodecInit::readI2c(uint8_t address) {
+uint8_t CodecDamcHATInit::readI2c(uint8_t address) {
 	uint8_t value = 0;
 	HAL_StatusTypeDef status = HAL_I2C_Mem_Read(&hi2c, 0x30, address, 1, &value, 1, 1000);
 	if(status != HAL_OK) {
@@ -428,12 +428,12 @@ uint8_t CodecInit::readI2c(uint8_t address) {
 	return value;
 }
 
-void CodecInit::setReset(bool value) {
+void CodecDamcHATInit::setReset(bool value) {
 	GPIO_PinState gpio_value = value ? GPIO_PIN_SET : GPIO_PIN_RESET;
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, gpio_value);
 }
 
-void CodecInit::setTpaEn(bool value) {
+void CodecDamcHATInit::setTpaEn(bool value) {
 	GPIO_PinState gpio_value = value ? GPIO_PIN_SET : GPIO_PIN_RESET;
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, gpio_value);
 }
