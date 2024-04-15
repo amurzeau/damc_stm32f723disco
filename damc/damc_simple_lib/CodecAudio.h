@@ -2,6 +2,7 @@
 
 #include "CircularBuffer.h"
 #include "CodecDamcHATInit.h"
+#include "CodecSTM32F723EDiscoInit.h"
 #include <array>
 #include <stdint.h>
 #include <vector>
@@ -30,7 +31,14 @@ private:
 	struct CodecFrame {
 		int16_t headphone[2];
 	};
-	CircularBuffer<CodecFrame, 2, true> out_buffer;
-	CircularBuffer<CodecFrame, 2, true> in_buffer;
+	struct CodecBuffers {
+		CircularBuffer<CodecFrame, 2, true> out_buffer;
+		CircularBuffer<CodecFrame, 2, true> in_buffer;
+	};
+
+	CodecBuffers codecBuffers;
+
+	CodecSTM32F723EDiscoInit codecSTM32F723EDiscoInit;
 	CodecDamcHATInit codecDamcHATInit;
+	bool useTlvAsMclkMaster;
 };

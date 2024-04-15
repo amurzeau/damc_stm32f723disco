@@ -9,47 +9,65 @@
 
 CodecAudio CodecAudio::instance;
 
-CodecAudio::CodecAudio() {}
+CodecAudio::CodecAudio() : useTlvAsMclkMaster(false) {}
 
 void CodecAudio::start() {
-	// 91 gives 0dB HPOUT1L_VOL
-	// 80 gives 0dB AIF1ADC1L_VOL
-	// BSP_AUDIO_IN_OUT_Init(INPUT_DEVICE_INPUT_LINE_1, OUTPUT_DEVICE_BOTH, 48000, 16, 2, 91, 80);
+	codecDamcHATInit.init_i2c();
+	useTlvAsMclkMaster = codecDamcHATInit.isAvailable();
 
-	// Size in bytes
-	// BSP_AUDIO_OUT_Play((uint16_t*) out_buffer.getBuffer(), out_buffer.getSize());
+	if(useTlvAsMclkMaster) {
+		codecDamcHATInit.init();
+		codecDamcHATInit.startTxDMA(codecBuffers.out_buffer.getBuffer(), codecBuffers.out_buffer.getSize());
+		codecDamcHATInit.startRxDMA(codecBuffers.in_buffer.getBuffer(), codecBuffers.in_buffer.getSize());
+	} else {
+		codecSTM32F723EDiscoInit.init(useTlvAsMclkMaster);
 
-	// Size in words (16 bits)
-	// BSP_AUDIO_IN_Record((uint16_t*) in_buffer.getBuffer(), in_buffer.getSize() / 2);
+		codecSTM32F723EDiscoInit.init_after_clock_enabled();
 
-	codecDamcHATInit.init();
-	codecDamcHATInit.startTxDMA(out_buffer.getBuffer(), out_buffer.getSize());
-	codecDamcHATInit.startRxDMA(in_buffer.getBuffer(), in_buffer.getSize());
+		codecSTM32F723EDiscoInit.startTxDMA(codecBuffers.out_buffer.getBuffer(), codecBuffers.out_buffer.getSize());
+		codecSTM32F723EDiscoInit.startRxDMA(codecBuffers.in_buffer.getBuffer(), codecBuffers.in_buffer.getSize());
+	}
 }
 
 volatile uint32_t diff_dma_out;
 void CodecAudio::processAudioInterleavedOutput(const int16_t* data_input, size_t nframes) {
 	uint16_t dma_read_offset = getDMAOutPos();
-	diff_dma_out = out_buffer.getAvailableReadForDMA(dma_read_offset);
-	out_buffer.writeOutBuffer(dma_read_offset, (CodecFrame*) data_input, nframes);
+	diff_dma_out = codecBuffers.out_buffer.getAvailableReadForDMA(dma_read_offset);
+	codecBuffers.out_buffer.writeOutBuffer(dma_read_offset, (CodecFrame*) data_input, nframes);
 }
 
 volatile uint32_t diff_dma_in;
 void CodecAudio::processAudioInterleavedInput(int16_t* data_output, size_t nframes) {
 	uint16_t dma_write_offset = getDMAInPos();
-	diff_dma_in = out_buffer.getAvailableWriteForDMA(dma_write_offset);
-	in_buffer.readInBuffer(dma_write_offset, (CodecFrame*) data_output, nframes);
+	diff_dma_in = codecBuffers.out_buffer.getAvailableWriteForDMA(dma_write_offset);
+	codecBuffers.in_buffer.readInBuffer(dma_write_offset, (CodecFrame*) data_output, nframes);
 }
 
 uint32_t CodecAudio::getDMAOutPos() {
-	uint32_t dma_pos = codecDamcHATInit.getTxRemainingCount();
-	uint16_t dma_read_offset = out_buffer.getCount() - ((dma_pos + 1) / (out_buffer.getElementSize() / 2));
+	uint32_t dma_pos;
+
+	if(useTlvAsMclkMaster) {
+		dma_pos = codecDamcHATInit.getTxRemainingCount();
+	} else {
+		dma_pos = codecSTM32F723EDiscoInit.getTxRemainingCount();
+	}
+
+	uint16_t dma_read_offset =
+	    codecBuffers.out_buffer.getCount() - ((dma_pos + 1) / (codecBuffers.out_buffer.getElementSize() / 2));
 	return dma_read_offset;
 }
 
 uint32_t CodecAudio::getDMAInPos() {
-	uint32_t dma_pos = codecDamcHATInit.getRxRemainingCount();
-	uint16_t dma_write_offset = in_buffer.getCount() - ((dma_pos + 1) / (in_buffer.getElementSize() / 2));
+	uint32_t dma_pos;
+
+	if(useTlvAsMclkMaster) {
+		dma_pos = codecDamcHATInit.getRxRemainingCount();
+	} else {
+		dma_pos = codecSTM32F723EDiscoInit.getRxRemainingCount();
+	}
+
+	uint16_t dma_write_offset =
+	    codecBuffers.in_buffer.getCount() - ((dma_pos + 1) / (codecBuffers.in_buffer.getElementSize() / 2));
 	return dma_write_offset;
 }
 

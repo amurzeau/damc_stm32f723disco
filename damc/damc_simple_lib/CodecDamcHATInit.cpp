@@ -14,9 +14,18 @@ extern "C" void DMA2_Stream5_IRQHandler(void) {
 	HAL_DMA_IRQHandler(codec->hsai_rx.hdmarx);
 }
 
-void CodecDamcHATInit::init() {
-	codec = this;
+bool CodecDamcHATInit::isAvailable() {
+	// Reset Audio Codec
+	setReset(false);
+	HAL_Delay(2);  // Delay for 2mS for reset of codec
+	setReset(true);
+	HAL_Delay(2);  // Delay for 2mS before first write
 
+	// Check if available
+	return HAL_I2C_IsDeviceReady(&hi2c, 0x30, 1, 1000) == HAL_OK;
+}
+
+void CodecDamcHATInit::init_i2c() {
 	__HAL_RCC_I2C2_CLK_ENABLE();
 	hi2c.Instance = I2C2;
 	hi2c.Init.Timing = DISCOVERY_I2Cx_TIMING;
@@ -29,6 +38,10 @@ void CodecDamcHATInit::init() {
 
 	/* Init the I2C */
 	HAL_I2C_Init(&hi2c);
+}
+
+void CodecDamcHATInit::init() {
+	codec = this;
 
 	// Configure for 13.5MHz on TIM5_CH2
 	__HAL_RCC_TIM5_CLK_ENABLE();

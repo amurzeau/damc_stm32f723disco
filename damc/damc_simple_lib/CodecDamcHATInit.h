@@ -13,6 +13,9 @@ void DMA2_Stream5_IRQHandler(void);
 
 class CodecDamcHATInit {
 public:
+	void init_i2c();
+	bool isAvailable();
+
 	void init();
 	void init_sai();
 	void init_codec();
