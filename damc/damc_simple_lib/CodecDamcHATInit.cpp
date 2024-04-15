@@ -3,8 +3,6 @@
 #include <stm32f723e_discovery.h>
 #include <stm32f7xx_hal_gpio.h>
 
-#pragma GCC optimize("O0")
-
 static CodecDamcHATInit* codec = nullptr;
 
 /* HAT DMA2 */
