@@ -6,7 +6,7 @@ uint32_t TimeMeasure::clock_per_us = 1;
 TimeMeasure TimeMeasure::timeMeasure[TMI_NUMBER];
 
 void TimeMeasure::updateClockPerUs() {
-	clock_per_us = 108;
+	clock_per_us = 1;
 }
 
 void TimeMeasure::on1msElapsed() {
@@ -72,13 +72,13 @@ uint32_t TimeMeasure::getCurrent() {
 }
 
 uint32_t TimeMeasure::getCumulatedTimeUsAndReset() {
-	uint64_t measured_time_us = time_sum / clock_per_us;
+	uint32_t measured_time_us = time_sum / clock_per_us;
 	time_sum = 0;
 	return measured_time_us;
 }
 
 uint32_t TimeMeasure::getMaxTimeUsAndReset() {
-	uint64_t measured_time_us = time_max / clock_per_us;
+	uint32_t measured_time_us = time_max / clock_per_us;
 	time_max = 0;
 	return measured_time_us;
 }

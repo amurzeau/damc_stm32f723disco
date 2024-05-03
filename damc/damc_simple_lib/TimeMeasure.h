@@ -31,8 +31,8 @@ public:
 
 private:
 	static uint32_t clock_per_us;
-	uint64_t time_sum;
-	uint64_t time_sum_per_loop;
+	uint32_t time_sum;
+	uint32_t time_sum_per_loop;
 	uint32_t time_max;
 	uint32_t begin_time;
 	bool isMeasuring;
