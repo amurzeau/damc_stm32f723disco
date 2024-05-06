@@ -71,7 +71,7 @@ target_compile_options(
     ${TARGET_NAME} PRIVATE
     -ggdb3
 	-gdwarf-4
-    "$<$<NOT:$<CONFIG:Debug>>:-O3>"
+    "$<$<NOT:$<CONFIG:Debug>>:-Ofast>"
 	-Wall
 	-Wno-psabi
 	-ffast-math
