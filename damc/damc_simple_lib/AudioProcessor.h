@@ -61,8 +61,8 @@ private:
 	OscRoot oscRoot;
 	OscSerialClient serialClient;
 	Controls controls;
-	OscFixedArray<ChannelStrip, 7> oscStrips;
-	std::array<ChannelStrip, 7> strips;
+	OscFixedArray<ChannelStrip, 6> oscStrips;
+	std::array<ChannelStrip, 6> strips;
 	OscStatePersist oscStatePersist;
 
 	OscReadOnlyVariable<int32_t> oscTimeMeasure[TMI_NUMBER];
@@ -78,7 +78,7 @@ private:
 	uint32_t slowTimerPreviousTick;
 	uint32_t slowTimerIndex;
 
-	MultiChannelAudioBuffer buffer[6];
+	MultiChannelAudioBuffer buffer[5];
 	int16_t codecBuffer[MultiChannelAudioBuffer::BUFFER_SIZE * MultiChannelAudioBuffer::CHANNEL_NUMBER * 2]
 	    __attribute__((aligned(4)));
 
