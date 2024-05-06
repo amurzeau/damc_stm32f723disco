@@ -21,6 +21,9 @@ add_library(${TARGET_NAME} STATIC
 	PeakMeter.h
 	LoudnessMeter.cpp
 	LoudnessMeter.h
+	ResamplingFilter.cpp
+	ResamplingFilter_coefs.cpp
+	ResamplingFilter.h
 )
 target_link_libraries(${TARGET_NAME} PUBLIC  damc_common spdlog::spdlog)
 target_compile_definitions(${TARGET_NAME} PRIVATE _USE_MATH_DEFINES _CRT_SECURE_NO_WARNINGS NOMINMAX)
