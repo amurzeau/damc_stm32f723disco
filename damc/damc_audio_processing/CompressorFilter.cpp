@@ -25,10 +25,17 @@ CompressorFilter::CompressorFilter(OscContainer* parent)
       lufsGate(this, "lufsGate", -80),
       lufsRealtimeLevel(-138),
       lufsMeter(this, "lufsMeter", 0) {
-	reset(48000);
-	attackTime.addChangeCallback([this](float oscValue) { alphaA = oscValue != 0 ? expf(-1 / (oscValue * fs)) : 0; });
-	releaseTime.addChangeCallback([this](float oscValue) { alphaR = oscValue != 0 ? expf(-1 / (oscValue * fs)) : 0; });
-	ratio.addChangeCallback([this](float oscValue) { gainDiffRatio = 1 - 1 / oscValue; });
+	reset();
+	attackTime.addChangeCallback(
+	    [this](float oscValue) { alphaA = oscValue != 0 ? expf(-1 / (oscValue * 48000)) : 0; });
+	releaseTime.addChangeCallback(
+	    [this](float oscValue) { alphaR = oscValue != 0 ? expf(-1 / (oscValue * 48000)) : 0; });
+	ratio.addChangeCallback([this](float oscValue) {
+		gainDiffRatio = 1 - 1 / oscValue;
+		reset();
+	});
+	threshold.addChangeCallback([this](float oscValue) { reset(); });
+	kneeWidth.addChangeCallback([this](float oscValue) { reset(); });
 	lufsIntegrationTime.addChangeCallback([this](float oscValue) {
 		for(auto& loudnessMeter : loudnessMeters) {
 			loudnessMeter.setAveragingTime(oscValue);
@@ -46,9 +53,10 @@ void CompressorFilter::init(size_t numChannel) {
 	// loudnessMeters.resize(numChannel);
 }
 
-void CompressorFilter::reset(float fs) {
-	this->fs = fs;
-	y1 = yL = 0.f;
+void CompressorFilter::reset() {
+	if(!enablePeak.get() && !enableLoudness.get()) {
+		y1 = yL = gainComputer(0.f);
+	}
 }
 
 void CompressorFilter::processSamples(float** samples, size_t count) {
@@ -94,7 +102,9 @@ float CompressorFilter::doCompression(float levelPeak, float levelLoudness) {
 	}
 
 	if(dbSample == -INFINITY) {
-		return 0;
+		// When no sound, avoid big amplification that would cause high volume sound when some sound is played
+		// Make the gain assume the volume is 0dBFS.
+		dbSample = 0;
 	}
 
 	levelDetectorSmoothing(gainComputer(dbSample));

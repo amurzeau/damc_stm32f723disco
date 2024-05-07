@@ -81,7 +81,7 @@ void FilterChain::reset(float fs) {
 		filter.reset(fs);
 	}
 
-	compressorFilter.reset(fs);
+	compressorFilter.reset();
 	expanderFilter.reset(fs);
 }
 
