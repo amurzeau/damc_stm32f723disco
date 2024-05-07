@@ -86,13 +86,6 @@ void FilterChain::reset(float fs) {
 }
 
 void FilterChain::processSamples(float** samples, size_t numChannel, size_t count) {
-	float* peaks = (float*) alloca(sizeof(float) * numChannel);
-	float masterVolume = this->masterVolume.get();
-
-	if(reverseAudioSignal) {
-		masterVolume *= -1;
-	}
-
 	for(uint32_t channel = 0; channel < numChannel; channel++) {
 		delayFilters[channel].processSamples(samples[channel], count);
 	}
@@ -108,12 +101,25 @@ void FilterChain::processSamples(float** samples, size_t numChannel, size_t coun
 	//		reverbFilters.at(channel).processSamples(samples[channel], count);
 	//	}
 
+	bool doMute = mute;
+	float masterVolume = this->masterVolume.get();
+
+	if(reverseAudioSignal) {
+		masterVolume *= -1;
+	}
+
+	float peaks[numChannel];
+
 	for(uint32_t channel = 0; channel < numChannel; channel++) {
 		float volume = this->volume[channel] * masterVolume;
+		float* channelSamples = samples[channel];
 		float peak = 0;
 		for(size_t i = 0; i < count; i++) {
-			samples[channel][i] *= volume;
-			peak = fmaxf(peak, fabsf(samples[channel][i]));
+			channelSamples[i] *= volume;
+			peak = fmaxf(peak, fabsf(channelSamples[i]));
+			if(doMute) {
+				channelSamples[i] = 0.0f;
+			}
 		}
 		peaks[channel] = peak;
 	}
@@ -122,12 +128,6 @@ void FilterChain::processSamples(float** samples, size_t numChannel, size_t coun
 	// 	peakMeter.loudnessMeters[channel].processSamples(samples[channel], count);
 	// }
 	peakMeter.processSamples(peaks, numChannel, count);
-
-	if(mute) {
-		for(uint32_t channel = 0; channel < numChannel; channel++) {
-			std::fill_n(samples[channel], count, 0);
-		}
-	}
 }
 
 float FilterChain::processSideChannelSample(float input) {
