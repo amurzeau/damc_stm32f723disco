@@ -8,20 +8,29 @@ void BiquadFilter::init(const float a_coefs[], const float b_coefs[]) {
 }
 
 void BiquadFilter::update(const float a_coefs[], const float b_coefs[]) {
-	this->b_coefs[0] = b_coefs[0] / a_coefs[0];
-	this->b_coefs[1] = b_coefs[1] / a_coefs[0];
-	this->b_coefs[2] = b_coefs[2] / a_coefs[0];
-	this->a_coefs[0] = a_coefs[1] / a_coefs[0];
-	this->a_coefs[1] = a_coefs[2] / a_coefs[0];
+	this->coefs[0] = b_coefs[0] / a_coefs[0];
+	this->coefs[1] = b_coefs[1] / a_coefs[0];
+	this->coefs[2] = b_coefs[2] / a_coefs[0];
+	this->coefs[3] = -a_coefs[1] / a_coefs[0];
+	this->coefs[4] = -a_coefs[2] / a_coefs[0];
+
+	arm_biquad_cascade_df2T_init_f32(&S, 1, coefs, state);
+}
+
+void BiquadFilter::processFilter(float* __restrict samples, size_t count) {
+	// Previous custom biquad algorithm cpu usage: 4.48%
+	// With df1 CMSIS algorithm: 2.78%
+	// With df2T CMSIS algorithm: 2.52%
+	arm_biquad_cascade_df2T_f32(&S, samples, samples, count);
 }
 
 float BiquadFilter::put(float input) {
-	const float* const a = a_coefs;
-	const float* const b = b_coefs;
+	const float* const b = &coefs[0];
+	const float* const a = &coefs[3];
 
 	// Direct form 1 implementation, leads to better performance than Transposed direct form 2. (18% cpu in audio
 	// processing vs 20% for 10 EqFilters (percentages without other processing))
-	float y = b[0] * input + b[1] * input1 + b[2] * input2 - a[0] * output1 - a[1] * output2;
+	float y = b[0] * input + b[1] * input1 + b[2] * input2 + a[0] * output1 + a[1] * output2;
 
 	input2 = input1;
 	input1 = input;
@@ -29,17 +38,6 @@ float BiquadFilter::put(float input) {
 	output1 = y;
 
 	return y;
-}
-
-std::complex<float> BiquadFilter::getResponse(float f0, float fs) {
-	const float* const a = a_coefs;
-	const float* const b = b_coefs;
-
-	float w = 2 * M_PI * f0 / fs;
-	std::complex<float> z_1 = std::exp(std::complex<float>(0, -1 * w));
-	std::complex<float> z_2 = std::exp(std::complex<float>(0, -2 * w));
-
-	return (b[0] + b[1] * z_1 + b[2] * z_2) / (std::complex<float>(1) + a[0] * z_1 + a[1] * z_2);
 }
 
 void BiquadFilter::computeFilter(
