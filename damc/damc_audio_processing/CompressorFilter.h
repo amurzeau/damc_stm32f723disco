@@ -13,7 +13,7 @@ protected:
 public:
 	CompressorFilter(OscContainer* parent);
 	void init(size_t numChannel);
-	void reset(float fs);
+	void reset();
 	void processSamples(float** samples, size_t count);
 
 	void onFastTimer();
@@ -43,7 +43,6 @@ private:
 
 	OscVariable<bool> enablePeak;
 	OscVariable<bool> enableLoudness;
-	float fs;
 	float alphaR;
 	float alphaA;
 	OscVariable<float> attackTime;
