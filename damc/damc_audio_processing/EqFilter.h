@@ -15,7 +15,6 @@ public:
 	void reset(float fs);
 	void processSamples(float** samples, size_t count);
 
-	std::complex<float> getResponse(float f0);
 
 private:
 	OscVariable<bool> enabled;
