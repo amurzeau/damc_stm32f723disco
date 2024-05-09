@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ChannelStrip.h"
+#include "CodecAudio.h"
 #include "Controls.h"
 #include "LCDController.h"
 #include "OscSerialClient.h"
@@ -47,20 +48,22 @@ public:
 protected:
 	void interleavedToFloat(const int16_t* data_input, MultiChannelAudioBuffer* data_float, size_t nframes);
 	void floatToInterleaved(MultiChannelAudioBuffer* data_float, int16_t* data_output, size_t nframes);
-	void interleavedToFloatCodec(const int16_t* data_input, MultiChannelAudioBuffer* data_float0, size_t nframes);
-	void floatToInterleavedCodec(MultiChannelAudioBuffer* data_float0,
-	                             MultiChannelAudioBuffer* data_float1,
-	                             int16_t* data_output,
+	void interleavedToFloatCodec(const CodecAudio::CodecFrame* data_input,
+	                             MultiChannelAudioBuffer* data_float0,
+	                             size_t nframes);
+	void floatToInterleavedCodec(MultiChannelAudioBuffer* data_float,
+	                             CodecAudio::CodecFrame* data_output,
 	                             size_t nframes);
 	void mixAudio(MultiChannelAudioBuffer* mixed_data, MultiChannelAudioBuffer* data_to_add, size_t nframes);
 	void mixAudioStereoToDualMono(MultiChannelAudioBuffer* dual_mono, MultiChannelAudioBuffer* output2, size_t nframes);
 
 private:
+	MultiChannelAudioBuffer buffer[5];
+	CodecAudio::CodecFrame codecBuffer[MultiChannelAudioBuffer::BUFFER_SIZE * 2] __attribute__((aligned(4)));
+
 	uint32_t numChannels;
 
 	OscRoot oscRoot;
-	OscSerialClient serialClient;
-	Controls controls;
 	OscFixedArray<ChannelStrip, 6> oscStrips;
 	std::array<ChannelStrip, 6> strips;
 	OscStatePersist oscStatePersist;
@@ -78,9 +81,7 @@ private:
 	uint32_t slowTimerPreviousTick;
 	uint32_t slowTimerIndex;
 
-	MultiChannelAudioBuffer buffer[5];
-	int16_t codecBuffer[MultiChannelAudioBuffer::BUFFER_SIZE * MultiChannelAudioBuffer::CHANNEL_NUMBER * 2]
-	    __attribute__((aligned(4)));
-
 	LCDController lcdController;
+	OscSerialClient serialClient;
+	Controls controls;
 };

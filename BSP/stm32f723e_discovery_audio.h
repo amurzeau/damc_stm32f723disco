@@ -117,8 +117,8 @@
 #define AUDIO_OUT_SAIx_DMAx_STREAM               DMA2_Stream4
 #define AUDIO_OUT_SAIx_DMAx_CHANNEL              DMA_CHANNEL_3
 #define AUDIO_OUT_SAIx_DMAx_IRQ                  DMA2_Stream4_IRQn
-#define AUDIO_OUT_SAIx_DMAx_PERIPH_DATA_SIZE     DMA_PDATAALIGN_HALFWORD
-#define AUDIO_OUT_SAIx_DMAx_MEM_DATA_SIZE        DMA_MDATAALIGN_HALFWORD
+#define AUDIO_OUT_SAIx_DMAx_PERIPH_DATA_SIZE     DMA_PDATAALIGN_WORD
+#define AUDIO_OUT_SAIx_DMAx_MEM_DATA_SIZE        DMA_MDATAALIGN_WORD
 #define DMA_MAX_SZE                              0xFFFF
    
 #define AUDIO_OUT_SAIx_DMAx_IRQHandler           DMA2_Stream4_IRQHandler
@@ -149,8 +149,8 @@
 #define AUDIO_IN_SAIx_DMAx_STREAM                DMA2_Stream6
 #define AUDIO_IN_SAIx_DMAx_CHANNEL               DMA_CHANNEL_3
 #define AUDIO_IN_SAIx_DMAx_IRQ                   DMA2_Stream6_IRQn
-#define AUDIO_IN_SAIx_DMAx_PERIPH_DATA_SIZE      DMA_PDATAALIGN_HALFWORD
-#define AUDIO_IN_SAIx_DMAx_MEM_DATA_SIZE         DMA_MDATAALIGN_HALFWORD
+#define AUDIO_IN_SAIx_DMAx_PERIPH_DATA_SIZE      DMA_PDATAALIGN_WORD
+#define AUDIO_IN_SAIx_DMAx_MEM_DATA_SIZE         DMA_MDATAALIGN_WORD
 
 #define AUDIO_IN_SAIx_DMAx_IRQHandler            DMA2_Stream6_IRQHandler
 #define AUDIO_IN_INT_IRQHandler                  EXTI15_10_IRQHandler

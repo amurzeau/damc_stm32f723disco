@@ -1,4 +1,5 @@
 #include "CodecDamcHATInit.h"
+#include "CodecAudio.h"
 #include <stdlib.h>
 #include <stm32f723e_discovery.h>
 #include <stm32f7xx_hal_gpio.h>
@@ -82,8 +83,8 @@ void CodecDamcHATInit::init_sai() {
 	hdma_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
 	hdma_tx.Init.PeriphInc = DMA_PINC_DISABLE;
 	hdma_tx.Init.MemInc = DMA_MINC_ENABLE;
-	hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-	hdma_tx.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+	hdma_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+	hdma_tx.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
 	hdma_tx.Init.Mode = DMA_CIRCULAR;
 	hdma_tx.Init.Priority = DMA_PRIORITY_HIGH;
 	hdma_tx.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
@@ -113,8 +114,8 @@ void CodecDamcHATInit::init_sai() {
 	hdma_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
 	hdma_rx.Init.PeriphInc = DMA_PINC_DISABLE;
 	hdma_rx.Init.MemInc = DMA_MINC_ENABLE;
-	hdma_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-	hdma_rx.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+	hdma_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+	hdma_rx.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
 	hdma_rx.Init.Mode = DMA_CIRCULAR;
 	hdma_rx.Init.Priority = DMA_PRIORITY_HIGH;
 	hdma_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
@@ -147,13 +148,13 @@ void CodecDamcHATInit::init_sai() {
 
 	/* Configure SAI_Block_x
 	LSBFirst: Disabled
-	DataSize: 16 */
+	DataSize: 32 */
 	hsai_tx.Init.MonoStereoMode = SAI_STEREOMODE;
 	hsai_tx.Init.AudioFrequency = 48000;
 	hsai_tx.Init.AudioMode = SAI_MODESLAVE_TX;
 	hsai_tx.Init.NoDivider = SAI_MASTERDIVIDER_ENABLED;
 	hsai_tx.Init.Protocol = SAI_FREE_PROTOCOL;
-	hsai_tx.Init.DataSize = SAI_DATASIZE_16;
+	hsai_tx.Init.DataSize = SAI_DATASIZE_32;
 	hsai_tx.Init.FirstBit = SAI_FIRSTBIT_MSB;
 	hsai_tx.Init.ClockStrobing = SAI_CLOCKSTROBING_FALLINGEDGE;
 	hsai_tx.Init.Synchro = SAI_ASYNCHRONOUS;
@@ -178,15 +179,13 @@ void CodecDamcHATInit::init_sai() {
 
 	/* Configure SAI Block_A
 	Slot First Bit Offset: 0
-	Slot Size  : 16
-	Slot Number: 4
+	Slot Size  : 32
+	Slot Number: 2
 	Slot Active: All slot actives */
 	hsai_tx.SlotInit.FirstBitOffset = 0;
 	hsai_tx.SlotInit.SlotSize = SAI_SLOTSIZE_DATASIZE;
-	hsai_tx.SlotInit.SlotNumber = 4;
-	hsai_tx.SlotInit.SlotActive = SAI_SLOTACTIVE_0 /*| SAI_SLOTACTIVE_1*/ | SAI_SLOTACTIVE_2 /*| SAI_SLOTACTIVE_3*/;
-
-	SAI1_Block_A->DR = 0;
+	hsai_tx.SlotInit.SlotNumber = 2;
+	hsai_tx.SlotInit.SlotActive = SAI_SLOTACTIVE_0 | SAI_SLOTACTIVE_1;
 
 	HAL_SAI_Init(&hsai_tx);
 
@@ -201,10 +200,6 @@ void CodecDamcHATInit::init_sai() {
 
 	__HAL_SAI_DISABLE(&hsai_rx);
 	HAL_SAI_Init(&hsai_rx);
-
-	/* Enable SAI peripheral */
-	__HAL_SAI_ENABLE(&hsai_rx);
-	__HAL_SAI_ENABLE(&hsai_tx);
 }
 
 void CodecDamcHATInit::init_codec() {
@@ -258,7 +253,7 @@ void CodecDamcHATInit::init_codec() {
 	writeI2c(25, 7);              //  Clock Setting Register 10, Multiplexers, CLKOUT = ADC_MOD_CLK
 	writeI2c(26, (1u << 7) | 1);  //  Clock Setting Register 11, CLKOUT M divider value = 1
 
-	writeI2c(27, 0b00001100);      // Audio Interface Set 1 WCLK & BCLK out, 16 bit I2S
+	writeI2c(27, 0b00111100);      // Audio Interface Set 1 WCLK & BCLK out, 32 bit I2S
 	writeI2c(28, 0b00000000);      // Audio Interface Set 2 Data Offset = 0 BCLKs
 	writeI2c(29, 0b00000000);      // Audio Interface Set 3 BDIV_CLKIN = DAC_CLK = 24.576Mhz
 	writeI2c(30, (1u << 7) | 8u);  // Clock Setting Register 12, BCLK = BDIV_CLKIN/8 = 3.072Mhz (2x 32bits slots)
@@ -335,7 +330,7 @@ void CodecDamcHATInit::init_codec() {
 	// - MICBIAS direct, @AVDD, common mode 0.9V: -64dB
 	// - MICBIAS direct, @LDOIN, common mode 0.9V: -67dB
 	// - MICBIAS @2.075V, @AVDD, common mode 0.75V: -59dB
-	// MICBIAS not using direc power supply have very high 10khz noise with no load, codec broken ?
+	// MICBIAS not using direct power supply have very high 10khz noise with no load, capacitor to be removed on MICBIAS
 	writeI2c(51, 0b01010000);  // MICBIAS Configuration Register, enable MICBIAS @1.7V
 	// Bit 7: reserved
 	// Bit 6: ON/off
@@ -362,12 +357,12 @@ void CodecDamcHATInit::init_codec() {
 	if(1) {
 		// IN1R to Left MICPGA+
 		writeI2c(52, 0b00000001);  // Left MICPGA Positive Terminal Input Routing Configuration Register
-		// CM (GND) to Left MICPGA-
+		// IN2R (SGND) to Left MICPGA-
 		writeI2c(54, 0b00010000);  // Left MICPGA Negative Terminal Input Routing Configuration Register
 
 		// IN2L to Right MICPGA+
 		writeI2c(55, 0b00000001);  // Right MICPGA Positive Terminal Input Routing Configuration Register
-		// CM (GND) to Right MICPGA-
+		// IN1L (SGND) to Right MICPGA-
 		writeI2c(57, 0b00010000);  // Right MICPGA Negative Terminal Input Routing Configuration Register
 	} else {
 		// IN2L to Left MICPGA+
@@ -405,14 +400,30 @@ void CodecDamcHATInit::init_codec() {
 	// writeI2c(67, 0b10000000);  // Headset Detection Configuration Register Enable headset detection
 }
 
-void CodecDamcHATInit::startTxDMA(void* buffer, size_t size) {
+void CodecDamcHATInit::startTxDMA(void* buffer, size_t nframes) {
 	/* Update the Media layer and enable it for play */
-	HAL_SAI_Transmit_DMA(&hsai_tx, (uint8_t*) buffer, size / 2);
+	HAL_SAI_Transmit_DMA(
+	    &hsai_tx,
+	    (uint8_t*) buffer,
+	    nframes * sizeof(CodecAudio::CodecFrame::headphone) / sizeof(CodecAudio::CodecFrame::headphone[0]));
+
+	// Wait the SAI FIFO to be not empty before starting the SAI
+	while((hsai_tx.Instance->SR & SAI_xSR_FLVL) == SAI_FIFOSTATUS_EMPTY) {
+	}
+
+	/* Enable SAI peripheral */
+	__HAL_SAI_ENABLE(&hsai_tx);
 }
 
-void CodecDamcHATInit::startRxDMA(void* buffer, size_t size) {
+void CodecDamcHATInit::startRxDMA(void* buffer, size_t nframes) {
 	/* Update the Media layer and enable it for play */
-	HAL_SAI_Receive_DMA(&hsai_rx, (uint8_t*) buffer, size / 2);
+	HAL_SAI_Receive_DMA(
+	    &hsai_rx,
+	    (uint8_t*) buffer,
+	    nframes * sizeof(CodecAudio::CodecFrame::headphone) / sizeof(CodecAudio::CodecFrame::headphone[0]));
+
+	/* Enable SAI peripheral */
+	__HAL_SAI_ENABLE(&hsai_rx);
 }
 
 uint16_t CodecDamcHATInit::getTxRemainingCount(void) {

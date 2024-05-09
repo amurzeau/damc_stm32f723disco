@@ -20,8 +20,8 @@ public:
 	void init_sai();
 	void init_codec();
 
-	void startTxDMA(void* buffer, size_t size);
-	void startRxDMA(void* buffer, size_t size);
+	void startTxDMA(void* buffer, size_t nframes);
+	void startRxDMA(void* buffer, size_t nframes);
 	uint16_t getTxRemainingCount();
 	uint16_t getRxRemainingCount();
 

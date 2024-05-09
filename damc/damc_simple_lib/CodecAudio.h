@@ -9,12 +9,16 @@
 
 class CodecAudio {
 public:
+	struct CodecFrame {
+		int32_t headphone[2];
+	};
+
 	CodecAudio();
 
 	void start();
 
-	void processAudioInterleavedOutput(const int16_t* data_input, size_t nframes);
-	void processAudioInterleavedInput(int16_t* data_output, size_t nframes);
+	void processAudioInterleavedOutput(const CodecFrame* data_input, size_t nframes);
+	void processAudioInterleavedInput(CodecFrame* data_output, size_t nframes);
 
 	uint32_t getDMAOutPos();
 	uint32_t getDMAInPos();
@@ -28,9 +32,6 @@ protected:
 	void readInBuffer(uint32_t* data, size_t word_size);
 
 private:
-	struct CodecFrame {
-		int16_t headphone[2];
-	};
 	struct CodecBuffers {
 		CircularBuffer<CodecFrame, 2, true> out_buffer;
 		CircularBuffer<CodecFrame, 2, true> in_buffer;

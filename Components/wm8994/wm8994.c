@@ -453,13 +453,13 @@ uint32_t wm8994_Init(uint16_t DeviceAddr, uint16_t OutputInputDevice, uint8_t Ou
 
   if(input_device == INPUT_DEVICE_DIGITAL_MIC1_MIC2 || output_device == OUTPUT_DEVICE_BOTH)
   {
-  /* AIF1 Word Length = 16-bits, AIF1 Format = DSP mode */
-  counter += CODEC_IO_Write(DeviceAddr, 0x300, 0x4018);    
+  /* AIF1 Word Length = 32-bits, AIF1 Format = DSP mode */
+  counter += CODEC_IO_Write(DeviceAddr, 0x300, 0x4078);    
   }
   else
   {
-  /* AIF1 Word Length = 16-bits, AIF1 Format = I2S (Default Register Value) */
-  counter += CODEC_IO_Write(DeviceAddr, 0x300, 0x4010);
+  /* AIF1 Word Length = 32-bits, AIF1 Format = I2S (Default Register Value) */
+  counter += CODEC_IO_Write(DeviceAddr, 0x300, 0x4070);
   }
   
   /* slave mode */
