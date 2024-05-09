@@ -1,4 +1,5 @@
 #include "CodecSTM32F723EDiscoInit.h"
+#include "CodecAudio.h"
 #include <stdlib.h>
 #include <stm32f723e_discovery.h>
 #include <stm32f723e_discovery_audio.h>
@@ -67,7 +68,7 @@ void CodecSTM32F723EDiscoInit::init_sai(bool slaveSAI) {
 	haudio_out_sai.Init.AudioMode = SAI_MODEMASTER_TX;
 	haudio_out_sai.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;
 	haudio_out_sai.Init.Protocol = SAI_FREE_PROTOCOL;
-	haudio_out_sai.Init.DataSize = SAI_DATASIZE_16;
+	haudio_out_sai.Init.DataSize = SAI_DATASIZE_32;
 	haudio_out_sai.Init.FirstBit = SAI_FIRSTBIT_MSB;
 	haudio_out_sai.Init.ClockStrobing = SAI_CLOCKSTROBING_FALLINGEDGE;
 	haudio_out_sai.Init.Synchro = slaveSAI ? SAI_SYNCHRONOUS : SAI_ASYNCHRONOUS;
@@ -85,8 +86,8 @@ void CodecSTM32F723EDiscoInit::init_sai(bool slaveSAI) {
 	FS Definition: Start frame + Channel Side identification
 	FS Polarity: FS active Low
 	FS Offset: FS asserted one bit before the first bit of slot 0 */
-	haudio_out_sai.FrameInit.FrameLength = 64;
-	haudio_out_sai.FrameInit.ActiveFrameLength = 32;
+	haudio_out_sai.FrameInit.FrameLength = 128;
+	haudio_out_sai.FrameInit.ActiveFrameLength = 64;
 	haudio_out_sai.FrameInit.FSDefinition = SAI_FS_CHANNEL_IDENTIFICATION;
 	haudio_out_sai.FrameInit.FSPolarity = SAI_FS_ACTIVE_LOW;
 	haudio_out_sai.FrameInit.FSOffset = SAI_FS_BEFOREFIRSTBIT;
@@ -135,16 +136,22 @@ void CodecSTM32F723EDiscoInit::init_codec() {
 	}
 }
 
-void CodecSTM32F723EDiscoInit::startTxDMA(void* buffer, size_t size) {
+void CodecSTM32F723EDiscoInit::startTxDMA(void* buffer, size_t nframes) {
 	// Unmute
 	wm8994_drv.Play(AUDIO_I2C_ADDRESS, nullptr, 0);
 	/* Update the Media layer and enable it for play */
-	HAL_SAI_Transmit_DMA(&haudio_out_sai, (uint8_t*) buffer, size / 2);
+	HAL_SAI_Transmit_DMA(
+	    &haudio_out_sai,
+	    (uint8_t*) buffer,
+	    nframes * sizeof(CodecAudio::CodecFrame::headphone) / sizeof(CodecAudio::CodecFrame::headphone[0]));
 }
 
-void CodecSTM32F723EDiscoInit::startRxDMA(void* buffer, size_t size) {
+void CodecSTM32F723EDiscoInit::startRxDMA(void* buffer, size_t nframes) {
 	/* Update the Media layer and enable it for play */
-	HAL_SAI_Receive_DMA(&haudio_in_sai, (uint8_t*) buffer, size / 2);
+	HAL_SAI_Receive_DMA(
+	    &haudio_in_sai,
+	    (uint8_t*) buffer,
+	    nframes * sizeof(CodecAudio::CodecFrame::headphone) / sizeof(CodecAudio::CodecFrame::headphone[0]));
 }
 
 uint16_t CodecSTM32F723EDiscoInit::getTxRemainingCount(void) {

@@ -32,8 +32,6 @@ AudioProcessor* AudioProcessor::getInstance() {
 AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t maxNframes)
     : numChannels(numChannels),
       oscRoot(true),
-      serialClient(&oscRoot),
-      controls(&oscRoot),
       oscStrips(&oscRoot, "strip", &strips),
       strips{
           // Also change in OscStatePersist
@@ -65,7 +63,9 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
       nextTimerStripIndex(0),
       slowTimerPreviousTick(0),
       slowTimerIndex(0),
-      lcdController(&oscRoot) {
+      lcdController(&oscRoot),
+      serialClient(&oscRoot),
+      controls(&oscRoot) {
 	serialClient.init();
 	controls.init();
 	oscStatePersist.init();
@@ -82,7 +82,7 @@ void AudioProcessor::interleavedToFloat(const int16_t* data_input,
                                         size_t nframes) {
 	for(uint32_t channel = 0; channel < numChannels; channel++) {
 		for(uint32_t frame = 0; frame < nframes; frame++) {
-			data_float->data[channel][frame] = data_input[frame * numChannels + channel] / 32768.f;
+			data_float->data[channel][frame] = data_input[frame * numChannels + channel] / ((float) (1ll << 15));
 		}
 	}
 }
@@ -91,32 +91,30 @@ void AudioProcessor::floatToInterleaved(MultiChannelAudioBuffer* data_float, int
 	for(uint32_t channel = 0; channel < numChannels; channel++) {
 		for(uint32_t frame = 0; frame < nframes; frame++) {
 			data_output[frame * numChannels + channel] =
-			    static_cast<int16_t>(data_float->data[channel][frame] * 32768.f);
+			    static_cast<int16_t>(data_float->data[channel][frame] * ((float) (1ll << 15)));
 		}
 	}
 }
 
-void AudioProcessor::interleavedToFloatCodec(const int16_t* data_input,
-                                             MultiChannelAudioBuffer* data_float0,
+void AudioProcessor::interleavedToFloatCodec(const CodecAudio::CodecFrame* data_input,
+                                             MultiChannelAudioBuffer* data_float,
                                              size_t nframes) {
-	for(uint32_t channel = 0; channel < numChannels; channel++) {
-		for(uint32_t frame = 0; frame < nframes; frame++) {
-			data_float0->data[channel][frame] = data_input[(frame * 2) * numChannels + channel] / 32768.f;
-		}
+	static_assert(MultiChannelAudioBuffer::CHANNEL_NUMBER == 2, "expected 2 channels only");
+
+	for(uint32_t frame = 0; frame < nframes; frame++) {
+		data_float->data[0][frame] = data_input[frame].headphone[0] / ((float) (1ll << 31));
+		data_float->data[1][frame] = data_input[frame].headphone[1] / ((float) (1ll << 31));
 	}
 }
 
-void AudioProcessor::floatToInterleavedCodec(MultiChannelAudioBuffer* data_float0,
-                                             MultiChannelAudioBuffer* data_float1,
-                                             int16_t* data_output,
+void AudioProcessor::floatToInterleavedCodec(MultiChannelAudioBuffer* data_float,
+                                             CodecAudio::CodecFrame* data_output,
                                              size_t nframes) {
-	for(uint32_t channel = 0; channel < numChannels; channel++) {
-		for(uint32_t frame = 0; frame < nframes; frame++) {
-			data_output[(frame * 2) * numChannels + channel] =
-			    static_cast<int16_t>(data_float0->data[channel][frame] * 32768.f);
-			data_output[(frame * 2 + 1) * numChannels + channel] =
-			    static_cast<int16_t>(data_float1->data[channel][frame] * 32768.f);
-		}
+	static_assert(MultiChannelAudioBuffer::CHANNEL_NUMBER == 2, "expected 2 channels only");
+
+	for(uint32_t frame = 0; frame < nframes; frame++) {
+		data_output[frame].headphone[0] = data_float->data[0][frame] * ((float) (1ll << 31));
+		data_output[frame].headphone[1] = data_float->data[1][frame] * ((float) (1ll << 31));
 	}
 }
 
@@ -200,7 +198,7 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 
 	// Get codec MIC data
 	CodecAudio::instance.processAudioInterleavedInput(codecBuffer, nframes);
-	interleavedToFloat(codecBuffer, &buffer[3], nframes);
+	interleavedToFloatCodec(codecBuffer, &buffer[3], nframes);
 
 	// Split each mono mic input to 2 buffers
 	mixAudioStereoToDualMono(&buffer[3], &buffer[4], nframes);
@@ -227,7 +225,7 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	mixAudio(&buffer[2], &buffer[3], nframes);
 
 	// Output float data to codec headphones
-	floatToInterleaved(&buffer[2], codecBuffer, nframes);
+	floatToInterleavedCodec(&buffer[2], codecBuffer, nframes);
 
 	// Output processed audio to codec and retrieve MIC
 	CodecAudio::instance.processAudioInterleavedOutput(codecBuffer, nframes);
