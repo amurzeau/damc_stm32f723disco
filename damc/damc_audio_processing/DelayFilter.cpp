@@ -10,9 +10,7 @@ DelayFilter::DelayFilter() : delayedSamples(nullptr) {
 	setParameters(0);
 }
 
-void DelayFilter::reset() {
-	memset(this->delayedSamples, 0, (1 << power2Size));
-}
+void DelayFilter::reset() {}
 
 void DelayFilter::processSamples(float* samples, size_t count) {
 	if(this->delay > 0) {
