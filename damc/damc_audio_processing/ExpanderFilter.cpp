@@ -32,8 +32,6 @@ void ExpanderFilter::init(size_t numChannel) {
 
 void ExpanderFilter::reset(float fs) {
 	this->fs = fs;
-	std::fill_n(previousPartialGainComputerOutput.begin(), numChannel, 0);
-	std::fill_n(previousLevelDetectorOutput.begin(), numChannel, 0);
 }
 
 void ExpanderFilter::processSamples(float** samples, size_t count) {
