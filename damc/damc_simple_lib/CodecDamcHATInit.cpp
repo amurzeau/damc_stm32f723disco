@@ -364,7 +364,7 @@ void CodecDamcHATInit::init_codec() {
 		writeI2c(55, 0b00000001);  // Right MICPGA Positive Terminal Input Routing Configuration Register
 		// IN1L (SGND) to Right MICPGA-
 		writeI2c(57, 0b00010000);  // Right MICPGA Negative Terminal Input Routing Configuration Register
-	} else {
+	} else if(0) {
 		// IN2L to Left MICPGA+
 		writeI2c(52, 0b00010000);  // Left MICPGA Positive Terminal Input Routing Configuration Register
 		// CM (GND) to Left MICPGA-
@@ -372,6 +372,16 @@ void CodecDamcHATInit::init_codec() {
 
 		// IN2L to Right MICPGA+
 		writeI2c(55, 0b00000001);  // Right MICPGA Positive Terminal Input Routing Configuration Register
+		// CM (GND) to Right MICPGA-
+		writeI2c(57, 0b01000000);  // Right MICPGA Negative Terminal Input Routing Configuration Register
+	} else {
+		// IN1L (SGND) to Left MICPGA+
+		writeI2c(52, 0b01000000);  // Left MICPGA Positive Terminal Input Routing Configuration Register
+		// CM (GND) to Left MICPGA-
+		writeI2c(54, 0b01000000);  // Left MICPGA Negative Terminal Input Routing Configuration Register
+
+		// IN2R (SGND) to Right MICPGA+
+		writeI2c(55, 0b00010000);  // Right MICPGA Positive Terminal Input Routing Configuration Register
 		// CM (GND) to Right MICPGA-
 		writeI2c(57, 0b01000000);  // Right MICPGA Negative Terminal Input Routing Configuration Register
 	}
@@ -458,4 +468,14 @@ void CodecDamcHATInit::setReset(bool value) {
 void CodecDamcHATInit::setTpaEn(bool value) {
 	GPIO_PinState gpio_value = value ? GPIO_PIN_SET : GPIO_PIN_RESET;
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, gpio_value);
+}
+
+void CodecDamcHATInit::setMicBias(bool enable) {
+	// Select page 1
+	writeI2c(0, 1);
+	if(enable) {
+		writeI2c(51, 0b01010000);
+	} else {
+		writeI2c(51, 0b00010000);
+	}
 }
