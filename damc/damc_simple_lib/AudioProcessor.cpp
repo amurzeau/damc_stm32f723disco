@@ -55,6 +55,7 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
           {&oscRoot, "timePerLoopFastTimer"},
           {&oscRoot, "timePerLoopOscInput"},
       },
+      oscEnableMicBias(&oscRoot, "enableMicBias", true),
       fastMemoryAvailable(&oscRoot, "fastMemoryAvailable"),
       fastMemoryUsed(&oscRoot, "fastMemoryUsed"),
       slowMemoryAvailable(&oscRoot, "memoryAvailable"),
@@ -69,6 +70,7 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
 	serialClient.init();
 	controls.init();
 	oscStatePersist.init();
+	oscEnableMicBias.addChangeCallback([](bool enable) { CodecAudio::instance.setMicBias(enable); });
 }
 
 AudioProcessor::~AudioProcessor() {}

@@ -11,6 +11,7 @@
 #include <Osc/OscDynamicVariable.h>
 #include <Osc/OscFixedArray.h>
 #include <Osc/OscReadOnlyVariable.h>
+#include <Osc/OscVariable.h>
 #include <OscRoot.h>
 #include <OscStatePersist.h>
 #include <array>
@@ -70,6 +71,7 @@ private:
 
 	OscReadOnlyVariable<int32_t> oscTimeMeasure[TMI_NUMBER];
 	OscReadOnlyVariable<int32_t> oscTimeMeasureMaxPerLoop[TMI_NUMBER];
+	OscVariable<bool> oscEnableMicBias;
 
 	OscDynamicVariable<int32_t> fastMemoryAvailable;
 	OscDynamicVariable<int32_t> fastMemoryUsed;

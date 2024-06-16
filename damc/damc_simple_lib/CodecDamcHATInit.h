@@ -25,6 +25,8 @@ public:
 	uint16_t getTxRemainingCount();
 	uint16_t getRxRemainingCount();
 
+	void setMicBias(bool enable);
+
 private:
 	void writeI2c(uint8_t address, uint8_t value);
 	uint8_t readI2c(uint8_t address);

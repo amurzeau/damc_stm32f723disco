@@ -25,6 +25,8 @@ public:
 
 	bool onFastTimer();
 
+	void setMicBias(bool enable);
+
 	static CodecAudio instance;
 
 protected:

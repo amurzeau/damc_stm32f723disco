@@ -72,3 +72,9 @@ uint32_t CodecAudio::getDMAInPos() {
 bool CodecAudio::onFastTimer() {
 	return false;
 }
+
+void CodecAudio::setMicBias(bool enable) {
+	if(useTlvAsMclkMaster) {
+		codecDamcHATInit.setMicBias(enable);
+	}
+}
