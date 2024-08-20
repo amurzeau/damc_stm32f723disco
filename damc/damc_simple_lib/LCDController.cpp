@@ -81,11 +81,16 @@ void LCDController::start() {
 }
 
 void LCDController::mainLoop() {
-	TS_StateTypeDef TS_State;
+	TS_StateTypeDef TS_State = {
+	    .touchDetected = false,
+	};
 
 	uint32_t currentTick = HAL_GetTick();
 
-	BSP_TS_GetState(&TS_State);
+	if(HAL_GPIO_ReadPin(TS_INT_GPIO_PORT, TS_INT_PIN) == GPIO_PIN_RESET) {
+		BSP_TS_GetState(&TS_State);
+	}
+
 	if(TS_State.touchDetected > 0 && !touchIsPressed) {
 		touchIsPressed = true;
 		touchLastPressTime = currentTick;
