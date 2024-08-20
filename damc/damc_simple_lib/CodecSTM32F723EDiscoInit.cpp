@@ -8,44 +8,11 @@ extern SAI_HandleTypeDef haudio_out_sai;
 extern SAI_HandleTypeDef haudio_in_sai;
 
 void CodecSTM32F723EDiscoInit::init(bool slaveSAI) {
-	if(!slaveSAI) {
-		init_clock();
-	}
-
 	init_sai(slaveSAI);
 }
 
 void CodecSTM32F723EDiscoInit::init_after_clock_enabled() {
 	init_codec();
-}
-
-void CodecSTM32F723EDiscoInit::init_clock() {
-	RCC_PeriphCLKInitTypeDef rcc_ex_clk_init_struct;
-
-	HAL_RCCEx_GetPeriphCLKConfig(&rcc_ex_clk_init_struct);
-	if(HSE_VALUE == 25000000U) {
-		/* SAI clock config
-		PLLSAI_VCO: VCO_344M
-		SAI_CLK(first level) = PLLSAI_VCO/PLLSAIQ = 1Mhz * 344/7 = 49.142 Mhz
-		SAI_CLK_x = SAI_CLK(first level)/PLLSAIDIVQ = 49.142/1 = 49.142 Mhz */
-		rcc_ex_clk_init_struct.PeriphClockSelection = RCC_PERIPHCLK_SAI2;
-		rcc_ex_clk_init_struct.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLLI2S;
-		rcc_ex_clk_init_struct.PLLI2S.PLLI2SN = 344;
-		rcc_ex_clk_init_struct.PLLI2S.PLLI2SQ = 7;
-		rcc_ex_clk_init_struct.PLLI2SDivQ = 1;
-	} else {
-		/* SAI clock config
-		PLLSAI_VCO: VCO_344M
-		SAI_CLK(first level) = PLLSAI_VCO/PLLSAIQ = 2Mhz * 172/7 = 49,143 Mhz
-		SAI_CLK_x = SAI_CLK(first level)/PLLSAIDIVQ = 49,143/1 = 49,143 Mhz */
-		rcc_ex_clk_init_struct.PeriphClockSelection = RCC_PERIPHCLK_SAI2;
-		rcc_ex_clk_init_struct.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLLI2S;
-		rcc_ex_clk_init_struct.PLLI2S.PLLI2SN = 172;
-		rcc_ex_clk_init_struct.PLLI2S.PLLI2SQ = 7;
-		rcc_ex_clk_init_struct.PLLI2SDivQ = 1;
-	}
-
-	HAL_RCCEx_PeriphCLKConfig(&rcc_ex_clk_init_struct);
 }
 
 void CodecSTM32F723EDiscoInit::init_sai(bool slaveSAI) {

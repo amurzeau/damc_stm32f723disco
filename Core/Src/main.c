@@ -241,7 +241,7 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK)
@@ -260,13 +260,16 @@ void PeriphCommonClock_Config(void)
 
   /** Initializes the peripherals clock
   */
+  /* SAI clock config
+  PLLSAI_VCO: VCO_344M
+  SAI_CLK(first level) = PLLSAI_VCO/PLLSAIQ = 1Mhz * 344/7 = 49.142 Mhz
+  SAI_CLK_x = SAI_CLK(first level)/PLLSAIDIVQ = 49.142/1 = 49.142 Mhz */
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SAI1|RCC_PERIPHCLK_SAI2|RCC_PERIPHCLK_CLK48;
-  PeriphClkInitStruct.PLLSAI.PLLSAIN = 300;
-  PeriphClkInitStruct.PLLSAI.PLLSAIQ = 5;
-  PeriphClkInitStruct.PLLSAI.PLLSAIP = RCC_PLLSAIP_DIV2;
-  PeriphClkInitStruct.PLLSAIDivQ = 25;
-  PeriphClkInitStruct.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLLSAI;
-  PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLLSAI;
+  PeriphClkInitStruct.PLLI2S.PLLI2SN = 344;
+  PeriphClkInitStruct.PLLI2S.PLLI2SQ = 7;
+  PeriphClkInitStruct.PLLI2SDivQ = 1;
+  PeriphClkInitStruct.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLLI2S;
+  PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLLI2S;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -340,9 +343,11 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE BEGIN TIM2_Init 1 */
 
+  uint32_t pclk1_frequency = HAL_RCC_GetPCLK1Freq();
+
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 215;
+  htim2.Init.Prescaler = (pclk1_frequency * 2 / 1000000) - 1; // count at 1Mhz speed, APB1 is 54Mhz, timers use APB1 frequency x2
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -779,7 +784,7 @@ void SystemClock_Config_24MhzHSE(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK)
@@ -787,6 +792,12 @@ void SystemClock_Config_24MhzHSE(void)
     Error_Handler();
   }
 }
+
+/**
+ * @brief Disable clock configuration in BSP/stm32f723e_discovery_audio.c
+ */
+void BSP_AUDIO_OUT_ClockConfig(SAI_HandleTypeDef *hsai, uint32_t AudioFreq, void *Params) {}
+void BSP_AUDIO_IN_ClockConfig(SAI_HandleTypeDef *hsai, uint32_t AudioFreq, void *Params) {}
 
 /**
   * @brief Peripherals Common Clock Configuration
@@ -798,13 +809,16 @@ void PeriphCommonClock_Config_24MhzHSE(void)
 
   /** Initializes the peripherals clock
   */
+  /* SAI clock config
+  PLLSAI_VCO: VCO_344M
+  SAI_CLK(first level) = PLLSAI_VCO/PLLSAIQ = 2Mhz * 172/7 = 49,143 Mhz
+  SAI_CLK_x = SAI_CLK(first level)/PLLSAIDIVQ = 49,143/1 = 49,143 Mhz */
   PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SAI1|RCC_PERIPHCLK_SAI2|RCC_PERIPHCLK_CLK48;
-  PeriphClkInitStruct.PLLSAI.PLLSAIN = 96;
-  PeriphClkInitStruct.PLLSAI.PLLSAIQ = 2;
-  PeriphClkInitStruct.PLLSAI.PLLSAIP = RCC_PLLSAIP_DIV2;
-  PeriphClkInitStruct.PLLSAIDivQ = 1;
-  PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLLSAI;
-  PeriphClkInitStruct.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLLSAI;
+  PeriphClkInitStruct.PLLI2S.PLLI2SN = 172;
+  PeriphClkInitStruct.PLLI2S.PLLI2SQ = 7;
+  PeriphClkInitStruct.PLLI2SDivQ = 1;
+  PeriphClkInitStruct.Sai2ClockSelection = RCC_SAI2CLKSOURCE_PLLI2S;
+  PeriphClkInitStruct.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLLI2S;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
   {
     Error_Handler();

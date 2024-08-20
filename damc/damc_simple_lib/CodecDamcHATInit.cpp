@@ -44,20 +44,25 @@ void CodecDamcHATInit::init_i2c() {
 void CodecDamcHATInit::init() {
 	codec = this;
 
-	// Configure for 13.5MHz on TIM5_CH2
+	// Configure for 13.5MHz on 108Mhz TIM5_CH2 from 54Mhz APB1 (timers have a frequency of APB x2).
+	// Prescaler divide by 2: 54Mhz.
+	// Counter is reset after reaching 1 (period = 1), this behavior divide the frequency by 2: 27Mhz.
+	// Each time the timer counter is reset, the TIM5_CH2 is toggled, so for each timer reset we have a
+	// half-period: 13.5Mhz.
 	__HAL_RCC_TIM5_CLK_ENABLE();
 
 	TIM_OC_InitTypeDef sOcConfig = {0};
 
 	htim.Instance = TIM5;
-	htim.Init.Prescaler = 3;  // /4 => 13.5Mhz
+	htim.Init.Prescaler = 1;  // /2 => 13.5Mhz
 	htim.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim.Init.Period = 1;
+	htim.Init.Period = 1;  // Will do /2 as the counter will counter from 0 to 1 to 0, etc...
 	htim.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	htim.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 	if(HAL_TIM_OC_Init(&htim) != HAL_OK) {
 	}
 
+	// Will divide by 2 as at each timer reset we toggle the output clock, effectively doing only a half period
 	sOcConfig.OCMode = TIM_OCMODE_TOGGLE;
 	sOcConfig.Pulse = 0;
 	sOcConfig.OCPolarity = TIM_OCPOLARITY_HIGH;
