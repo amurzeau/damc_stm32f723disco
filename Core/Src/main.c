@@ -139,7 +139,6 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_I2C1_Init();
-  MX_USART6_UART_Init();
   MX_USB_DEVICE_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
