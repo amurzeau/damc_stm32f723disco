@@ -45,16 +45,11 @@ struct OscPanelLinkDeclaration {
 };
 
 LCDController::LCDController(OscRoot* oscRoot)
-    : oscRoot(oscRoot),
-      touchX(0),
-      touchY(0),
-      touchIsPressed(false),
-      lcdIsOn(false),
-      touchLastPressTime(0),
-      menuHistorySize(0),
-      menusState{} {
+    : oscRoot(oscRoot), touchX(0), touchY(0), touchIsPressed(true), lcdIsOn(false), menuHistorySize(0), menusState{} {
 	instance = this;
 	touchHandlers.reserve(5);
+	uv_timer_init(uv_default_loop(), &timerLcdOff);
+	timerLcdOff.data = this;
 }
 
 void LCDController::start() {
@@ -76,7 +71,6 @@ void LCDController::start() {
 	pushMenu("DAMC", &LCDController::drawMenuMain);
 	drawCurrentMenu();
 
-	touchLastPressTime = HAL_GetTick();
 	lcdTurnOn();
 }
 
@@ -85,15 +79,15 @@ void LCDController::mainLoop() {
 	    .touchDetected = false,
 	};
 
-	uint32_t currentTick = HAL_GetTick();
-
 	if(HAL_GPIO_ReadPin(TS_INT_GPIO_PORT, TS_INT_PIN) == GPIO_PIN_RESET) {
 		BSP_TS_GetState(&TS_State);
 	}
 
 	if(TS_State.touchDetected > 0 && !touchIsPressed) {
 		touchIsPressed = true;
-		touchLastPressTime = currentTick;
+
+		uv_timer_stop(&timerLcdOff);
+
 		if(!lcdIsOn) {
 			lcdTurnOn();
 		} else {
@@ -101,10 +95,18 @@ void LCDController::mainLoop() {
 		}
 	} else if(TS_State.touchDetected == 0 && touchIsPressed) {
 		touchIsPressed = false;
-	} else if(!touchIsPressed && lcdIsOn && touchLastPressTime + 30000 < currentTick) {
-		// Touchscreen not pressed and LCD is ON
-		// 30s elapsed => turn off LCD screen and backlight
-		lcdTurnOff();
+		uv_timer_start(&timerLcdOff, &LCDController::onTimerLcdOff, 30000, 0);
+	}
+}
+
+void LCDController::onTimerLcdOff(uv_timer_t* handle) {
+	// Touchscreen not pressed and LCD is ON
+	// 30s elapsed => turn off LCD screen and backlight
+
+	LCDController* thisInstance = (LCDController*) handle->data;
+
+	if(!thisInstance->touchIsPressed && thisInstance->lcdIsOn) {
+		thisInstance->lcdTurnOff();
 	}
 }
 
@@ -113,6 +115,7 @@ void LCDController::lcdTurnOn() {
 	BSP_LCD_DisplayOn();
 	HAL_GPIO_WritePin(LCD_BL_CTRL_GPIO_PORT, LCD_BL_CTRL_PIN, GPIO_PIN_SET);
 }
+
 void LCDController::lcdTurnOff() {
 	lcdIsOn = false;
 	HAL_GPIO_WritePin(LCD_BL_CTRL_GPIO_PORT, LCD_BL_CTRL_PIN, GPIO_PIN_RESET);

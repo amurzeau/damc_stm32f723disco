@@ -4,6 +4,7 @@
 #include <Osc/OscContainerArray.h>
 #include <Osc/OscVariable.h>
 #include <stdint.h>
+#include <uv.h>
 
 class OscRoot;
 
@@ -62,6 +63,8 @@ protected:
 		} data;
 	};
 
+	static void onTimerLcdOff(uv_timer_t* handle);
+
 	void drawIcon(Icon icon, int x, int y, int width, int height, TouchHandleCallback onClick);
 
 	void lcdTurnOn();
@@ -109,7 +112,8 @@ private:
 	int touchY;
 	bool touchIsPressed;
 	bool lcdIsOn;
-	uint32_t touchLastPressTime;
+
+	uv_timer_t timerLcdOff;
 
 	// Screen metadata
 	struct MenuInfo {

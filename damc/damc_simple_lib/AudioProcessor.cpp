@@ -60,9 +60,7 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
       fastMemoryUsed(&oscRoot, "fastMemoryUsed"),
       slowMemoryAvailable(&oscRoot, "memoryAvailable"),
       slowMemoryUsed(&oscRoot, "memoryUsed"),
-      fastTimerPreviousTick(0),
       nextTimerStripIndex(0),
-      slowTimerPreviousTick(0),
       slowTimerIndex(0),
       lcdController(&oscRoot),
       serialClient(&oscRoot),
@@ -71,12 +69,23 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
 	controls.init();
 	oscStatePersist.init();
 	oscEnableMicBias.addChangeCallback([](bool enable) { CodecAudio::instance.setMicBias(enable); });
+
+	uv_timer_init(uv_default_loop(), &timerFastStrips);
+	timerFastStrips.data = this;
+	uv_timer_init(uv_default_loop(), &timerSlowMeasures);
+	timerSlowMeasures.data = this;
+
+	uv_idle_init(uv_default_loop(), &idleEvent);
+	idleEvent.data = this;
 }
 
 AudioProcessor::~AudioProcessor() {}
 
 void AudioProcessor::start() {
 	lcdController.start();
+	uv_timer_start(&timerFastStrips, AudioProcessor::onFastTimer, 100 / strips.size(), 100 / strips.size());
+	uv_timer_start(&timerSlowMeasures, AudioProcessor::onSlowTimer, 1000 / 3, 1000 / 3);
+	uv_idle_start(&idleEvent, AudioProcessor::onIdle);
 }
 
 void AudioProcessor::interleavedToFloat(const int16_t* data_input,
@@ -233,6 +242,28 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	CodecAudio::instance.processAudioInterleavedOutput(codecBuffer, nframes);
 }
 
+void AudioProcessor::onIdle(uv_idle_t* handle) {
+	AudioProcessor* thisInstance = (AudioProcessor*) handle->data;
+	// Do at most one thing to avoid taking too much time here
+	thisInstance->serialClient.mainLoop();
+
+	thisInstance->controls.mainLoop();
+	thisInstance->lcdController.mainLoop();
+}
+
+void AudioProcessor::onFastTimer(uv_timer_t* handle) {
+	AudioProcessor* thisInstance = (AudioProcessor*) handle->data;
+
+	TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
+
+	thisInstance->strips.at(thisInstance->nextTimerStripIndex).onFastTimer();
+	thisInstance->nextTimerStripIndex++;
+	if(thisInstance->nextTimerStripIndex >= thisInstance->strips.size())
+		thisInstance->nextTimerStripIndex = 0;
+
+	TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
+}
+
 extern "C" uint8_t* __sbrk_heap_end;  // end of heap
 extern "C" uint8_t _sdata;            // start of RAM
 extern "C" uint8_t _end;              // end of static data in RAM (start of heap)
@@ -240,65 +271,40 @@ extern "C" uint8_t _estack;           // start of RAM (end of RAM as stack grows
 extern "C" uint8_t _sheap;            // start of PSRAM (heap)
 extern "C" uint8_t _eheap;            // end of PSRAM (heap)
 extern "C" uint8_t _Min_Stack_Size;   // minimal stack size
-void AudioProcessor::mainLoop() {
-	// Do at most one thing to avoid taking too much time here
-	serialClient.mainLoop();
+void AudioProcessor::onSlowTimer(uv_timer_t* handle) {
+	AudioProcessor* thisInstance = (AudioProcessor*) handle->data;
 
-	uint32_t currentTick = HAL_GetTick();
-	// Do onFastTimer every 100ms
-	// Process one strip at a time to avoid taking too much time
-	if(currentTick >= fastTimerPreviousTick + (100 / strips.size())) {
-		TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
+	TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
 
-		fastTimerPreviousTick = currentTick;
-		strips.at(nextTimerStripIndex).onFastTimer();
-		nextTimerStripIndex++;
-		if(nextTimerStripIndex >= strips.size())
-			nextTimerStripIndex = 0;
+	switch(thisInstance->slowTimerIndex) {
+		case 0:
+			for(size_t i = 0; i < TMI_NUMBER; i++) {
+				thisInstance->oscTimeMeasure[i].set(TimeMeasure::timeMeasure[i].getCumulatedTimeUsAndReset());
+			}
+			break;
+		case 1:
+			for(size_t i = 0; i < TMI_NUMBER; i++) {
+				thisInstance->oscTimeMeasureMaxPerLoop[i].set(TimeMeasure::timeMeasure[i].getMaxTimeUsAndReset());
+			}
+			break;
+		case 2:
+			OscArgument used_fast_memory = static_cast<int32_t>((uint32_t) &_end - (uint32_t) &_sdata);
+			thisInstance->fastMemoryUsed.sendMessage(&used_fast_memory, 1);
 
-		TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
+			OscArgument available_fast_memory =
+			    static_cast<int32_t>((uint32_t) &_estack - (uint32_t) &_Min_Stack_Size - (uint32_t) &_end);
+			thisInstance->fastMemoryAvailable.sendMessage(&available_fast_memory, 1);
+
+			OscArgument used_slow_memory = static_cast<int32_t>((uint32_t) __sbrk_heap_end - (uint32_t) &_sheap);
+			thisInstance->slowMemoryUsed.sendMessage(&used_slow_memory, 1);
+
+			OscArgument available_slow_memory = static_cast<int32_t>((uint32_t) &_eheap - (uint32_t) __sbrk_heap_end);
+			thisInstance->slowMemoryAvailable.sendMessage(&available_slow_memory, 1);
+			break;
 	}
+	thisInstance->slowTimerIndex++;
+	if(thisInstance->slowTimerIndex > 2)
+		thisInstance->slowTimerIndex = 0;
 
-	if(currentTick >= slowTimerPreviousTick + 1000 / 3) {
-		TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
-
-		slowTimerPreviousTick = currentTick;
-
-		switch(slowTimerIndex) {
-			case 0:
-				for(size_t i = 0; i < TMI_NUMBER; i++) {
-					oscTimeMeasure[i].set(TimeMeasure::timeMeasure[i].getCumulatedTimeUsAndReset());
-				}
-				break;
-			case 1:
-				for(size_t i = 0; i < TMI_NUMBER; i++) {
-					oscTimeMeasureMaxPerLoop[i].set(TimeMeasure::timeMeasure[i].getMaxTimeUsAndReset());
-				}
-				break;
-			case 2:
-				OscArgument used_fast_memory = static_cast<int32_t>((uint32_t) &_end - (uint32_t) &_sdata);
-				fastMemoryUsed.sendMessage(&used_fast_memory, 1);
-
-				OscArgument available_fast_memory =
-				    static_cast<int32_t>((uint32_t) &_estack - (uint32_t) &_Min_Stack_Size - (uint32_t) &_end);
-				fastMemoryAvailable.sendMessage(&available_fast_memory, 1);
-
-				OscArgument used_slow_memory = static_cast<int32_t>((uint32_t) __sbrk_heap_end - (uint32_t) &_sheap);
-				slowMemoryUsed.sendMessage(&used_slow_memory, 1);
-
-				OscArgument available_slow_memory =
-				    static_cast<int32_t>((uint32_t) &_eheap - (uint32_t) __sbrk_heap_end);
-				slowMemoryAvailable.sendMessage(&available_slow_memory, 1);
-				break;
-		}
-		slowTimerIndex++;
-		if(slowTimerIndex > 2)
-			slowTimerIndex = 0;
-
-		TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
-	}
-
-	controls.mainLoop();
-	oscStatePersist.mainLoop();
-	lcdController.mainLoop();
+	TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
 }

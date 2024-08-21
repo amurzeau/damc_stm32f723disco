@@ -74,6 +74,7 @@ target_include_directories(
     ${PROJECT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/COMPOSITE/Inc
     ${PROJECT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
     ${PROJECT_SOURCE_DIR}/damc/deps
+    ${PROJECT_SOURCE_DIR}/damc/deps/libuv_microcontroller
     ${PROJECT_SOURCE_DIR}/damc/damc_audio_processing
     ${PROJECT_SOURCE_DIR}/damc/damc_common
     ${PROJECT_SOURCE_DIR}/damc/damc_simple_lib

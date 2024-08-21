@@ -4,6 +4,7 @@
 #include "TimeMeasure.h"
 #include "main.h"
 #include "usbd_audio.h"
+#include <uv.h>
 
 void DAMC_init() {
 	// This will allocate instance
@@ -26,8 +27,7 @@ void DAMC_processAudioInterleaved(const int16_t** input_endpoints,
 }
 
 void DAMC_mainLoop() {
-	AudioProcessor::getInstance()->mainLoop();
-	CodecAudio::instance.onFastTimer();
+	uv_run(uv_default_loop(), UV_RUN_DEFAULT);
 }
 
 void DAMC_usbInterruptBeginMeasure() {

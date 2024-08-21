@@ -9,9 +9,11 @@ OscStatePersist::OscStatePersist(OscRoot* oscRoot)
       oscRoot(oscRoot),
       oscSaveConfigCount(this, "saveCount"),
       oscSaveNow(this, "saveNow", false, false),
-      oscConfigSaveTimerPreviousTick(0),
       oscConfigChanged(false),
-      oscNeedSaveConfig(false) {}
+      oscNeedSaveConfig(false) {
+	uv_timer_init(uv_default_loop(), &timerAutoSave);
+	timerAutoSave.data = this;
+}
 
 OscStatePersist::~OscStatePersist() {}
 
@@ -43,6 +45,8 @@ void OscStatePersist::init() {
 			saveState();
 		}
 	});
+
+	uv_timer_start(&timerAutoSave, &OscStatePersist::autoSaveTimer, 10000, 10000);
 }
 
 void OscStatePersist::beginWrite() {
@@ -169,21 +173,17 @@ void OscStatePersist::saveState() {
 	flushSpi();
 }
 
-void OscStatePersist::mainLoop() {
-	uint32_t currentTick = HAL_GetTick();
+void OscStatePersist::autoSaveTimer(uv_timer_t* handle) {
+	OscStatePersist* thisInstance = (OscStatePersist*) handle->data;
 
-	if(currentTick >= oscConfigSaveTimerPreviousTick + 10000) {
-		TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
+	TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
 
-		oscConfigSaveTimerPreviousTick = currentTick;
-
-		if(oscConfigChanged) {
-			oscNeedSaveConfig = true;
-			oscConfigChanged = false;
-		} else if(oscNeedSaveConfig) {
-			saveState();
-		}
-
-		TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
+	if(thisInstance->oscConfigChanged) {
+		thisInstance->oscNeedSaveConfig = true;
+		thisInstance->oscConfigChanged = false;
+	} else if(thisInstance->oscNeedSaveConfig) {
+		thisInstance->saveState();
 	}
+
+	TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
 }

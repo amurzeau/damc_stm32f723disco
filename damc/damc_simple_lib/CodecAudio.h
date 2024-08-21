@@ -23,8 +23,6 @@ public:
 	uint32_t getDMAOutPos();
 	uint32_t getDMAInPos();
 
-	bool onFastTimer();
-
 	void setMicBias(bool enable);
 
 	static CodecAudio instance;

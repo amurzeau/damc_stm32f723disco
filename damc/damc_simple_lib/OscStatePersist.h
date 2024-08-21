@@ -9,6 +9,7 @@
 #include <Osc/OscVariable.h>
 #include <OscRoot.h>
 #include <stdint.h>
+#include <uv.h>
 
 class OscStatePersist : public OscContainer {
 public:
@@ -16,7 +17,6 @@ public:
 	~OscStatePersist();
 
 	void init();
-	void mainLoop();
 
 protected:
 	void loadState();
@@ -28,16 +28,19 @@ protected:
 	void writeMessage(uint8_t* data, size_t size);
 	void flushSpi();
 
+	static void autoSaveTimer(uv_timer_t* handle);
+
 private:
 	OscRoot* oscRoot;
 	OscVariable<int32_t> oscSaveConfigCount;
 	OscVariable<bool> oscSaveNow;
 
-	uint32_t oscConfigSaveTimerPreviousTick;
 	bool oscConfigChanged;
 	bool oscNeedSaveConfig;
 
 	std::vector<uint8_t> buffer;
 	size_t spiWriteAddress;
 	size_t spiErasedAddress;
+
+	uv_timer_t timerAutoSave;
 };

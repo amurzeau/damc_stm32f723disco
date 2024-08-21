@@ -16,6 +16,7 @@
 #include <OscStatePersist.h>
 #include <array>
 #include <stdint.h>
+#include <uv.h>
 
 class MultiChannelAudioBuffer {
 public:
@@ -40,7 +41,6 @@ public:
 	                             int16_t** output_endpoints,
 	                             size_t output_endpoints_number,
 	                             size_t nframes);
-	void mainLoop();
 
 	Controls* getControls() { return &controls; }
 
@@ -57,6 +57,10 @@ protected:
 	                             size_t nframes);
 	void mixAudio(MultiChannelAudioBuffer* mixed_data, MultiChannelAudioBuffer* data_to_add, size_t nframes);
 	void mixAudioStereoToDualMono(MultiChannelAudioBuffer* dual_mono, MultiChannelAudioBuffer* output2, size_t nframes);
+
+	static void onFastTimer(uv_timer_t* handle);
+	static void onSlowTimer(uv_timer_t* handle);
+	static void onIdle(uv_idle_t* handle);
 
 private:
 	MultiChannelAudioBuffer buffer[5];
@@ -78,12 +82,14 @@ private:
 	OscDynamicVariable<int32_t> slowMemoryAvailable;
 	OscDynamicVariable<int32_t> slowMemoryUsed;
 
-	uint32_t fastTimerPreviousTick;
 	uint32_t nextTimerStripIndex;
-	uint32_t slowTimerPreviousTick;
 	uint32_t slowTimerIndex;
 
 	LCDController lcdController;
 	OscSerialClient serialClient;
 	Controls controls;
+
+	uv_timer_t timerFastStrips;
+	uv_timer_t timerSlowMeasures;
+	uv_idle_t idleEvent;
 };
