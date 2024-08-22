@@ -96,8 +96,8 @@ void CPUFrequencyScaling::notifyCurrentCpuUsage(uint32_t cpu_usage_ratio_per_mil
 
 uint32_t CPUFrequencyScaling::setAHBDivider(uint32_t divider) {
 	// Max divider: 8 for minimal APB1 frequency of 27Mhz
-	if(divider > 8) {
-		divider = 8;
+	if(divider > 4) {
+		divider = 4;
 	} else if(divider < 1) {
 		divider = 1;
 	}
