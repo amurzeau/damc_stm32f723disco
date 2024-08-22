@@ -8,7 +8,6 @@
 #include "TimeMeasure.h"
 #include <FilteringChain.h>
 #include <Osc/OscContainerArray.h>
-#include <Osc/OscDynamicVariable.h>
 #include <Osc/OscFixedArray.h>
 #include <Osc/OscReadOnlyVariable.h>
 #include <Osc/OscVariable.h>
@@ -79,10 +78,10 @@ private:
 	OscReadOnlyVariable<int32_t> oscTimeMeasureMaxPerLoop[TMI_NUMBER];
 	OscVariable<bool> oscEnableMicBias;
 
-	OscDynamicVariable<int32_t> fastMemoryAvailable;
-	OscDynamicVariable<int32_t> fastMemoryUsed;
-	OscDynamicVariable<int32_t> slowMemoryAvailable;
-	OscDynamicVariable<int32_t> slowMemoryUsed;
+	OscReadOnlyVariable<int32_t> fastMemoryAvailable;
+	OscReadOnlyVariable<int32_t> fastMemoryUsed;
+	OscReadOnlyVariable<int32_t> slowMemoryAvailable;
+	OscReadOnlyVariable<int32_t> slowMemoryUsed;
 
 	uint32_t nextTimerStripIndex;
 	uint32_t slowTimerIndex;

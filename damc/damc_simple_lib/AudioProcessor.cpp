@@ -280,18 +280,18 @@ void AudioProcessor::onSlowTimer(uv_timer_t* handle) {
 			}
 			break;
 		case 2:
-			OscArgument used_fast_memory = static_cast<int32_t>((uint32_t) &_end - (uint32_t) &_sdata);
-			thisInstance->fastMemoryUsed.sendMessage(&used_fast_memory, 1);
+			uint32_t used_fast_memory = static_cast<int32_t>((uint32_t) &_end - (uint32_t) &_sdata);
+			thisInstance->fastMemoryUsed.set(used_fast_memory);
 
-			OscArgument available_fast_memory =
+			uint32_t available_fast_memory =
 			    static_cast<int32_t>((uint32_t) &_estack - (uint32_t) &_Min_Stack_Size - (uint32_t) &_end);
-			thisInstance->fastMemoryAvailable.sendMessage(&available_fast_memory, 1);
+			thisInstance->fastMemoryAvailable.set(available_fast_memory);
 
-			OscArgument used_slow_memory = static_cast<int32_t>((uint32_t) __sbrk_heap_end - (uint32_t) &_sheap);
-			thisInstance->slowMemoryUsed.sendMessage(&used_slow_memory, 1);
+			uint32_t used_slow_memory = static_cast<int32_t>((uint32_t) __sbrk_heap_end - (uint32_t) &_sheap);
+			thisInstance->slowMemoryUsed.set(used_slow_memory);
 
-			OscArgument available_slow_memory = static_cast<int32_t>((uint32_t) &_eheap - (uint32_t) __sbrk_heap_end);
-			thisInstance->slowMemoryAvailable.sendMessage(&available_slow_memory, 1);
+			uint32_t available_slow_memory = static_cast<int32_t>((uint32_t) &_eheap - (uint32_t) __sbrk_heap_end);
+			thisInstance->slowMemoryAvailable.set(available_slow_memory);
 			break;
 	}
 	thisInstance->slowTimerIndex++;
