@@ -9,7 +9,6 @@
 void DAMC_init() {
 	// This will allocate instance
 	AudioProcessor::getInstance();
-	TimeMeasure::updateClockPerUs();
 }
 
 void DAMC_start() {

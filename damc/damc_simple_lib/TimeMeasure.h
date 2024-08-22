@@ -24,15 +24,21 @@ public:
 	uint32_t getCumulatedTimeUsAndReset();
 	uint32_t getMaxTimeUsAndReset();
 
-	static void updateClockPerUs();
 	static void on1msElapsed();
 
 	static TimeMeasure timeMeasure[TMI_NUMBER];
 
+protected:
+	bool updateBeginAndStart(uint32_t current_time);
+	bool updateMeasureAndStop(uint32_t current_time);
+
 private:
-	static uint32_t clock_per_us;
+	uint32_t index;
+	uint32_t current_measure_sum;
+	uint32_t time_sum_between_reset;
 	uint32_t time_sum;
 	uint32_t time_sum_per_loop;
+	uint32_t time_max_between_reset;
 	uint32_t time_max;
 	uint32_t begin_time;
 	bool isMeasuring;
