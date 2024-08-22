@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CPUFrequencyScaling.h"
 #include "ChannelStrip.h"
 #include "CodecAudio.h"
 #include "Controls.h"
@@ -89,6 +90,7 @@ private:
 	LCDController lcdController;
 	OscSerialClient serialClient;
 	Controls controls;
+	CPUFrequencyScaling cpuFrequencyScaling;
 
 	uv_timer_t timerFastStrips;
 	uv_timer_t timerSlowMeasures;

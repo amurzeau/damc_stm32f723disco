@@ -64,10 +64,12 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
       slowTimerIndex(0),
       lcdController(&oscRoot),
       serialClient(&oscRoot),
-      controls(&oscRoot) {
+      controls(&oscRoot),
+      cpuFrequencyScaling(&oscRoot) {
 	serialClient.init();
 	controls.init();
 	oscStatePersist.init();
+	cpuFrequencyScaling.init();  // Init after state persist to avoid change callback because of state loading
 	oscEnableMicBias.addChangeCallback([](bool enable) { CodecAudio::instance.setMicBias(enable); });
 
 	uv_timer_init(uv_default_loop(), &timerFastStrips);
@@ -269,11 +271,17 @@ void AudioProcessor::onSlowTimer(uv_timer_t* handle) {
 	AudioProcessor* thisInstance = (AudioProcessor*) handle->data;
 
 	switch(thisInstance->slowTimerIndex) {
-		case 0:
+		case 0: {
+			uint32_t cpu_usage_total = 0;
+
 			for(size_t i = 0; i < TMI_NUMBER; i++) {
-				thisInstance->oscTimeMeasure[i].set(TimeMeasure::timeMeasure[i].getCumulatedTimeUsAndReset());
+				uint32_t measure = TimeMeasure::timeMeasure[i].getCumulatedTimeUsAndReset();
+				cpu_usage_total += measure;
+				thisInstance->oscTimeMeasure[i].set(measure);
 			}
+			thisInstance->cpuFrequencyScaling.notifyCurrentCpuUsage(cpu_usage_total);
 			break;
+		}
 		case 1:
 			for(size_t i = 0; i < TMI_NUMBER; i++) {
 				thisInstance->oscTimeMeasureMaxPerLoop[i].set(TimeMeasure::timeMeasure[i].getMaxTimeUsAndReset());
