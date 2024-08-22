@@ -1,8 +1,8 @@
 #pragma once
 
 #include <LoudnessMeter.h>
+#include <Osc/OscFlatArray.h>
 #include <Osc/OscVariable.h>
-#include <Osc/OscDynamicVariable.h>
 // #include <mutex>
 #include <stdint.h>
 #include <string>
@@ -28,8 +28,8 @@ public:
 private:
 	OscRoot* oscRoot;
 	OscReadOnlyVariable<int32_t>* oscSampleRate;
-	OscDynamicVariable<float> oscPeakGlobal;
-	OscDynamicVariable<float> oscPeakPerChannel;
+	OscReadOnlyVariable<float> oscPeakGlobal;
+	OscFlatArray<float> oscPeakPerChannel;
 
 	std::vector<float> levelsDb;
 	// std::mutex peakMutex;
@@ -38,7 +38,6 @@ private:
 	std::array<float, 2> peaksPerChannelToSend;
 	std::string oscPeakGlobalPath;
 	std::string oscPeakPerChannelPath;
-	std::vector<OscArgument> oscPeakPerChannelArguments;
 
 	OscVariable<bool> oscEnablePeakUpdate;
 };
