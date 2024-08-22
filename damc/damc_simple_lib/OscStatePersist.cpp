@@ -176,14 +176,10 @@ void OscStatePersist::saveState() {
 void OscStatePersist::autoSaveTimer(uv_timer_t* handle) {
 	OscStatePersist* thisInstance = (OscStatePersist*) handle->data;
 
-	TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
-
 	if(thisInstance->oscConfigChanged) {
 		thisInstance->oscNeedSaveConfig = true;
 		thisInstance->oscConfigChanged = false;
 	} else if(thisInstance->oscNeedSaveConfig) {
 		thisInstance->saveState();
 	}
-
-	TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
 }

@@ -38,6 +38,14 @@ void DAMC_usbInterruptEndMeasure() {
 	TimeMeasure::timeMeasure[TMI_UsbInterrupt].endMeasure();
 }
 
+void DAMC_mainLoopBeginMeasure() {
+	TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
+}
+
+void DAMC_mainLoopEndMeasure() {
+	TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
+}
+
 void DAMC_setControlFromUSB(
     uint8_t unit_id, uint8_t control_selector, uint8_t channel, uint8_t bRequest, uint16_t value) {
 	AudioProcessor::getInstance()->getControls()->setControlFromUSB(

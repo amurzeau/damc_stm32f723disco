@@ -14,10 +14,9 @@ public:
 
 	void start();
 
-	void mainLoop();
-
 	void drawMenuMain();
 	void drawMenuStripConfig();
+	void notifyTouchFromIrq();
 
 	static LCDController* instance;
 
@@ -64,6 +63,8 @@ protected:
 	};
 
 	static void onTimerLcdOff(uv_timer_t* handle);
+	static void onTouchIrqStatic(uv_async_t* handle);
+	void onTouchIrq();
 
 	void drawIcon(Icon icon, int x, int y, int width, int height, TouchHandleCallback onClick);
 
@@ -114,6 +115,7 @@ private:
 	bool lcdIsOn;
 
 	uv_timer_t timerLcdOff;
+	uv_async_t asyncNotifyTouchIrq;
 
 	// Screen metadata
 	struct MenuInfo {

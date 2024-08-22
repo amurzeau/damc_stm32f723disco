@@ -25,6 +25,7 @@
 #include "AudioCApi.h"
 #include "stm32f723e_discovery_audio.h"
 #include "stm32f7xx_hal_qspi.h"
+#include "stm32f7xx_hal_gpio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -259,6 +260,15 @@ extern QSPI_HandleTypeDef QSPIHandle;
 void QUADSPI_IRQHandler(void)
 {
 	  HAL_QSPI_IRQHandler(&QSPIHandle);
+}
+
+// TS_INT IRQ
+void EXTI9_5_IRQHandler() {
+	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_5);
+	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_6);
+	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_7);
+	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_8);
+	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);
 }
 
 /* USER CODE END 1 */

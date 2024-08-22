@@ -1,4 +1,5 @@
 #include "LCDController.h"
+#include "TimeMeasure.h"
 #include <Osc/OscReadOnlyVariable.h>
 #include <OscRoot.h>
 #include <Utils.h>
@@ -11,6 +12,7 @@
 #include <stm32f723e_discovery.h>
 #include <stm32f723e_discovery_lcd.h>
 #include <stm32f723e_discovery_ts.h>
+#include <stm32f7xx_hal_gpio.h>
 
 LCDController* LCDController::instance;
 
@@ -44,12 +46,20 @@ struct OscPanelLinkDeclaration {
 	const char* nodes[4];  // at most 4 nodes are configurable (4x one button for bool values)
 };
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if(GPIO_Pin == TS_INT_PIN) {
+		LCDController::instance->notifyTouchFromIrq();
+	}
+}
+
 LCDController::LCDController(OscRoot* oscRoot)
     : oscRoot(oscRoot), touchX(0), touchY(0), touchIsPressed(true), lcdIsOn(false), menuHistorySize(0), menusState{} {
 	instance = this;
 	touchHandlers.reserve(5);
 	uv_timer_init(uv_default_loop(), &timerLcdOff);
 	timerLcdOff.data = this;
+	uv_async_init(uv_default_loop(), &asyncNotifyTouchIrq, LCDController::onTouchIrqStatic);
+	asyncNotifyTouchIrq.data = this;
 }
 
 void LCDController::start() {
@@ -59,6 +69,9 @@ void LCDController::start() {
 	TS_IO_Init();
 	HAL_Delay(500);
 	BSP_TS_InitEx(240, 240, LCD_ORIENTATION_LANDSCAPE_ROT180);
+
+	// Enable interrupt mode
+	BSP_TS_ITConfig();
 
 	// Initialize ST7789H2-G4 LCD controller
 	uint8_t status = BSP_LCD_InitEx(LCD_ORIENTATION_LANDSCAPE_ROT180);
@@ -74,14 +87,21 @@ void LCDController::start() {
 	lcdTurnOn();
 }
 
-void LCDController::mainLoop() {
+void LCDController::notifyTouchFromIrq() {
+	uv_async_send(&asyncNotifyTouchIrq);
+}
+
+void LCDController::onTouchIrqStatic(uv_async_t* handle) {
+	LCDController* thisInstance = (LCDController*) handle->data;
+	thisInstance->onTouchIrq();
+}
+
+void LCDController::onTouchIrq() {
 	TS_StateTypeDef TS_State = {
 	    .touchDetected = false,
 	};
 
-	if(HAL_GPIO_ReadPin(TS_INT_GPIO_PORT, TS_INT_PIN) == GPIO_PIN_RESET) {
-		BSP_TS_GetState(&TS_State);
-	}
+	BSP_TS_GetState(&TS_State);
 
 	if(TS_State.touchDetected > 0 && !touchIsPressed) {
 		touchIsPressed = true;
@@ -93,6 +113,9 @@ void LCDController::mainLoop() {
 		} else {
 			handleClick(240 - TS_State.touchX[0], TS_State.touchY[0]);
 		}
+
+		// Recheck later to detect end of press
+		uv_async_send(&asyncNotifyTouchIrq);
 	} else if(TS_State.touchDetected == 0 && touchIsPressed) {
 		touchIsPressed = false;
 		uv_timer_start(&timerLcdOff, &LCDController::onTimerLcdOff, 30000, 0);

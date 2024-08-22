@@ -1,11 +1,13 @@
 #include "Controls.h"
-#include "TimeMeasure.h"
 #include "usbd_audio.h"
 #include <OscRoot.h>
 
 Controls* Controls::instance;
 
-Controls::Controls(OscRoot* oscRoot) : oscRoot(oscRoot), processUsbControlChange(false) {}
+Controls::Controls(OscRoot* oscRoot) : oscRoot(oscRoot), processUsbControlChange(false) {
+	uv_async_init(uv_default_loop(), &asyncControlChanged, Controls::onControlChangedStatic);
+	asyncControlChanged.data = this;
+}
 
 void Controls::init() {
 	static const char* controlNodeAddresses[] = {
@@ -90,35 +92,37 @@ void Controls::setControlFromUSB(
 			case AUDIO_CONTROL_VOLUME:
 				controlsMapping[endpoint_index].volumeToSet.value = (int16_t) value / 256.f;
 				controlsMapping[endpoint_index].volumeToSet.isChanged = true;
+				uv_async_send(&asyncControlChanged);
 				break;
 
 			case AUDIO_CONTROL_MUTE:
 				controlsMapping[endpoint_index].muteToSet.value = value == 0 ? false : true;
 				controlsMapping[endpoint_index].muteToSet.isChanged = true;
+				uv_async_send(&asyncControlChanged);
 				break;
 		}
 	}
 }
+void Controls::onControlChangedStatic(uv_async_t* handle) {
+	Controls* thisInstance = (Controls*) handle->data;
+	thisInstance->onControlChanged();
+}
 
-void Controls::mainLoop() {
+void Controls::onControlChanged() {
 	for(size_t i = 0; i < controlsMapping.size(); i++) {
 		if(controlsMapping[i].volumeToSet.isChanged) {
-			TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
 			controlsMapping[i].volumeToSet.isChanged = false;
-			__DSB();
+			__DMB();
 			processUsbControlChange = true;
 			controlsMapping[i].volumeControl->setFromOsc(controlsMapping[i].volumeToSet.value);
 			processUsbControlChange = false;
-			TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
 		}
 		if(controlsMapping[i].muteToSet.isChanged) {
-			TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
 			controlsMapping[i].muteToSet.isChanged = false;
-			__DSB();
+			__DMB();
 			processUsbControlChange = true;
 			controlsMapping[i].muteControl->setFromOsc(controlsMapping[i].muteToSet.value);
 			processUsbControlChange = false;
-			TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
 		}
 	}
 }

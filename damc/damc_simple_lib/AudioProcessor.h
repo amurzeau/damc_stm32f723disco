@@ -60,7 +60,9 @@ protected:
 
 	static void onFastTimer(uv_timer_t* handle);
 	static void onSlowTimer(uv_timer_t* handle);
-	static void onIdle(uv_idle_t* handle);
+
+	void startFastTimer();
+	void startSlowTimer();
 
 private:
 	MultiChannelAudioBuffer buffer[5];
@@ -91,5 +93,4 @@ private:
 
 	uv_timer_t timerFastStrips;
 	uv_timer_t timerSlowMeasures;
-	uv_idle_t idleEvent;
 };

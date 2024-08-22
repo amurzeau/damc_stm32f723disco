@@ -1,5 +1,6 @@
 #include "uv.h"
 #include "queue.h"
+#include <AudioCApi.h>
 #include <stdlib.h>
 #include <stm32f7xx_hal.h>
 #include <string.h>
@@ -57,7 +58,9 @@ static int32_t uv__run_timers(uv_loop_t* loop) {
 			} else {
 				uv_timer_stop(current_timer);
 			}
+			DAMC_mainLoopBeginMeasure();
 			current_timer->callback(current_timer);
+			DAMC_mainLoopEndMeasure();
 		}
 
 		if(current_timer->flags & UV__HANDLE_ACTIVE) {
@@ -76,7 +79,9 @@ static void uv__run_idle(uv_loop_t* loop) {
 	QUEUE* q;
 	QUEUE_FOREACH(q, &loop->idle_queue) {
 		uv_idle_t* handle = QUEUE_DATA(q, uv_idle_t, idle_queue);
+		DAMC_mainLoopBeginMeasure();
 		handle->callback(handle);
+		DAMC_mainLoopEndMeasure();
 	}
 }
 
@@ -94,7 +99,9 @@ static void uv__run_async(uv_loop_t* loop) {
 		if(handle->pending) {
 			handle->pending = 0;
 			__DMB();
+			DAMC_mainLoopBeginMeasure();
 			handle->callback(handle);
+			DAMC_mainLoopEndMeasure();
 		}
 	}
 }
@@ -218,7 +225,7 @@ UV_EXTERN int uv_async_send(uv_async_t* handle) {
 	handle->pending = 1;
 	__DMB();
 	handle->loop->async_pending = 1;
-	__DSB();
+	__DMB();
 
 	return 0;
 }

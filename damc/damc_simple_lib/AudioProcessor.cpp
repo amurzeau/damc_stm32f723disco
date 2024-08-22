@@ -74,18 +74,16 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
 	timerFastStrips.data = this;
 	uv_timer_init(uv_default_loop(), &timerSlowMeasures);
 	timerSlowMeasures.data = this;
-
-	uv_idle_init(uv_default_loop(), &idleEvent);
-	idleEvent.data = this;
 }
 
 AudioProcessor::~AudioProcessor() {}
 
 void AudioProcessor::start() {
 	lcdController.start();
-	uv_timer_start(&timerFastStrips, AudioProcessor::onFastTimer, 100 / strips.size(), 100 / strips.size());
-	uv_timer_start(&timerSlowMeasures, AudioProcessor::onSlowTimer, 1000 / 3, 1000 / 3);
-	uv_idle_start(&idleEvent, AudioProcessor::onIdle);
+
+	// Don't use repeat feature to avoid having to catch up timer callbacks in case of high CPU usage
+	startFastTimer();
+	startSlowTimer();
 }
 
 void AudioProcessor::interleavedToFloat(const int16_t* data_input,
@@ -242,26 +240,22 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	CodecAudio::instance.processAudioInterleavedOutput(codecBuffer, nframes);
 }
 
-void AudioProcessor::onIdle(uv_idle_t* handle) {
-	AudioProcessor* thisInstance = (AudioProcessor*) handle->data;
-	// Do at most one thing to avoid taking too much time here
-	thisInstance->serialClient.mainLoop();
+void AudioProcessor::startFastTimer() {
+	uv_timer_start(&timerFastStrips, AudioProcessor::onFastTimer, 100 / strips.size(), 0);
+}
 
-	thisInstance->controls.mainLoop();
-	thisInstance->lcdController.mainLoop();
+void AudioProcessor::startSlowTimer() {
+	uv_timer_start(&timerSlowMeasures, AudioProcessor::onSlowTimer, 1000 / 3, 0);
 }
 
 void AudioProcessor::onFastTimer(uv_timer_t* handle) {
 	AudioProcessor* thisInstance = (AudioProcessor*) handle->data;
-
-	TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
+	thisInstance->startFastTimer();
 
 	thisInstance->strips.at(thisInstance->nextTimerStripIndex).onFastTimer();
 	thisInstance->nextTimerStripIndex++;
 	if(thisInstance->nextTimerStripIndex >= thisInstance->strips.size())
 		thisInstance->nextTimerStripIndex = 0;
-
-	TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
 }
 
 extern "C" uint8_t* __sbrk_heap_end;  // end of heap
@@ -273,8 +267,6 @@ extern "C" uint8_t _eheap;            // end of PSRAM (heap)
 extern "C" uint8_t _Min_Stack_Size;   // minimal stack size
 void AudioProcessor::onSlowTimer(uv_timer_t* handle) {
 	AudioProcessor* thisInstance = (AudioProcessor*) handle->data;
-
-	TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
 
 	switch(thisInstance->slowTimerIndex) {
 		case 0:
@@ -306,5 +298,5 @@ void AudioProcessor::onSlowTimer(uv_timer_t* handle) {
 	if(thisInstance->slowTimerIndex > 2)
 		thisInstance->slowTimerIndex = 0;
 
-	TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
+	thisInstance->startSlowTimer();
 }

@@ -103,6 +103,9 @@ static struct USBD_CDC_CircularBuffer rxBuffer;
 static struct USBD_CDC_CircularBuffer txBuffer;
 static USBD_HandleTypeDef *usb_pdev;
 
+static USB_CDC_IF_notifyDataReady userDataReadyCallback = NULL;
+static void* userDataReadyCallbackArg = NULL;
+
 /* Private functions ---------------------------------------------------------*/
 
 static void USB_CDC_IF_receiveIfReady() {
@@ -389,6 +392,9 @@ static int8_t USB_CDC_IF_Receive(uint8_t *Buf, uint32_t *Len)
 
   USB_CDC_IF_receiveIfReady();
 
+  if(userDataReadyCallback)
+    userDataReadyCallback(userDataReadyCallbackArg);
+
   return (0);
 }
 
@@ -453,6 +459,11 @@ uint32_t USB_CDC_IF_RX_read(uint8_t *Buf, uint32_t max_len)
   }
 
   return i;
+}
+
+void USB_CDC_IF_set_rx_data_ready_callback(USB_CDC_IF_notifyDataReady callback, void* arg) {
+	userDataReadyCallback = callback;
+	userDataReadyCallbackArg = arg;
 }
 
 
