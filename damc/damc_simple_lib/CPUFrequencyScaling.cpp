@@ -39,7 +39,7 @@ uint32_t getPPREValueFromDivider(uint32_t divider) {
 CPUFrequencyScaling::CPUFrequencyScaling(OscRoot* oscRoot)
     : OscContainer(oscRoot, "cpu"),
       oscRoot(oscRoot),
-      oscCurrentFrequency(this, "freq"),
+      oscCurrentFrequency(this, "freq", SystemCoreClock),
       current_ahb_divider(1),
       max_cpu_usage_ratio_per_million(0),
       cpu_usage_points(0),
