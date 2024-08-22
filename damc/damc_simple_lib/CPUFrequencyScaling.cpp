@@ -41,6 +41,7 @@ CPUFrequencyScaling::CPUFrequencyScaling(OscRoot* oscRoot)
       oscRoot(oscRoot),
       oscCurrentFrequency(this, "freq", SystemCoreClock),
       current_ahb_divider(1),
+      recent_ahb_divider_change(false),
       max_cpu_usage_ratio_per_million(0),
       cpu_usage_points(0),
       cpu_usage_points_target(0) {
@@ -63,6 +64,12 @@ void CPUFrequencyScaling::resetFrequencyToMaxPerformance() {
 }
 
 void CPUFrequencyScaling::notifyCurrentCpuUsage(uint32_t cpu_usage_ratio_per_million) {
+	// Skip first measure after a frequency change
+	if(recent_ahb_divider_change) {
+		recent_ahb_divider_change = false;
+		return;
+	}
+
 	cpu_usage_points++;
 	if(cpu_usage_ratio_per_million > max_cpu_usage_ratio_per_million) {
 		max_cpu_usage_ratio_per_million = cpu_usage_ratio_per_million;
@@ -120,6 +127,7 @@ uint32_t CPUFrequencyScaling::setAHBDivider(uint32_t divider) {
 	HAL_InitTick(TICK_INT_PRIORITY);
 
 	current_ahb_divider = ahb_divider;
+	recent_ahb_divider_change = true;
 
 	// Reset cpu usage stats
 	cpu_usage_points = 0;

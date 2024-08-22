@@ -21,6 +21,7 @@ private:
 	OscRoot* oscRoot;
 	OscReadOnlyVariable<int32_t> oscCurrentFrequency;
 	uint32_t current_ahb_divider;
+	bool recent_ahb_divider_change;
 
 	uint32_t max_cpu_usage_ratio_per_million;
 	uint32_t cpu_usage_points;
