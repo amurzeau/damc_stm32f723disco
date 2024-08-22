@@ -27,10 +27,11 @@ public:
 
 protected:
 	void notifyOsc();
-	bool checkData(const std::vector<T>& savedValues, bool fromOsc);
+	bool checkData(bool fromOsc);
 
 private:
 	std::vector<T> values;
+	std::vector<T> savedValues;
 	std::vector<std::function<void(const std::vector<T>&, const std::vector<T>&)>> onChangeCallbacks;
 	std::vector<std::function<bool(const std::vector<T>&)>> checkCallbacks;
 };
@@ -38,7 +39,7 @@ private:
 EXPLICIT_INSTANCIATE_OSC_VARIABLE(extern template, OscFlatArray);
 
 template<class T> template<class U> bool OscFlatArray<T>::updateData(const U& lambda, bool fromOsc) {
-	std::vector<T> savedValues = values;
+	savedValues = values;
 	lambda(values);
-	return checkData(savedValues, fromOsc);
+	return checkData(fromOsc);
 }

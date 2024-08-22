@@ -109,7 +109,7 @@ template<typename T> void OscFlatArray<T>::notifyOsc() {
 	sendMessage(&valueToSend[0], size);
 }
 
-template<typename T> bool OscFlatArray<T>::checkData(const std::vector<T>& savedValues, bool fromOsc) {
+template<typename T> bool OscFlatArray<T>::checkData(bool fromOsc) {
 	if(values != savedValues) {
 		bool isDataValid = callCheckCallbacks(values);
 		if(isDataValid) {
@@ -124,7 +124,7 @@ template<typename T> bool OscFlatArray<T>::checkData(const std::vector<T>& saved
 		} else {
 			SPDLOG_WARN("{}: refused invalid value", getFullAddress());
 
-			values = savedValues;
+			values.swap(savedValues);
 
 			if(fromOsc) {
 				// Ensure the client that set this is notified that the value didn't changed
