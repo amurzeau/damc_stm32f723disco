@@ -250,8 +250,9 @@ bool OscRoot::isOscValueAuthority() {
 }
 
 void OscRoot::notifyValueChanged() {
-	if(onOscValueChanged)
-		onOscValueChanged();
+	for(auto& callback : onOscValueChanged) {
+		callback();
+	}
 }
 
 void OscRoot::addPendingConfigNode(OscNode* node) {
@@ -275,8 +276,8 @@ void OscRoot::removeConnector(OscConnector* connector) {
 	connectors.erase(connector);
 }
 
-void OscRoot::setOnOscValueChanged(std::function<void()> onOscValueChanged) {
-	this->onOscValueChanged = onOscValueChanged;
+void OscRoot::addValueChangedCallback(std::function<void()> onOscValueChanged) {
+	this->onOscValueChanged.push_back(onOscValueChanged);
 }
 
 static constexpr uint8_t SLIP_END = 0xC0;

@@ -36,7 +36,7 @@ void OscStatePersist::init() {
 	loadState();
 
 	// Listen for config changes
-	oscRoot->setOnOscValueChanged([this]() {
+	oscRoot->addValueChangedCallback([this]() {
 		oscConfigChanged = true;
 		;
 	});

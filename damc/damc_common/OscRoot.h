@@ -26,7 +26,7 @@ public:
 
 	void addConnector(OscConnector* connector);
 	void removeConnector(OscConnector* connector);
-	void setOnOscValueChanged(std::function<void()> onOscValueChanged);
+	void addValueChangedCallback(std::function<void()> onOscValueChanged);
 
 	// Called by nodes
 	void serializeMessage(std::function<void(std::string_view, uint8_t*, size_t)> processResult,
@@ -53,7 +53,7 @@ private:
 	std::string nodeFullAddress;
 	std::unique_ptr<uint8_t[]> oscOutputMessage;
 	size_t oscOutputMaxSize;
-	std::function<void()> onOscValueChanged;
+	std::vector<std::function<void()>> onOscValueChanged;
 	bool doNotifyOscAtInit;
 
 	std::set<OscNode*> nodesPendingConfig;
