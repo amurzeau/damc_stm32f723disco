@@ -15,7 +15,7 @@
 
 using namespace std::literals;  // for std::strinv_view literal ""sv
 
-volatile AudioProcessor* audio_processor;
+AudioProcessor* volatile audio_processor;
 
 MultiChannelAudioBuffer::MultiChannelAudioBuffer() {
 	for(size_t i = 0; i < CHANNEL_NUMBER; i++) {
