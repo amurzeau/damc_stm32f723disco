@@ -7,8 +7,14 @@
 EXPLICIT_INSTANCIATE_OSC_VARIABLE(template, OscFlatArray);
 
 template<typename T>
-OscFlatArray<T>::OscFlatArray(OscContainer* parent, std::string_view name) noexcept : OscContainer(parent, name) {
-	this->getRoot()->addPendingConfigNode(this);
+OscFlatArray<T>::OscFlatArray(OscContainer* parent, std::string_view name, bool persistValue) noexcept
+    : OscContainer(parent, name) {
+	if(persistValue) {
+		this->getRoot()->addPendingConfigNode(this);
+
+		this->addChangeCallback(
+		    [this](const std::vector<T>&, const std::vector<T>&) { this->getRoot()->notifyValueChanged(); });
+	}
 }
 
 template<typename T> void OscFlatArray<T>::reserve(size_t reserveSize) {
@@ -113,7 +119,6 @@ template<typename T> bool OscFlatArray<T>::checkData(const std::vector<T>& saved
 
 			if(!fromOsc || getRoot()->isOscValueAuthority())
 				notifyOsc();
-			getRoot()->notifyValueChanged();
 
 			return true;
 		} else {

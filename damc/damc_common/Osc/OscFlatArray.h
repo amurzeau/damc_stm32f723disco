@@ -4,7 +4,7 @@
 
 template<typename T> class OscFlatArray : protected OscContainer {
 public:
-	OscFlatArray(OscContainer* parent, std::string_view name) noexcept;
+	OscFlatArray(OscContainer* parent, std::string_view name, bool persistValue = true) noexcept;
 
 	void reserve(size_t reserveSize);
 	template<class U> bool updateData(const U& lambda, bool fromOsc = false);
