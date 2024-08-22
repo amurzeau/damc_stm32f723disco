@@ -34,6 +34,7 @@ private:
 	OscRoot* oscRoot;
 	OscVariable<int32_t> oscSaveConfigCount;
 	OscVariable<bool> oscSaveNow;
+	std::function<void(std::string_view nodeFullName, uint8_t* data, size_t size)> saveSerializedMessage;
 
 	bool oscConfigChanged;
 	bool oscNeedSaveConfig;

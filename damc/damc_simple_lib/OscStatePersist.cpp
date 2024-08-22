@@ -11,6 +11,9 @@ OscStatePersist::OscStatePersist(OscRoot* oscRoot)
       oscSaveNow(this, "saveNow", false, false),
       oscConfigChanged(false),
       oscNeedSaveConfig(false) {
+	saveSerializedMessage = [this](std::string_view nodeFullName, uint8_t* data, size_t size) {
+		writeMessage(data, size);
+	};
 	uv_timer_init(uv_default_loop(), &timerAutoSave);
 	timerAutoSave.data = this;
 }
@@ -156,18 +159,10 @@ void OscStatePersist::saveState() {
 
 	// Store number of saves along with other configs
 	OscArgument argument = oscSaveConfigCount.getToOsc();
-	oscRoot->serializeMessage(
-	    [this](std::string_view nodeFullName, uint8_t* data, size_t size) { writeMessage(data, size); },
-	    &oscSaveConfigCount,
-	    &argument,
-	    1);
+	oscRoot->serializeMessage(saveSerializedMessage, &oscSaveConfigCount, &argument, 1);
 
 	oscRoot->visit([this](OscNode* node, OscArgument* arguments, size_t number) {
-		oscRoot->serializeMessage(
-		    [this](std::string_view nodeFullName, uint8_t* data, size_t size) { writeMessage(data, size); },
-		    node,
-		    arguments,
-		    number);
+		oscRoot->serializeMessage(saveSerializedMessage, node, arguments, number);
 	});
 
 	flushSpi();

@@ -8,6 +8,11 @@
 OscRoot::OscRoot(bool notifyAtInit) : OscContainer(nullptr, ""), doNotifyOscAtInit(notifyAtInit) {
 	oscOutputMaxSize = 128;
 	oscOutputMessage.reset(new uint8_t[oscOutputMaxSize]);
+	sendSerializedMessage = [this](std::string_view nodeFullAddress, uint8_t* data, size_t size) {
+		for(OscConnector* connector : connectors) {
+			connector->sendOscMessage(data, size);
+		}
+	};
 }
 
 OscRoot::~OscRoot() {}
@@ -16,7 +21,7 @@ void OscRoot::printAllNodes() {
 	SPDLOG_INFO("Nodes:\n{}", getAsString().c_str());
 }
 
-void OscRoot::serializeMessage(std::function<void(std::string_view, uint8_t*, size_t)> processResult,
+void OscRoot::serializeMessage(const std::function<void(std::string_view, uint8_t*, size_t)>& processResult,
                                const OscNode* node,
                                const OscArgument* arguments,
                                size_t number) {
@@ -88,16 +93,8 @@ void OscRoot::serializeMessage(std::function<void(std::string_view, uint8_t*, si
 }
 
 void OscRoot::sendMessage(const OscNode* node, const OscArgument* arguments, size_t number) {
-	serializeMessage(
-	    [this, arguments, number](std::string_view nodeFullAddress, uint8_t* data, size_t size) {
-		    SPDLOG_TRACE("Sending OSC message {} {}", nodeFullAddress, getArgumentVectorAsString(arguments, number));
-		    for(OscConnector* connector : connectors) {
-			    connector->sendOscMessage(data, size);
-		    }
-	    },
-	    node,
-	    arguments,
-	    number);
+	SPDLOG_TRACE("Sending OSC message {} {}", nodeFullAddress, getArgumentVectorAsString(arguments, number));
+	serializeMessage(sendSerializedMessage, node, arguments, number);
 }
 
 void OscRoot::loadNodeConfig(const std::map<std::string_view, std::vector<OscArgument>>& configValues) {

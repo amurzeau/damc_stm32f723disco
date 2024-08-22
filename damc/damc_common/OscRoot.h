@@ -29,7 +29,7 @@ public:
 	void addValueChangedCallback(std::function<void()> onOscValueChanged);
 
 	// Called by nodes
-	void serializeMessage(std::function<void(std::string_view, uint8_t*, size_t)> processResult,
+	void serializeMessage(const std::function<void(std::string_view, uint8_t*, size_t)>& processResult,
 	                      const OscNode* node,
 	                      const OscArgument* arguments,
 	                      size_t number);
@@ -55,6 +55,7 @@ private:
 	size_t oscOutputMaxSize;
 	std::vector<std::function<void()>> onOscValueChanged;
 	bool doNotifyOscAtInit;
+	std::function<void(std::string_view nodeFullAddress, uint8_t* data, size_t size)> sendSerializedMessage;
 
 	std::set<OscNode*> nodesPendingConfig;
 };
