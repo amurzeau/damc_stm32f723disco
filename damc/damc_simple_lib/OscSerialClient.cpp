@@ -32,14 +32,10 @@ void OscSerialClient::onRxDataStatic(uv_async_t* handle) {
 }
 
 void OscSerialClient::onRxData() {
-	TimeMeasure::timeMeasure[TMI_OscInput].beginMeasure();
-
 	size_t read_size = USB_CDC_IF_RX_read(rx_buffer.data(), rx_buffer.size());
 	if(read_size > 0) {
 		onOscDataReceived(rx_buffer.data(), read_size);
 	}
-
-	TimeMeasure::timeMeasure[TMI_OscInput].endMeasure();
 }
 
 void OscSerialClient::init() {}

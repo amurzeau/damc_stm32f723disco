@@ -58,9 +58,9 @@ static int32_t uv__run_timers(uv_loop_t* loop) {
 			} else {
 				uv_timer_stop(current_timer);
 			}
-			DAMC_mainLoopBeginMeasure();
+			DAMC_beginMeasure(TMI_MainLoop);
 			current_timer->callback(current_timer);
-			DAMC_mainLoopEndMeasure();
+			DAMC_endMeasure(TMI_MainLoop);
 		}
 
 		if(current_timer->flags & UV__HANDLE_ACTIVE) {
@@ -79,9 +79,9 @@ static void uv__run_idle(uv_loop_t* loop) {
 	QUEUE* q;
 	QUEUE_FOREACH(q, &loop->idle_queue) {
 		uv_idle_t* handle = QUEUE_DATA(q, uv_idle_t, idle_queue);
-		DAMC_mainLoopBeginMeasure();
+		DAMC_beginMeasure(TMI_MainLoop);
 		handle->callback(handle);
-		DAMC_mainLoopEndMeasure();
+		DAMC_endMeasure(TMI_MainLoop);
 	}
 }
 
@@ -99,9 +99,9 @@ static void uv__run_async(uv_loop_t* loop) {
 		if(handle->pending) {
 			handle->pending = 0;
 			__DMB();
-			DAMC_mainLoopBeginMeasure();
+			DAMC_beginMeasure(TMI_MainLoop);
 			handle->callback(handle);
-			DAMC_mainLoopEndMeasure();
+			DAMC_endMeasure(TMI_MainLoop);
 		}
 	}
 }

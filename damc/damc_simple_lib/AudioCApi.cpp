@@ -29,20 +29,12 @@ void DAMC_mainLoop() {
 	uv_run(uv_default_loop(), UV_RUN_DEFAULT);
 }
 
-void DAMC_usbInterruptBeginMeasure() {
-	TimeMeasure::timeMeasure[TMI_UsbInterrupt].beginMeasure();
+void DAMC_beginMeasure(enum TimeMeasureItem item) {
+	TimeMeasure::timeMeasure[item].beginMeasure();
 }
 
-void DAMC_usbInterruptEndMeasure() {
-	TimeMeasure::timeMeasure[TMI_UsbInterrupt].endMeasure();
-}
-
-void DAMC_mainLoopBeginMeasure() {
-	TimeMeasure::timeMeasure[TMI_MainLoop].beginMeasure();
-}
-
-void DAMC_mainLoopEndMeasure() {
-	TimeMeasure::timeMeasure[TMI_MainLoop].endMeasure();
+void DAMC_endMeasure(enum TimeMeasureItem item) {
+	TimeMeasure::timeMeasure[item].endMeasure();
 }
 
 void DAMC_setControlFromUSB(
@@ -66,8 +58,6 @@ extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
 	// Ensure PSRAM is not acceeded while in audio interrupt
 	//MPU_Config(0);
 	TimeMeasure::on1msElapsed();
-
-	TimeMeasure::timeMeasure[TMI_AudioProcessing].beginMeasure();
 
 	size_t nframes = 48;
 	static uint32_t usb_buffers[3][48];
@@ -95,7 +85,6 @@ extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
 		DAMC_writeAudioSample((enum DAMC_USB_Buffer_e)(DUB_In + i), &usb_buffers[DUB_In + i], nframes);
 	}
 
-	TimeMeasure::timeMeasure[TMI_AudioProcessing].endMeasure();
 	//MPU_Config(1);
 }
 /**

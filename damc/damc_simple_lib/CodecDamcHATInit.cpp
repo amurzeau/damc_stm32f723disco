@@ -6,13 +6,9 @@
 
 static CodecDamcHATInit* codec = nullptr;
 
-/* HAT DMA2 */
-extern "C" void DMA2_Stream3_IRQHandler(void) {
-	HAL_DMA_IRQHandler(codec->hsai_tx.hdmatx);
-}
-
-extern "C" void DMA2_Stream5_IRQHandler(void) {
-	HAL_DMA_IRQHandler(codec->hsai_rx.hdmarx);
+extern "C" {
+DMA_HandleTypeDef* hdma2_stream3;
+DMA_HandleTypeDef* hdma2_stream5;
 }
 
 bool CodecDamcHATInit::isAvailable() {
@@ -98,6 +94,7 @@ void CodecDamcHATInit::init_sai() {
 	hdma_tx.Init.PeriphBurst = DMA_PBURST_SINGLE;
 
 	hdma_tx.Instance = DMA2_Stream3;
+	hdma2_stream3 = &hdma_tx;
 
 	/* Associate the DMA handle */
 	__HAL_LINKDMA(&hsai_tx, hdmatx, hdma_tx);
@@ -129,6 +126,7 @@ void CodecDamcHATInit::init_sai() {
 	hdma_rx.Init.PeriphBurst = DMA_MBURST_SINGLE;
 
 	hdma_rx.Instance = DMA2_Stream5;
+	hdma2_stream5 = &hdma_rx;
 
 	/* Associate the DMA handle */
 	__HAL_LINKDMA(&hsai_rx, hdmarx, hdma_rx);
@@ -140,8 +138,9 @@ void CodecDamcHATInit::init_sai() {
 	HAL_DMA_Init(&hdma_rx);
 
 	/* SAI DMA IRQ Channel configuration */
-	HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 0x0F, 0);
-	HAL_NVIC_EnableIRQ(DMA2_Stream5_IRQn);
+	// No need for IRQ for RX
+	// HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 0x0E, 0);
+	// HAL_NVIC_EnableIRQ(DMA2_Stream5_IRQn);
 
 	/* SAI1 */
 

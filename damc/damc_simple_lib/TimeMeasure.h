@@ -1,15 +1,9 @@
 #pragma once
 
+#include <AudioCApi.h>
 #include <stdint.h>
 
-enum TimeMeasureItem {
-	TMI_UsbInterrupt,
-	TMI_AudioProcessing,
-	TMI_MainLoop,
-	TMI_OscInput,
-
-	TMI_NUMBER,
-};
+// Order by priority
 
 class TimeMeasure {
 public:

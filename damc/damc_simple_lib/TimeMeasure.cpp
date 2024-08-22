@@ -9,15 +9,15 @@ TimeMeasure TimeMeasure::timeMeasure[TMI_NUMBER];
 static GPIO_TypeDef* const DEBUG_GPIO_PORT[] = {
     [TMI_UsbInterrupt] = STMOD_UART4_RXD_s_GPIO_Port,
     [TMI_AudioProcessing] = STMOD_TIM2_CH1_2_ETR_GPIO_Port,
-    [TMI_MainLoop] = STMOD_UART4_RXD_GPIO_Port,
-    [TMI_OscInput] = STMOD_UART4_TXD_GPIO_Port,
+    [TMI_OtherIRQ] = STMOD_UART4_RXD_GPIO_Port,
+    [TMI_MainLoop] = STMOD_UART4_TXD_GPIO_Port,
 };
 
 static const uint32_t DEBUG_GPIO_PIN[] = {
     [TMI_UsbInterrupt] = STMOD_UART4_RXD_s_Pin,
     [TMI_AudioProcessing] = STMOD_TIM2_CH1_2_ETR_Pin,
-    [TMI_MainLoop] = STMOD_UART4_RXD_Pin,
-    [TMI_OscInput] = STMOD_UART4_TXD_Pin,
+    [TMI_OtherIRQ] = STMOD_UART4_RXD_Pin,
+    [TMI_MainLoop] = STMOD_UART4_TXD_Pin,
 };
 
 void TimeMeasure::on1msElapsed() {

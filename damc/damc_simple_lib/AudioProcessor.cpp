@@ -46,14 +46,14 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
       oscTimeMeasure{
           {&oscRoot, "timeUsbInterrupt"},
           {&oscRoot, "timeAudioProc"},
-          {&oscRoot, "timeFastTimer"},
-          {&oscRoot, "timeOscInput"},
+          {&oscRoot, "timeOtherInterrupts"},
+          {&oscRoot, "timeMainLoop"},
       },
       oscTimeMeasureMaxPerLoop{
           {&oscRoot, "timePerLoopUsbInterrupt"},
           {&oscRoot, "timePerLoopAudioProc"},
-          {&oscRoot, "timePerLoopFastTimer"},
-          {&oscRoot, "timePerLoopOscInput"},
+          {&oscRoot, "timePerLoopOtherInterrupts"},
+          {&oscRoot, "timePerLoopMainLoop"},
       },
       oscEnableMicBias(&oscRoot, "enableMicBias", true),
       fastMemoryAvailable(&oscRoot, "fastMemoryAvailable"),

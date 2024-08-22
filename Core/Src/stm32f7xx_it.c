@@ -26,6 +26,7 @@
 #include "stm32f723e_discovery_audio.h"
 #include "stm32f7xx_hal_qspi.h"
 #include "stm32f7xx_hal_gpio.h"
+#include "stm32f7xx_hal_dma.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,6 +62,8 @@
 /* External variables --------------------------------------------------------*/
 extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 extern TIM_HandleTypeDef htim2;
+extern DMA_HandleTypeDef* hdma2_stream3;
+extern DMA_HandleTypeDef* hdma2_stream5;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -223,14 +226,14 @@ void TIM2_IRQHandler(void)
 void OTG_HS_IRQHandler(void)
 {
   /* USER CODE BEGIN OTG_HS_IRQn 0 */
-  DAMC_usbInterruptBeginMeasure();
+  DAMC_beginMeasure(TMI_UsbInterrupt);
   SYS_LD_USER2_GPIO_Port->BSRR = SYS_LD_USER2_Pin << 16;
 
   /* USER CODE END OTG_HS_IRQn 0 */
   HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
   /* USER CODE BEGIN OTG_HS_IRQn 1 */
   SYS_LD_USER2_GPIO_Port->BSRR = SYS_LD_USER2_Pin;
-  DAMC_usbInterruptEndMeasure();
+  DAMC_endMeasure(TMI_UsbInterrupt);
 
   /* USER CODE END OTG_HS_IRQn 1 */
 }
@@ -243,32 +246,53 @@ extern SAI_HandleTypeDef         haudio_in_sai;
 
 void AUDIO_OUT_SAIx_DMAx_IRQHandler(void)
 {
-	  HAL_DMA_IRQHandler(haudio_out_sai.hdmatx);
+  // Only monitor cpu usage on TX DMA interrupt
+  DAMC_beginMeasure(TMI_AudioProcessing);
+  HAL_DMA_IRQHandler(haudio_out_sai.hdmatx);
+  DAMC_endMeasure(TMI_AudioProcessing);
 }
 
 void AUDIO_IN_SAIx_DMAx_IRQHandler(void)
 {
-	  HAL_DMA_IRQHandler(haudio_in_sai.hdmarx);
+  HAL_DMA_IRQHandler(haudio_in_sai.hdmarx);
 }
 
 void AUDIO_IN_INT_IRQHandler(void)
 {
-	  HAL_GPIO_EXTI_IRQHandler(AUDIO_IN_INT_GPIO_PIN);
+  DAMC_beginMeasure(TMI_OtherIRQ);
+  HAL_GPIO_EXTI_IRQHandler(AUDIO_IN_INT_GPIO_PIN);
+  DAMC_endMeasure(TMI_OtherIRQ);
+}
+
+/* HAT SAI DMA2 IRQs */
+void DMA2_Stream3_IRQHandler(void) {
+  // Only monitor cpu usage on TX DMA interrupt
+  DAMC_beginMeasure(TMI_AudioProcessing);
+  HAL_DMA_IRQHandler(hdma2_stream3);
+  DAMC_endMeasure(TMI_AudioProcessing);
+}
+
+void DMA2_Stream5_IRQHandler(void) {
+  HAL_DMA_IRQHandler(hdma2_stream5);
 }
 
 extern QSPI_HandleTypeDef QSPIHandle;
 void QUADSPI_IRQHandler(void)
 {
-	  HAL_QSPI_IRQHandler(&QSPIHandle);
+  DAMC_beginMeasure(TMI_OtherIRQ);
+  HAL_QSPI_IRQHandler(&QSPIHandle);
+  DAMC_endMeasure(TMI_OtherIRQ);
 }
 
 // TS_INT IRQ
 void EXTI9_5_IRQHandler() {
-	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_5);
-	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_6);
-	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_7);
-	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_8);
-	HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);
+  DAMC_beginMeasure(TMI_OtherIRQ);
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_5);
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_6);
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_7);
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_8);
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);
+  DAMC_endMeasure(TMI_OtherIRQ);
 }
 
 /* USER CODE END 1 */
