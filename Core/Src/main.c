@@ -154,44 +154,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if(usb_new_frame_flag && 0) {
-		  usb_new_frame_flag = 0;
-
-		  size_t nframes = usb_audio_endpoint_out_data[0].nominal_packet_size / USBD_AUDIO_BYTES_PER_SAMPLE / USBD_AUDIO_CHANNELS;
-
-		  USBD_AUDIO_LoopbackDataTypeDef* data_out[2] = {
-			&usb_audio_endpoint_out_data[0],
-			&usb_audio_endpoint_out_data[1],
-		  };
-		  USBD_AUDIO_LoopbackDataTypeDef* data_in[1] = {
-			&usb_audio_endpoint_in_data[0]
-		  };
-
-		  uint8_t* endpoint_out_buffer[2];
-		  uint8_t* endpoint_in_buffer[1];
-
-		  for(size_t i = 0; i < sizeof(data_out)/sizeof(data_out[0]); i++) {
-			  endpoint_out_buffer[i] = USBD_AUDIO_GetBufferFromApp(data_out[i]);
-		  }
-		  for(size_t i = 0; i < sizeof(data_in)/sizeof(data_in[0]); i++) {
-			  endpoint_in_buffer[i] = USBD_AUDIO_GetBufferFromApp(data_in[i]);
-		  }
-
-		  DAMC_processAudioInterleaved(
-				  (const int16_t**)endpoint_out_buffer,
-				  sizeof(data_out)/sizeof(data_out[0]),
-				  (int16_t**)endpoint_in_buffer,
-				  sizeof(data_in)/sizeof(data_in[0]),
-				  nframes);
-
-		  for(size_t i = 0; i < sizeof(data_out)/sizeof(data_out[0]); i++) {
-			  USBD_AUDIO_ReleaseBufferFromApp(data_out[i]);
-		  }
-		  for(size_t i = 0; i < sizeof(data_in)/sizeof(data_in[0]); i++) {
-			  USBD_AUDIO_ReleaseBufferFromApp(data_in[i]);
-		  }
-	  }
-
 	  DAMC_mainLoop();
   }
   /* USER CODE END 3 */
