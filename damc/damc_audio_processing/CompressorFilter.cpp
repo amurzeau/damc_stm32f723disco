@@ -61,6 +61,7 @@ void CompressorFilter::reset() {
 
 void CompressorFilter::processSamples(float** samples, size_t count) {
 	if(enablePeak || enableLoudness) {
+		bool samplesAreAllZeroes = true;
 		float staticGain = gainComputer(0) + makeUpGain;
 		for(size_t i = 0; i < count; i++) {
 			float levelPeak = 0;
@@ -76,6 +77,9 @@ void CompressorFilter::processSamples(float** samples, size_t count) {
 				}
 			}
 
+			if(levelPeak != 0)
+				samplesAreAllZeroes = false;
+
 			float dbGain = doCompression(levelPeak, levelLoudness);
 
 			// db to ratio
@@ -84,6 +88,13 @@ void CompressorFilter::processSamples(float** samples, size_t count) {
 			for(size_t channel = 0; channel < numChannel; channel++) {
 				samples[channel][i] = compressionRatio * samples[channel][i];
 			}
+		}
+
+		if(samplesAreAllZeroes) {
+			// When no sound, avoid big amplification that would cause high volume sound when some sound is played
+			// Make the gain assume the volume is 0dBFS.
+
+			y1 = yL = gainComputer(0.f);
 		}
 	}
 }
@@ -99,12 +110,6 @@ float CompressorFilter::doCompression(float levelPeak, float levelLoudness) {
 	if(enableLoudness.get() && levelLoudness != 0) {
 		lufsRealtimeLevel = levelToDbLoudnessLUFS(levelLoudness);
 		dbSample = std::max(dbSample, lufsRealtimeLevel - lufsTarget.get());
-	}
-
-	if(dbSample == -INFINITY) {
-		// When no sound, avoid big amplification that would cause high volume sound when some sound is played
-		// Make the gain assume the volume is 0dBFS.
-		dbSample = 0;
 	}
 
 	levelDetectorSmoothing(gainComputer(dbSample));
