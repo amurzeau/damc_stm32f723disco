@@ -23,7 +23,6 @@ public:
 	static TimeMeasure timeMeasure[TMI_NUMBER];
 
 protected:
-	bool updateBeginAndStart(uint32_t current_time);
 	bool updateMeasureAndStop(uint32_t current_time);
 
 private:
@@ -35,7 +34,6 @@ private:
 	uint32_t time_max_between_reset;
 	uint32_t time_max;
 	uint32_t begin_time;
-	bool isMeasuring;
 
 	bool otherTimeMeasureState[TMI_NUMBER];
 };
