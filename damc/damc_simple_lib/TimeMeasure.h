@@ -9,14 +9,16 @@ class TimeMeasure {
 public:
 	TimeMeasure();
 
-	void beginMeasure(bool stateSave = true);
-	void endMeasure(bool stateRestore = true);
+	void beginMeasure();
+	void endMeasure();
 	void endAudioLoop();
 
 	static uint32_t getCurrent();
 
 	uint32_t getCumulatedTimeUsAndReset();
 	uint32_t getMaxTimeUsAndReset();
+	uint32_t getMaxTimeUs() { return time_max; }
+	uint32_t getOnGoingDuration();
 
 	static void on1msElapsed();
 
@@ -34,6 +36,7 @@ private:
 	uint32_t time_max_between_reset;
 	uint32_t time_max;
 	uint32_t begin_time;
+	bool isMeasuring;
 
 	bool otherTimeMeasureState[TMI_NUMBER];
 };

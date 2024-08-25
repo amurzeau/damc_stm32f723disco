@@ -85,6 +85,8 @@ extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
 		DAMC_writeAudioSample((enum DAMC_USB_Buffer_e)(DUB_In + i), &usb_buffers[DUB_In + i], nframes);
 	}
 
+	AudioProcessor::getInstance()->updateCpuUsage();
+
 	//MPU_Config(1);
 }
 /**

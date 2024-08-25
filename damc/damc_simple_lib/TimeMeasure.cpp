@@ -23,20 +23,16 @@ static const uint32_t DEBUG_GPIO_PIN[] = {
     [TMI_MainLoop] = STMOD_UART4_TXD_Pin,
 };
 
-void TimeMeasure::on1msElapsed() {
-	for(size_t i = 0; i < TMI_NUMBER; i++) {
-		timeMeasure[i].endAudioLoop();
-	}
-}
-
 TimeMeasure::TimeMeasure()
     : index(0),
+      current_measure_sum(0),
       time_sum_between_reset(0),
       time_sum(0),
       time_sum_per_loop(0),
       time_max_between_reset(0),
       time_max(0),
-      begin_time(0) {
+      begin_time(0),
+      isMeasuring(false) {
 	memset(otherTimeMeasureState, 0, sizeof(otherTimeMeasureState));
 	for(size_t i = 0; i < TMI_NUMBER; i++) {
 		if(this == &timeMeasure[i]) {
@@ -46,7 +42,7 @@ TimeMeasure::TimeMeasure()
 	}
 }
 
-void TimeMeasure::beginMeasure(bool stateSave) {
+void TimeMeasure::beginMeasure() {
 	__disable_irq();
 	uint32_t current_time = TIM2->CNT;
 	HAL_GPIO_WritePin(DEBUG_GPIO_PORT[index], DEBUG_GPIO_PIN[index], GPIO_PIN_SET);
@@ -64,11 +60,14 @@ void TimeMeasure::beginMeasure(bool stateSave) {
 
 	begin_time = current_time;
 	current_measure_sum = 0;
-
 	__enable_irq();
+
+	isMeasuring = true;
 }
 
-void TimeMeasure::endMeasure(bool stateRestore) {
+void TimeMeasure::endMeasure() {
+	isMeasuring = false;
+
 	__disable_irq();
 	uint32_t current_time = TIM2->CNT;
 	HAL_GPIO_WritePin(DEBUG_GPIO_PORT[index], DEBUG_GPIO_PIN[index], GPIO_PIN_RESET);
@@ -93,6 +92,12 @@ bool TimeMeasure::updateMeasureAndStop(uint32_t current_time) {
 	return true;
 }
 
+void TimeMeasure::on1msElapsed() {
+	for(size_t i = 0; i < TMI_NUMBER; i++) {
+		timeMeasure[i].endAudioLoop();
+	}
+}
+
 void TimeMeasure::endAudioLoop() {
 	__disable_irq();
 	if(time_sum_per_loop > time_max)
@@ -105,27 +110,38 @@ uint32_t TimeMeasure::getCurrent() {
 	return TIM2->CNT;
 }
 
-static uint32_t atomicReadReset(uint32_t* variable) {
+static uint32_t atomicReadReset(uint32_t* variable, uint32_t* current_time) {
 	uint32_t value;
+
 	__disable_irq();
 	value = *variable;
 	*variable = 0;
+	*current_time = TIM2->CNT;
 	__enable_irq();
 
 	return value;
 }
 
 uint32_t TimeMeasure::getCumulatedTimeUsAndReset() {
-	uint32_t current_time = TIM2->CNT;
+	uint32_t current_time;
+	uint32_t measure = atomicReadReset(&time_sum, &current_time);
+
 	float elapsed_time = current_time - time_sum_between_reset;
 	time_sum_between_reset = current_time;
-	return atomicReadReset(&time_sum) * 1000000.0f / elapsed_time;
+	return measure * 1000000.0f / elapsed_time;
 }
 
 uint32_t TimeMeasure::getMaxTimeUsAndReset() {
-	uint32_t current_time = TIM2->CNT;
-	float elapsed_time = current_time - time_max_between_reset;
-	time_max_between_reset = current_time;
+	uint32_t current_time;
+	uint32_t measure = atomicReadReset(&time_max, &current_time);
 
-	return atomicReadReset(&time_max) * 1000000.0f / elapsed_time;
+	return measure;
+}
+
+uint32_t TimeMeasure::getOnGoingDuration() {
+	if(!isMeasuring) {
+		return 0;
+	}
+
+	return TIM2->CNT - begin_time + current_measure_sum;
 }

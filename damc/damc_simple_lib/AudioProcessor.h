@@ -1,12 +1,12 @@
 #pragma once
 
+#include "AudioCApi.h"
 #include "CPUFrequencyScaling.h"
 #include "ChannelStrip.h"
 #include "CodecAudio.h"
 #include "Controls.h"
 #include "LCDController.h"
 #include "OscSerialClient.h"
-#include "TimeMeasure.h"
 #include <FilteringChain.h>
 #include <Osc/OscContainerArray.h>
 #include <Osc/OscFixedArray.h>
@@ -43,6 +43,8 @@ public:
 	                             size_t nframes);
 
 	Controls* getControls() { return &controls; }
+
+	void updateCpuUsage();
 
 	static AudioProcessor* getInstance();
 

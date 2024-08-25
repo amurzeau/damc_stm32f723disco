@@ -242,6 +242,10 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	CodecAudio::instance.processAudioInterleavedOutput(codecBuffer, nframes);
 }
 
+void AudioProcessor::updateCpuUsage() {
+	cpuFrequencyScaling.updateCpuUsage();
+}
+
 void AudioProcessor::startFastTimer() {
 	uv_timer_start(&timerFastStrips, AudioProcessor::onFastTimer, 100 / strips.size(), 0);
 }
@@ -272,14 +276,10 @@ void AudioProcessor::onSlowTimer(uv_timer_t* handle) {
 
 	switch(thisInstance->slowTimerIndex) {
 		case 0: {
-			uint32_t cpu_usage_total = 0;
-
 			for(size_t i = 0; i < TMI_NUMBER; i++) {
 				uint32_t measure = TimeMeasure::timeMeasure[i].getCumulatedTimeUsAndReset();
-				cpu_usage_total += measure;
 				thisInstance->oscTimeMeasure[i].set(measure);
 			}
-			thisInstance->cpuFrequencyScaling.notifyCurrentCpuUsage(cpu_usage_total);
 			break;
 		}
 		case 1:
