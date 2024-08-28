@@ -1,5 +1,5 @@
 function(add_st_target_properties TARGET_NAME)
-	target_link_options(${TARGET_NAME} PRIVATE -Wl,-Map=${TARGET_NAME}.map)
+	target_link_options(${TARGET_NAME} PRIVATE -Wl,-Map=$<TARGET_FILE_DIR:${TARGET_NAME}>/${TARGET_NAME}.map)
 	add_custom_command(
 		TARGET ${TARGET_NAME} POST_BUILD
 		COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${TARGET_NAME}>
