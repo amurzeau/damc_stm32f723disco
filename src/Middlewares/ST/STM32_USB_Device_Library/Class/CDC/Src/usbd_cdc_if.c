@@ -90,12 +90,12 @@ static USBD_CDC_LineCodingTypeDef linecoding =
 struct USBD_CDC_CircularBuffer {
   uint32_t sentinel;
   uint32_t max_write_size;
-  uint32_t current_theorical_size; // Size without counting discarded data
+  volatile uint32_t current_theorical_size; // Size without counting discarded data
   uint16_t write_index;
   uint16_t read_index;
   uint8_t buffer[CDC_DATA_HS_MAX_PACKET_SIZE*2];
   uint8_t usb_buffer[CDC_DATA_HS_MAX_PACKET_SIZE];
-  uint8_t usb_busy;
+  volatile uint8_t usb_busy;
   uint8_t usb_idle; // USB didn't send data for more than 10ms
 };
 
@@ -208,16 +208,23 @@ static void USB_CDC_IF_BUFFER_write_char(struct USBD_CDC_CircularBuffer* buffer,
 
 static uint8_t USB_CDC_IF_BUFFER_read_char(struct USBD_CDC_CircularBuffer* buffer, uint8_t* c)
 {
-  if(buffer->read_index == buffer->write_index) {
+  uint32_t read_index;
+
+retry:
+  read_index = buffer->read_index;
+  if(read_index == buffer->write_index) {
     // Buffer empty
     return 0;
   }
 
-  assert(buffer->read_index < sizeof(buffer->buffer));
+  assert(read_index < sizeof(buffer->buffer));
 
-  *c = buffer->buffer[buffer->read_index];
+  *c = buffer->buffer[read_index];
   __DSB();
-  buffer->read_index = (buffer->read_index + 1) % sizeof(buffer->buffer);
+  uint32_t next_index = (read_index + 1) % sizeof(buffer->buffer);
+
+  if(!__sync_bool_compare_and_swap(&buffer->read_index, read_index, next_index))
+  	goto retry;
 
   return 1;
 }
@@ -236,7 +243,7 @@ static int8_t USB_CDC_IF_Init(USBD_HandleTypeDef *pdev)
   usb_pdev = pdev;
 
   txBuffer.usb_busy = 0;
-  rxBuffer.usb_busy = 0;
+  rxBuffer.usb_busy = 1;
 
   USBD_CDC_SetRxBuffer(pdev, rxBuffer.usb_buffer);
   USB_CDC_IF_sendPending();
@@ -390,7 +397,8 @@ static int8_t USB_CDC_IF_Receive(uint8_t *Buf, uint32_t *Len)
   __DSB();
   rxBuffer.write_index = end;
 
-  USB_CDC_IF_receiveIfReady();
+  // Don't read again from here to avoid starving the audio processing with USB CDC reads
+  //USB_CDC_IF_receiveIfReady();
 
   if(userDataReadyCallback)
     userDataReadyCallback(userDataReadyCallbackArg);
@@ -446,12 +454,14 @@ void USB_CDC_IF_TX_write(const uint8_t *Buf, uint32_t Len)
 uint32_t USB_CDC_IF_RX_read(uint8_t *Buf, uint32_t max_len)
 {
   size_t i = 0;
-  
-  USB_CDC_IF_receiveIfReady();
 
   while(i < max_len && USB_CDC_IF_BUFFER_read_char(&rxBuffer, &Buf[i])) {
     i++;
   }
+  
+  // Trigger receive again after leaving more room in the buffer
+  USB_CDC_IF_receiveIfReady();
+
   if(rxBuffer.read_index == rxBuffer.write_index) {
     rxBuffer.current_theorical_size = 0;
   } else {

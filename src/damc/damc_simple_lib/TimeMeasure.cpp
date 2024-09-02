@@ -143,5 +143,11 @@ uint32_t TimeMeasure::getOnGoingDuration() {
 		return 0;
 	}
 
-	return TIM2->CNT - begin_time + current_measure_sum;
+	uint32_t result;
+
+	__disable_irq();
+	result = TIM2->CNT - begin_time + current_measure_sum;
+	__enable_irq();
+
+	return result;
 }
