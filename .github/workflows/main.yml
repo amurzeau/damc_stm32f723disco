@@ -39,7 +39,7 @@ jobs:
         run: |
           git submodule -q update --init --recursive
           mkdir build
-          cmake -S . -B build -GNinja -DCMAKE_TOOLCHAIN_FILE=cmake/gcc-arm-none-eabi.cmake
+          cmake -S . -B build -GNinja -DCMAKE_TOOLCHAIN_FILE=src/cmake/gcc-arm-none-eabi.cmake
           cmake --build build --target package --config Release
 
       - name: Download damc-gui assets
