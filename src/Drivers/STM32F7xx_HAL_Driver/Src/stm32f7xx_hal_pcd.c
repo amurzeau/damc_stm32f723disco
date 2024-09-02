@@ -56,7 +56,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f7xx_hal.h"
-#include "usbd_audio.h"
+#include "Tracing.h"
 
 /** @addtogroup STM32F7xx_HAL_Driver
   * @{
@@ -972,7 +972,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
   uint32_t RegVal;
 
 
-  //USBD_AUDIO_trace(&loopbackData[2], "IT begin");
+  //TRACING_add(&loopbackData[2], "IT begin");
 
   /* ensure that we are in device mode */
   if (USB_GetMode(hpcd->Instance) == USB_OTG_MODE_DEVICE)
@@ -1001,7 +1001,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
       ep = &hpcd->OUT_ep[RegVal & USB_OTG_GRXSTSP_EPNUM];
 
-		USBD_AUDIO_trace(&loopbackData[((RegVal & USB_OTG_GRXSTSP_EPNUM)&0xF)-1], "USB_ReadPacket");
+      TRACING_add(false, RegVal & USB_OTG_GRXSTSP_EPNUM, "USB_ReadPacket");
 
       if (((RegVal & USB_OTG_GRXSTSP_PKTSTS) >> 17) ==  STS_DATA_UPDT)
       {
@@ -1023,7 +1023,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
       }
       else if (((RegVal & USB_OTG_GRXSTSP_PKTSTS) >> 17) == STS_SETUP_UPDT)
       {
-		USBD_AUDIO_trace(&loopbackData[((RegVal & USB_OTG_GRXSTSP_EPNUM)&0xF)-1], "control USB_ReadPacket");
+        TRACING_add(false, RegVal & USB_OTG_GRXSTSP_EPNUM, "control USB_ReadPacket");
         (void)USB_ReadPacket(USBx, (uint8_t *)hpcd->Setup, 8U);
         ep->xfer_count += (RegVal & USB_OTG_GRXSTSP_BCNT) >> 4;
       }
@@ -1050,14 +1050,14 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
           if ((epint & USB_OTG_DOEPINT_XFRC) == USB_OTG_DOEPINT_XFRC)
           {
-  			USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "OUT XFRC");
+  			TRACING_add(false, epnum, "OUT XFRC");
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_XFRC);
             (void)PCD_EP_OutXfrComplete_int(hpcd, epnum);
           }
 
           if ((epint & USB_OTG_DOEPINT_STUP) == USB_OTG_DOEPINT_STUP)
           {
-    		USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "OUT STUP");
+    		TRACING_add(false, epnum, "OUT STUP");
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_STUP);
             /* Class B setup phase done for previous decoded setup */
             (void)PCD_EP_OutSetupPacket_int(hpcd, epnum);
@@ -1065,7 +1065,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
           if ((epint & USB_OTG_DOEPINT_OTEPDIS) == USB_OTG_DOEPINT_OTEPDIS)
           {
-    		USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "OUT OTEPDIS");
+    		TRACING_add(false, epnum, "OUT OTEPDIS");
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
 #error unsupported
 #else
@@ -1082,7 +1082,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
               USBx_DEVICE->DCTL |= USB_OTG_DCTL_CGONAK;
             }
 
-      		USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "OUT EPDISD");
+      		TRACING_add(false, epnum, "OUT EPDISD");
 
             ep = &hpcd->OUT_ep[epnum];
 
@@ -1103,14 +1103,14 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
           /* Clear Status Phase Received interrupt */
           if ((epint & USB_OTG_DOEPINT_OTEPSPR) == USB_OTG_DOEPINT_OTEPSPR)
           {
-    		USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "OUT OTEPSPR");
+    		TRACING_add(false, epnum, "OUT OTEPSPR");
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_OTEPSPR);
           }
 
           /* Clear OUT NAK interrupt */
           if ((epint & USB_OTG_DOEPINT_NAK) == USB_OTG_DOEPINT_NAK)
           {
-      		USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "OUT NAK");
+      		TRACING_add(false, epnum, "OUT NAK");
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_NAK);
           }
         }
@@ -1134,7 +1134,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
           if ((epint & USB_OTG_DIEPINT_XFRC) == USB_OTG_DIEPINT_XFRC)
           {
-    			USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "IN XFRC");
+    			TRACING_add(true, epnum, "IN XFRC");
             fifoemptymsk = (uint32_t)(0x1UL << (epnum & EP_ADDR_MSK));
             USBx_DEVICE->DIEPEMPMSK &= ~fifoemptymsk;
 
@@ -1160,22 +1160,22 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
           }
           if ((epint & USB_OTG_DIEPINT_TOC) == USB_OTG_DIEPINT_TOC)
           {
-  			USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "IN TOC");
+  			TRACING_add(true, epnum, "IN TOC");
             CLEAR_IN_EP_INTR(epnum, USB_OTG_DIEPINT_TOC);
           }
           if ((epint & USB_OTG_DIEPINT_ITTXFE) == USB_OTG_DIEPINT_ITTXFE)
           {
-    			USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "IN ITTXFE");
+    			TRACING_add(true, epnum, "IN ITTXFE");
             CLEAR_IN_EP_INTR(epnum, USB_OTG_DIEPINT_ITTXFE);
           }
           if ((epint & USB_OTG_DIEPINT_INEPNE) == USB_OTG_DIEPINT_INEPNE)
           {
-    			USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "IN INEPNE");
+    			TRACING_add(true, epnum, "IN INEPNE");
             CLEAR_IN_EP_INTR(epnum, USB_OTG_DIEPINT_INEPNE);
           }
           if ((epint & USB_OTG_DIEPINT_EPDISD) == USB_OTG_DIEPINT_EPDISD)
           {
-    			USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "IN EPDISD");
+    			TRACING_add(true, epnum, "IN EPDISD");
             (void)USB_FlushTxFifo(USBx, epnum);
 
             ep = &hpcd->IN_ep[epnum];
@@ -1195,7 +1195,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
           }
           if ((epint & USB_OTG_DIEPINT_TXFE) == USB_OTG_DIEPINT_TXFE)
           {
-  			USBD_AUDIO_trace(&loopbackData[(epnum&0xF)-1], "IN TXFE");
+  			TRACING_add(true, epnum, "IN TXFE");
             (void)PCD_WriteEmptyTxFifo(hpcd, epnum);
           }
         }
@@ -1207,7 +1207,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     /* Handle Resume Interrupt */
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_WKUINT))
     {
-	  USBD_AUDIO_trace(&loopbackData[2], "WKUINT");
+	  TRACING_add(false, 0, "WKUINT");
       /* Clear the Remote Wake-up Signaling */
       USBx_DEVICE->DCTL &= ~USB_OTG_DCTL_RWUSIG;
 
@@ -1236,7 +1236,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     /* Handle Suspend Interrupt */
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_USBSUSP))
     {
-  	  USBD_AUDIO_trace(&loopbackData[2], "USBSUSP");
+  	  TRACING_add(false, 0, "USBSUSP");
       if ((USBx_DEVICE->DSTS & USB_OTG_DSTS_SUSPSTS) == USB_OTG_DSTS_SUSPSTS)
       {
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
@@ -1251,7 +1251,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     /* Handle LPM Interrupt */
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_LPMINT))
     {
-    	  USBD_AUDIO_trace(&loopbackData[2], "LPMINT");
+    	  TRACING_add(false, 0, "LPMINT");
       __HAL_PCD_CLEAR_FLAG(hpcd, USB_OTG_GINTSTS_LPMINT);
 
       if (hpcd->LPM_State == LPM_L0)
@@ -1278,7 +1278,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     /* Handle Reset Interrupt */
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_USBRST))
     {
-  	  USBD_AUDIO_trace(&loopbackData[2], "USBRST");
+  	  TRACING_add(false, 0, "USBRST");
       USBx_DEVICE->DCTL &= ~USB_OTG_DCTL_RWUSIG;
       (void)USB_FlushTxFifo(hpcd->Instance, 0x10U);
 
@@ -1329,7 +1329,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     /* Handle Enumeration done Interrupt */
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_ENUMDNE))
     {
-    	  USBD_AUDIO_trace(&loopbackData[2], "ENUMDNE");
+    	  TRACING_add(false, 0, "ENUMDNE");
       (void)USB_ActivateSetup(hpcd->Instance);
       hpcd->Init.speed = USB_GetDevSpeed(hpcd->Instance);
 
@@ -1364,10 +1364,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     {
       uint32_t is_ep_aborted = 0;
       USBx->GINTMSK &= ~USB_OTG_GINTMSK_GONAKEFFM;
-      USBD_AUDIO_trace(&loopbackData[0], "Global NAK done");
-      USBD_AUDIO_trace(&loopbackData[1], "Global NAK done");
-      USBD_AUDIO_trace(&loopbackData[2], "Global NAK done");
-      USBD_AUDIO_trace(&loopbackData[3], "Global NAK done");
+      TRACING_add(false, 0, "Global NAK done");
 
       for (epnum = 1U; epnum < hpcd->Init.dev_endpoints; epnum++)
       {
@@ -1379,7 +1376,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
 	      hpcd->OUT_ep[epnum].is_iso_incomplete = 1U;
 
-          USBD_AUDIO_trace(&loopbackData[(epnum & 0xF) - 1], "Abort transaction");
+          TRACING_add(false, epnum, "Abort transaction");
 
           is_ep_aborted = 1;
           /* Abort current transaction and disable the EP */
@@ -1388,7 +1385,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
       }
 
       if(!is_ep_aborted) {
-          USBD_AUDIO_trace(&loopbackData[2], "No abort, cancel GONAK");
+          TRACING_add(false, 0, "No abort, cancel GONAK");
 
           USBx_DEVICE->DCTL |= USB_OTG_DCTL_CGONAK;
       }
@@ -1397,7 +1394,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     /* Handle Incomplete ISO IN Interrupt */
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_IISOIXFR))
     {
-    	  USBD_AUDIO_trace(&loopbackData[2], "IISOIXFR");
+    	  TRACING_add(false, 0, "IISOIXFR");
       for (epnum = 1U; epnum < hpcd->Init.dev_endpoints; epnum++)
       {
         RegVal = USBx_INEP(epnum)->DIEPCTL;
@@ -1406,7 +1403,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
             ((RegVal & USB_OTG_DIEPCTL_EPENA) == USB_OTG_DIEPCTL_EPENA) &&
             (!!(RegVal & (0x1U << 16)) == (hpcd->FrameNumber & 0x1U)))
         {
-          USBD_AUDIO_trace(&loopbackData[(epnum & 0xF) - 1], "ISO IN Incomplete");
+          TRACING_add(true, epnum, "ISO IN Incomplete");
 
           hpcd->IN_ep[epnum].is_iso_incomplete = 1U;
 
@@ -1421,7 +1418,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     /* Handle Incomplete ISO OUT Interrupt */
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_PXFR_INCOMPISOOUT))
     {
-  	  USBD_AUDIO_trace(&loopbackData[2], "INCOMPISOOUT");
+  	  TRACING_add(false, 0, "INCOMPISOOUT");
       for (epnum = 1U; epnum < hpcd->Init.dev_endpoints; epnum++)
       {
         RegVal = USBx_OUTEP(epnum)->DOEPCTL;
@@ -1430,17 +1427,14 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
             ((RegVal & USB_OTG_DOEPCTL_EPENA) == USB_OTG_DOEPCTL_EPENA) &&
             (!!(RegVal & (0x1U << 16)) == (hpcd->FrameNumber & 0x1U)))
         {
-          USBD_AUDIO_trace(&loopbackData[(epnum & 0xF) - 1], "ISO OUT Incomplete");
+          TRACING_add(false, epnum, "ISO OUT Incomplete");
 
 
           USBx->GINTMSK |= USB_OTG_GINTMSK_GONAKEFFM;
 
           if ((USBx->GINTSTS & USB_OTG_GINTSTS_BOUTNAKEFF) == 0U)
           {
-            USBD_AUDIO_trace(&loopbackData[0], "Global NAK start");
-            USBD_AUDIO_trace(&loopbackData[1], "Global NAK start");
-            USBD_AUDIO_trace(&loopbackData[2], "Global NAK start");
-            USBD_AUDIO_trace(&loopbackData[3], "Global NAK start");
+            TRACING_add(false, 0, "Global NAK start");
             USBx_DEVICE->DCTL |= USB_OTG_DCTL_SGONAK;
             break;
           }
@@ -1453,7 +1447,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     /* Handle Connection event Interrupt */
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_SRQINT))
     {
-    	  USBD_AUDIO_trace(&loopbackData[2], "SRQINT");
+    	  TRACING_add(false, 0, "SRQINT");
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
       hpcd->ConnectCallback(hpcd);
 #else
@@ -1470,7 +1464,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
       if ((RegVal & USB_OTG_GOTGINT_SEDET) == USB_OTG_GOTGINT_SEDET)
       {
-    	  USBD_AUDIO_trace(&loopbackData[2], "SEDET");
+    	  TRACING_add(false, 0, "SEDET");
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
         hpcd->DisconnectCallback(hpcd);
 #else
@@ -1480,7 +1474,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
       hpcd->Instance->GOTGINT |= RegVal;
     }
   }
-  //USBD_AUDIO_trace(&loopbackData[2], "IT end");
+  //TRACING_add(false, 0, "IT end");
 }
 
 
