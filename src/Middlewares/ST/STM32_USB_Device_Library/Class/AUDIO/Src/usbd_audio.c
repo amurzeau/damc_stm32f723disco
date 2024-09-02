@@ -779,9 +779,15 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
 	  return USBD_OK;
   }
 
+  // Reenable OutTokenWhileDisabled interrupt to find the correct frame number
+  
+  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+  USB_OTG_GlobalTypeDef *USBx = pcd->Instance;
+  uint32_t USBx_BASE = (uint32_t)USBx;
+  USBx_DEVICE->DOEPMSK |= USB_OTG_DOEPMSK_OTEPDM;
+
   if(is_feedback) {
 	  if(data->current_alternate) {
-		  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
 		  data->next_target_frame_feedback = (pcd->FrameNumber + 126) & 0x3FFF;
 	  }
   } else {
@@ -790,7 +796,6 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
 	  data->incomplete_iso++;
 
 	  if(data->current_alternate) {
-		  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
 		  data->next_target_frame = (pcd->FrameNumber + 6) & 0x3FFF;
 	  }
   }

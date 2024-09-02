@@ -45,6 +45,7 @@ public:
 	Controls* getControls() { return &controls; }
 
 	void updateCpuUsage();
+	void resetFrequencyToMaxPerformance();
 
 	static AudioProcessor* getInstance();
 

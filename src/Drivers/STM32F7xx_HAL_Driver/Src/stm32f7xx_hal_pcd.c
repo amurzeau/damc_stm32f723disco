@@ -1307,9 +1307,9 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
         USBx_DEVICE->DOEPMSK |= USB_OTG_DOEPMSK_STUPM |
                                 USB_OTG_DOEPMSK_XFRCM |
                                 USB_OTG_DOEPMSK_EPDM |
-                                USB_OTG_DOEPMSK_OTEPSPRM |
-                                USB_OTG_DOEPMSK_NAKM |
-                                USB_OTG_DOEPMSK_OTEPDM;
+                                USB_OTG_DOEPMSK_OTEPSPRM /*|*/
+                                /* USB_OTG_DOEPMSK_NAKM |*/
+                                /*USB_OTG_DOEPMSK_OTEPDM*/;
 
         USBx_DEVICE->DIEPMSK |= USB_OTG_DIEPMSK_TOM |
                                 USB_OTG_DIEPMSK_XFRCM |

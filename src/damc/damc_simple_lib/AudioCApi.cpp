@@ -37,6 +37,10 @@ void DAMC_endMeasure(enum TimeMeasureItem item) {
 	TimeMeasure::timeMeasure[item].endMeasure();
 }
 
+void DAMC_resetFrequencyToMaxPerformance() {
+	AudioProcessor::getInstance()->resetFrequencyToMaxPerformance();
+}
+
 void DAMC_setControlFromUSB(
     uint8_t unit_id, uint8_t control_selector, uint8_t channel, uint8_t bRequest, uint16_t value) {
 	AudioProcessor::getInstance()->getControls()->setControlFromUSB(

@@ -246,6 +246,10 @@ void AudioProcessor::updateCpuUsage() {
 	cpuFrequencyScaling.updateCpuUsage();
 }
 
+void AudioProcessor::resetFrequencyToMaxPerformance() {
+	cpuFrequencyScaling.resetFrequencyToMaxPerformance();
+}
+
 void AudioProcessor::startFastTimer() {
 	uv_timer_start(&timerFastStrips, AudioProcessor::onFastTimer, 100 / strips.size(), 0);
 }
