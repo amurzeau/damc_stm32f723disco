@@ -16,12 +16,12 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       # Checks-out STM32 compiler
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: amurzeau/stm32cubeclt
           path: stm32cubeclt
@@ -39,11 +39,11 @@ jobs:
         run: |
           git submodule -q update --init --recursive
           mkdir build
-          cmake -S . -B build -GNinja -DCMAKE_TOOLCHAIN_FILE=cmake/gcc-arm-none-eabi.cmake
+          cmake -S . -B build -GNinja -DCMAKE_TOOLCHAIN_FILE=src/cmake/gcc-arm-none-eabi.cmake
           cmake --build build --target package --config Release
 
       - name: Download damc-gui assets
-        uses: robinraju/release-downloader@v1.8
+        uses: robinraju/release-downloader@v1
         with:
           repository: "amurzeau/damc"
           latest: true
@@ -55,7 +55,7 @@ jobs:
           bash dist/repackage-damc-gui.sh build/damc-gui
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           # Artifact name
           name: "damc_stm32f723disco" # optional, default is artifact
@@ -63,7 +63,7 @@ jobs:
           path: build/*.zip
 
       - name: Upload damc-gui artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           # Artifact name
           name: "damc-gui" # optional, default is artifact
@@ -71,11 +71,9 @@ jobs:
           path: build/damc-gui/damc-gui-*.*
 
       - name: Publish
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             build/*.zip
             build/damc-gui/damc-gui-*.*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
