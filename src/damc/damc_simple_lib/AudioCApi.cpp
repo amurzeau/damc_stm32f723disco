@@ -1,9 +1,11 @@
 #include "AudioCApi.h"
 #include "AudioProcessor.h"
 #include "CodecAudio.h"
+#include "GlitchDetection.h"
 #include "TimeMeasure.h"
-#include "main.h"
-#include "usbd_audio.h"
+#include "Tracing.h"
+#include "usbd_conf.h"
+#include <usbd_audio.h>
 #include <uv.h>
 
 void DAMC_init() {
@@ -52,6 +54,18 @@ uint16_t DAMC_getControlFromUSB(uint8_t unit_id, uint8_t control_selector, uint8
 	    unit_id, control_selector, channel, bRequest);
 }
 
+static void DAMC_checkAudioInterruptLost() {
+	static uint32_t previousInterruptTimestamp;
+
+	uint32_t currentTimestamp = TimeMeasure::getCurrent();
+
+	bool isInterruptLost = previousInterruptTimestamp && (currentTimestamp - previousInterruptTimestamp) > 1500;
+	previousInterruptTimestamp = currentTimestamp;
+	if(isInterruptLost) {
+		GLITCH_DETECTION_increment_counter(GT_AudioProcessInterruptLost);
+	}
+}
+
 /**
  * @brief Tx Transfer Half completed callback.
  * @param  hsai pointer to a SAI_HandleTypeDef structure that contains
@@ -59,9 +73,13 @@ uint16_t DAMC_getControlFromUSB(uint8_t unit_id, uint8_t control_selector, uint8
  * @retval None
  */
 extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
+	TRACING_add(false, 0, "Audio Processing start");
 	// Ensure PSRAM is not acceeded while in audio interrupt
 	//MPU_Config(0);
 	TimeMeasure::on1msElapsed();
+
+	// Check lost interrupt if more than 1.5ms elapsed
+	DAMC_checkAudioInterruptLost();
 
 	size_t nframes = 48;
 	static uint32_t usb_buffers[3][48];
@@ -76,7 +94,11 @@ extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
 	};
 
 	for(size_t i = 0; i < AUDIO_OUT_NUMBER; i++) {
-		DAMC_readAudioSample((enum DAMC_USB_Buffer_e)(DUB_Out1 + i), &usb_buffers[DUB_Out1 + i], nframes);
+		size_t readSize =
+		    DAMC_readAudioSample((enum DAMC_USB_Buffer_e)(DUB_Out1 + i), &usb_buffers[DUB_Out1 + i], nframes);
+		if(USBD_AUDIO_IsEndpointEnabled(false, i) && readSize != nframes) {
+			GLITCH_DETECTION_increment_counter(GT_UsbOutUnderrun);
+		}
 	}
 
 	AudioProcessor::getInstance()->processAudioInterleaved((const int16_t**) endpoint_out_buffer,
@@ -86,12 +108,20 @@ extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
 	                                                       nframes);
 
 	for(size_t i = 0; i < AUDIO_IN_NUMBER; i++) {
-		DAMC_writeAudioSample((enum DAMC_USB_Buffer_e)(DUB_In + i), &usb_buffers[DUB_In + i], nframes);
+		if(USBD_AUDIO_IsEndpointEnabled(true, i)) {
+			size_t writtenSize =
+			    DAMC_writeAudioSample((enum DAMC_USB_Buffer_e)(DUB_In + i), &usb_buffers[DUB_In + i], nframes);
+			if(writtenSize != nframes) {
+				GLITCH_DETECTION_increment_counter(GT_UsbInOverrun);
+			}
+		}
 	}
 
 	AudioProcessor::getInstance()->updateCpuUsage();
 
 	//MPU_Config(1);
+
+	TRACING_add(false, 0, "Audio Processing end");
 }
 /**
  * @brief Tx Transfer Half completed callback.
@@ -167,10 +197,14 @@ uint32_t DAMC_getUSBInSizeValue(enum DAMC_USB_Buffer_e index) {
 }
 
 __attribute__((used)) uint32_t available_usb_buffer[3];
-void DAMC_writeAudioSample(enum DAMC_USB_Buffer_e index, const void* data, size_t size) {
-	usbBuffers[index].writeOutBuffer(usbBuffers[index].getReadPos(), (const uint32_t*) data, size);
+size_t DAMC_writeAudioSample(enum DAMC_USB_Buffer_e index, const void* data, size_t size) {
+	size_t writtenSize = usbBuffers[index].writeOutBuffer(usbBuffers[index].getReadPos(), (const uint32_t*) data, size);
+
 	available_usb_buffer[index] = usbBuffers[index].getAvailableReadForDMA(usbBuffers[index].getReadPos());
+
+	return writtenSize;
 }
+
 size_t DAMC_readAudioSample(enum DAMC_USB_Buffer_e index, void* data, size_t size) {
 	return usbBuffers[index].readInBuffer(usbBuffers[index].getWritePos(), (uint32_t*) data, size);
 }

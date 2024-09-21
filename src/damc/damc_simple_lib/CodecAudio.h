@@ -42,4 +42,7 @@ private:
 	CodecSTM32F723EDiscoInit codecSTM32F723EDiscoInit;
 	CodecDamcHATInit codecDamcHATInit;
 	bool useTlvAsMclkMaster;
+
+	uint32_t previousAvailableDmaIn;
+	uint32_t previousAvailableDmaOut;
 };

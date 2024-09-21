@@ -1,4 +1,5 @@
 #include "CodecAudio.h"
+#include "GlitchDetection.h"
 #include <spdlog/spdlog.h>
 
 #include <assert.h>
@@ -9,7 +10,7 @@
 
 CodecAudio CodecAudio::instance;
 
-CodecAudio::CodecAudio() : useTlvAsMclkMaster(false) {}
+CodecAudio::CodecAudio() : useTlvAsMclkMaster(false), previousAvailableDmaIn(0), previousAvailableDmaOut(0) {}
 
 void CodecAudio::start() {
 	codecDamcHATInit.init_i2c();
@@ -32,15 +33,40 @@ void CodecAudio::start() {
 volatile uint32_t diff_dma_out;
 void CodecAudio::processAudioInterleavedOutput(const CodecFrame* data_input, size_t nframes) {
 	uint16_t dma_read_offset = getDMAOutPos();
-	diff_dma_out = codecBuffers.out_buffer.getAvailableReadForDMA(dma_read_offset);
-	codecBuffers.out_buffer.writeOutBuffer(dma_read_offset, data_input, nframes);
+	uint32_t availableForDma = codecBuffers.out_buffer.getAvailableReadForDMA(dma_read_offset);
+	diff_dma_out = availableForDma;
+
+	size_t writtenSize = codecBuffers.out_buffer.writeOutBuffer(dma_read_offset, data_input, nframes);
+
+	// Check Overrun
+	if(writtenSize != nframes) {
+		GLITCH_DETECTION_increment_counter(GT_CodecOutXRun);
+	}
+
+	// Check DMA Underrun
+	if(previousAvailableDmaOut < nframes && availableForDma > (nframes + nframes / 2)) {
+		GLITCH_DETECTION_increment_counter(GT_CodecOutDmaUnderrun);
+	}
+	previousAvailableDmaOut = availableForDma;
 }
 
 volatile uint32_t diff_dma_in;
 void CodecAudio::processAudioInterleavedInput(CodecFrame* data_output, size_t nframes) {
 	uint16_t dma_write_offset = getDMAInPos();
-	diff_dma_in = codecBuffers.out_buffer.getAvailableWriteForDMA(dma_write_offset);
-	codecBuffers.in_buffer.readInBuffer(dma_write_offset, data_output, nframes);
+	uint32_t availableForDma = codecBuffers.out_buffer.getAvailableWriteForDMA(dma_write_offset);
+	diff_dma_in = availableForDma;
+	size_t readSize = codecBuffers.in_buffer.readInBuffer(dma_write_offset, data_output, nframes);
+
+	// Check Underrun
+	if(readSize != nframes) {
+		GLITCH_DETECTION_increment_counter(GT_CodecInXRun);
+	}
+
+	// Check DMA Overrun
+	if(previousAvailableDmaIn < nframes && availableForDma > (nframes + nframes / 2)) {
+		GLITCH_DETECTION_increment_counter(GT_CodecInDmaOverrun);
+	}
+	previousAvailableDmaIn = availableForDma;
 }
 
 uint32_t CodecAudio::getDMAOutPos() {

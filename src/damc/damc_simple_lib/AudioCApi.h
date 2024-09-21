@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -39,8 +40,10 @@ enum DAMC_USB_Buffer_e {
 uint32_t DAMC_getUSBFeedbackValue(enum DAMC_USB_Buffer_e index);
 uint32_t DAMC_getUSBInSizeValue(enum DAMC_USB_Buffer_e index);
 
-void DAMC_writeAudioSample(enum DAMC_USB_Buffer_e index, const void* data, size_t size);
+size_t DAMC_writeAudioSample(enum DAMC_USB_Buffer_e index, const void* data, size_t size);
 size_t DAMC_readAudioSample(enum DAMC_USB_Buffer_e index, void* data, size_t size);
+
+void DAMC_setEndpointEnabled(enum DAMC_USB_Buffer_e index, bool is_enabled);
 
 #ifdef __cplusplus
 }

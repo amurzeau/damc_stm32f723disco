@@ -139,11 +139,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_I2C1_Init();
-  MX_USB_DEVICE_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
   DAMC_start();
+
+  // Start USB after to ensure audio processing IRQ is running
+  MX_USB_DEVICE_Init();
 
   /* USER CODE END 2 */
 

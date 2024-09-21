@@ -13,6 +13,8 @@ public:
 	void endMeasure();
 	void endAudioLoop();
 
+	/** @brief Return TIM2 counter in microseconds.
+	 */
 	static uint32_t getCurrent();
 
 	uint32_t getCumulatedTimeUsAndReset();

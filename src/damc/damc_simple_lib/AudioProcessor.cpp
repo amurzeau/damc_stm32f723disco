@@ -65,7 +65,8 @@ AudioProcessor::AudioProcessor(uint32_t numChannels, uint32_t sampleRate, size_t
       lcdController(&oscRoot),
       serialClient(&oscRoot),
       controls(&oscRoot),
-      cpuFrequencyScaling(&oscRoot) {
+      cpuFrequencyScaling(&oscRoot),
+      glitchDetection(&oscRoot) {
 	serialClient.init();
 	controls.init();
 	oscStatePersist.init();
@@ -82,6 +83,7 @@ AudioProcessor::~AudioProcessor() {}
 
 void AudioProcessor::start() {
 	lcdController.start();
+	glitchDetection.start();
 
 	// Don't use repeat feature to avoid having to catch up timer callbacks in case of high CPU usage
 	startFastTimer();
@@ -238,7 +240,7 @@ void AudioProcessor::processAudioInterleaved(const int16_t** input_endpoints,
 	// Output float data to codec headphones
 	floatToInterleavedCodec(&buffer[2], codecBuffer, nframes);
 
-	// Output processed audio to codec and retrieve MIC
+	// Output processed audio to codec
 	CodecAudio::instance.processAudioInterleavedOutput(codecBuffer, nframes);
 }
 

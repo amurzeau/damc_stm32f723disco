@@ -24,6 +24,7 @@
 #include "usbd_def.h"
 #include "usbd_core.h"
 #include "usbd_audio.h"
+#include <AudioCApi.h>
 
 /* USER CODE BEGIN Includes */
 
@@ -148,6 +149,8 @@ static void PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd)
 void HAL_PCD_SetupStageCallback(PCD_HandleTypeDef *hpcd)
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
 {
+  // Control packets can take CPU time so increase frequency to max to ensure audio is handled without xruns
+  DAMC_resetFrequencyToMaxPerformance();
   USBD_LL_SetupStage((USBD_HandleTypeDef*)hpcd->pData, (uint8_t *)hpcd->Setup);
 }
 

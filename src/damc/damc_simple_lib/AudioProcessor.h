@@ -5,6 +5,7 @@
 #include "ChannelStrip.h"
 #include "CodecAudio.h"
 #include "Controls.h"
+#include "GlitchDetection.h"
 #include "LCDController.h"
 #include "OscSerialClient.h"
 #include <FilteringChain.h>
@@ -94,6 +95,7 @@ private:
 	OscSerialClient serialClient;
 	Controls controls;
 	CPUFrequencyScaling cpuFrequencyScaling;
+	GlitchDetection glitchDetection;
 
 	uv_timer_t timerFastStrips;
 	uv_timer_t timerSlowMeasures;

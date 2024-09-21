@@ -15,7 +15,7 @@ template<typename T, int N, bool do_manage_cache> class CircularBuffer {
 public:
 	CircularBuffer();
 
-	void writeOutBuffer(uint32_t dma_read_offset, const T* data, size_t word_size);
+	size_t writeOutBuffer(uint32_t dma_read_offset, const T* data, size_t word_size);
 	size_t readInBuffer(uint32_t dma_write_offset, T* data, size_t word_size);
 	void* getBuffer() { return &buffer[0]; }
 	constexpr size_t getElementSize() { return sizeof(buffer[0]); }
@@ -43,7 +43,7 @@ template<typename T, int N, bool do_manage_cache> CircularBuffer<T, N, do_manage
 }
 
 template<typename T, int N, bool do_manage_cache>
-void CircularBuffer<T, N, do_manage_cache>::writeOutBuffer(uint32_t dma_read_offset, const T* data, size_t nframes) {
+size_t CircularBuffer<T, N, do_manage_cache>::writeOutBuffer(uint32_t dma_read_offset, const T* data, size_t nframes) {
 	uint16_t start = out_write_offset;
 	uint16_t size = nframes;
 
@@ -77,6 +77,8 @@ void CircularBuffer<T, N, do_manage_cache>::writeOutBuffer(uint32_t dma_read_off
 	}
 	assert(out_write_offset == start);
 	out_write_offset = end;
+
+	return size;
 }
 
 template<typename T, int N, bool do_manage_cache>

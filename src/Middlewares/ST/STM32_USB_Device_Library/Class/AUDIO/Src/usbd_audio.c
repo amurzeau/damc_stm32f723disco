@@ -61,9 +61,10 @@ EndBSPDependencies */
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_audio.h"
+#include "usbd_conf.h"
 #include "usbd_ctlreq.h"
 #include "AudioCApi.h"
-
+#include "GlitchDetection.h"
 
 /** @addtogroup STM32_USB_DEVICE_LIBRARY
   * @{
@@ -434,6 +435,34 @@ static uint8_t USBD_AUDIO_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   return (uint8_t)USBD_OK;
 }
 
+static void USBD_EnableOutTokenWhileDisabled(USBD_HandleTypeDef *pdev) {
+  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+  USB_OTG_GlobalTypeDef *USBx = pcd->Instance;
+  uint32_t USBx_BASE = (uint32_t)USBx;
+  USBx_DEVICE->DOEPMSK |= USB_OTG_DOEPMSK_OTEPDM;
+}
+
+static void USBD_DisableOutTokenWhileDisabled(USBD_HandleTypeDef *pdev) {
+  // Disable interrupt when not needed as it will cause many CDC interrupts
+  bool is_interrupt_needed = false;
+
+	for(size_t i = 0; i < AUDIO_OUT_NUMBER; i++) {
+		if(usb_audio_endpoint_out_data[i].waiting_start) {
+			is_interrupt_needed = true;
+			break;
+		}
+	}
+
+  // Interrupt is still needed
+  if(is_interrupt_needed)
+  	return;
+
+  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+  USB_OTG_GlobalTypeDef *USBx = pcd->Instance;
+  uint32_t USBx_BASE = (uint32_t)USBx;
+  USBx_DEVICE->DOEPMSK &= ~USB_OTG_DOEPMSK_OTEPDM;
+}
+
 /**
   * @brief  USBD_AUDIO_Setup
   *         Handle the AUDIO specific requests
@@ -554,10 +583,31 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev,
             	  if(data->is_in) {
 					data->next_target_frame = (pcd->FrameNumber + 1) & 0x3FFF;
 				  } else {
+					// ISO Out endpoint activated, we need to know which frame number the USB Host will use
+					// for these ISO Out transfers.
+					// For this, enable OutTokenWhileDisabled interrupt and wait for it
+					// before scheduling ISO Out transfers.
+					// For the feedback ISO In endpoint, we can't do that and instead will try until we get it
+					// using successive ISO In Incomplete interrupt.
+					data->next_target_frame = -1;
 					data->next_target_frame_feedback = (pcd->FrameNumber + 1) & 0x3FFF;
+					USBD_EnableOutTokenWhileDisabled(pdev);
 				  }
               }
               data->current_alternate = req->wValue;
+			  if(data->current_alternate) {
+				// Start of audio stream, we wait actual ISO transfer
+				// before enabling glitch detection.
+			      data->waiting_start = 1;
+				  data->complete_iso = 0;
+			  } else {
+				  // End of audio stream, if we were waiting for stream start,
+				  // we need to cancel it and disable OutTokenWhileDisabled if not needed.
+			      data->waiting_start = 0;
+				  USBD_DisableOutTokenWhileDisabled(pdev);
+			  }
+			  data->waiting_stop = 0;
+
               if(data->is_in) {
                   if(req->wValue)
                       USBD_AUDIO_trace(data, "Set Alternate IN 1");
@@ -673,6 +723,9 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
 	  usb_new_frame_flag = 1;
   }
 
+  // Start ISO transfers when needed according to the frame number.
+  // All transfers are started here.
+
   for(size_t i = 0; i < AUDIO_IN_NUMBER; i++) {
 	  USBD_AUDIO_LoopbackDataTypeDef* data = &usb_audio_endpoint_in_data[i];
 
@@ -742,6 +795,7 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
 	  }
   }
 
+  // If an USB Interrupt is not in progress and a USB control value changed, send a USB interrupt to the USB Host
   uint16_t unit_id_change_bitmask = usb_audio_notify_unit_id_change;
   if(!usb_audio_notify_in_progress_data && unit_id_change_bitmask) {
 	  uint8_t unit_id = 31 - __builtin_clz(unit_id_change_bitmask);
@@ -779,12 +833,12 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
 	  return USBD_OK;
   }
 
-  // Reenable OutTokenWhileDisabled interrupt to find the correct frame number
-  
   PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
-  USB_OTG_GlobalTypeDef *USBx = pcd->Instance;
-  uint32_t USBx_BASE = (uint32_t)USBx;
-  USBx_DEVICE->DOEPMSK |= USB_OTG_DOEPMSK_OTEPDM;
+
+  // The USB Host did not emitted a ISO In token for the frame we scheduled it,
+  // either the USB Host is not reading thed ISO In endpoint or
+  // it is reading on a different frame number.
+  // Schedule a transfer at a different frame number to try to sync with the USB Host.
 
   if(is_feedback) {
 	  if(data->current_alternate) {
@@ -797,6 +851,14 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
 
 	  if(data->current_alternate) {
 		  data->next_target_frame = (pcd->FrameNumber + 6) & 0x3FFF;
+
+		  if(!data->waiting_start) {
+			  // We are not waiting for a start, so we got ISO transfer previously but not anymore.
+			  // Assume the stream is stopping.
+			  // If it was a glitch (lost ISO transfer) and we will get ISO transfer later, DataIn will handle that case
+			  // and notify the glitch.
+		      data->waiting_stop = 1;
+		  }
 	  }
   }
 
@@ -828,9 +890,19 @@ static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epn
   data->incomplete_iso++;
 
 
-  if(data->current_alternate) {
-//	  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
-//	  data->next_target_frame = (pcd->FrameNumber + 6) & 0x3FFF;
+  if(data->current_alternate && !data->waiting_start) {
+    // We are not waiting for a start, so we got ISO transfer previously but not anymore.
+    // Assume the stream is stopping.
+    // If it was a glitch (lost ISO transfer) and we will get ISO transfer later, DataOut will handle that case
+    // and notify the glitch.
+    data->waiting_stop = 1;
+
+    // Don't update data->next_target_frame to keep the current running state
+    // but reenable OutTokenWhileDisabled in case we got desync.
+	// So we are also waiting for a possible start too (along with a possible stop)
+	// If it was just a glitch, OutTokenWhileDisabled will be disabled again in DataOut.
+	data->waiting_start = 1;
+    USBD_EnableOutTokenWhileDisabled(pdev);
   }
 
   return (uint8_t)USBD_OK;
@@ -864,6 +936,10 @@ static uint8_t USBD_AUDIO_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_
   }
 #endif
 
+  // We got a OutTokenWhileDisabled interrupt, this means the USB Host
+  // tried to send data using a ISO Out token.
+  // Schedule a ISO Out receive transfer for the next period.
+  // If that transfer succeed, OutTokenWhileDisabled interrupt will be disabled as not needed anymore.
   if(data->current_alternate && data->transfer_in_progress == 0) {
 	  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
 	  data->next_target_frame = (pcd->FrameNumber + 7) & 0x3FFF;
@@ -885,6 +961,8 @@ static uint8_t USBD_AUDIO_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_
 static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
   if(epnum == (AUDIO_INTERRUPT_EP & 0x7F)) {
+	// USB Interrupt completed, reset to 0 so we are
+	// ready for a new interrupt transfer.
     usb_audio_notify_in_progress_data = 0;
   } else {
 	  uint8_t is_feedback = USBD_AUDIO_isFeedbackEndpoint(epnum);
@@ -899,15 +977,36 @@ static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 			return USBD_OK;
 		  }
 
+		  // Schedule the next feedback transfer
 		  data->next_target_frame_feedback = (data->next_target_frame_feedback + 128) & 0x3FFF;
 	  } else {
-		  data->complete_iso++;
+		  // Used to ensure we never start a transfer while one is already scheduled.
 		  data->transfer_in_progress = 0;
-		  USBD_AUDIO_trace(data, "DataIn");
 
+		  // May never happen ? ISO transfer should always be stopped
+		  // before the USB bandwidth is unallocated by changing to alternate 0,
+		  // but in case we have a somewhat cancelled transfer, ignore it
 		  if(data->current_alternate == 0) {
 			return USBD_OK;
 		  }
+
+		  // Count number of completed ISO transfer for statistics
+		  data->complete_iso++;
+
+		  // Stream just started, this is the first ISO transfer done.
+		  // This will enable glitch detection.
+		  if(data->waiting_start) {
+		      data->waiting_start = 0;
+		  }
+
+		  // If we lost a ISO transfer previously and got DataIn now,
+		  // a ISO transfer got lost and the stream is continuing instead of stopping.
+		  if(data->waiting_stop) {
+		      data->waiting_stop = 0;
+		      GLITCH_DETECTION_increment_counter(GT_UsbIsochronousTransferLost);
+		  }
+
+		  USBD_AUDIO_trace(data, "DataIn");
 
 		  USBD_AUDIO_Buffer* buffer = &data->buffer[data->usb_index_for_processing];
 		  if(buffer->state == BS_USBBusy) {
@@ -915,7 +1014,7 @@ static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 			  USBD_AUDIO_trace(data, "TS_TX_Empty");
 		  }
 
-
+		  // Schedule next ISO transfer frame number
 		  data->next_target_frame = (data->next_target_frame + 8) & 0x3FFF;
 	  }
   }
@@ -955,8 +1054,32 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 	  data->transfer_in_progress = 0;
 	  data->complete_iso++;
 
+	  // Assume we are fully started at correct speed after 2 feedbacks,
+	  // which is 16*2 = 32 data ISO xfer.
+	  // We are not counting feedback transfer as they might not be done by the USB Host (Windows).
+	  // This additional wait before assuming the transfer is started is needed
+	  // to avoid the case where a USB stream just started, but the USB Host is not
+	  // sending enough data as it didn't received enough feedback yet.
+	  // In this case, there might be USB buffer underflow which are expected and should not
+	  // be notified to the user.
+	  //
+	  // We also get waiting_start == 1 in case of a USB ISO Out desync where
+	  // OutTokenWhileDisabled interrupt got enabled again in ISOOutIncomplete.
+	  if(data->complete_iso >= 32 && data->waiting_start) {
+	  	data->waiting_start = 0;
+		// OTEPDM Interrupt is not needed anymore
+		USBD_DisableOutTokenWhileDisabled(pdev);
+	  }
+
     /* Get received data packet length */
 	  buffer->size = (uint16_t)USBD_LL_GetRxDataSize(pdev, epnum);
+
+	  // If we lost a ISO transfer previous and got DataOut now,
+	  // a ISO transfer got lost and the stream is continuing instead of stopping.
+	  if(data->waiting_stop) {
+	    data->waiting_stop = 0;
+        GLITCH_DETECTION_increment_counter(GT_UsbIsochronousTransferLost);
+	  }
 
     /* Prepare Out endpoint to receive next audio packet */
 	  if(buffer->state == BS_USBBusy) {
@@ -965,8 +1088,13 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 	  }
 
 	  int32_t index = ((epnum & 0x0F) - (AUDIO_OUT_EP & 0x0F))/2;
-	  DAMC_writeAudioSample(index, buffer->buffer, buffer->size/4);
+	  uint32_t nframes = buffer->size/4;
+	  size_t writtenSize = DAMC_writeAudioSample(index, buffer->buffer, nframes);
+	  if(writtenSize != nframes) {
+	    GLITCH_DETECTION_increment_counter(GT_UsbOutOverrun);
+	  }
 
+	// Schedule the next ISO transfer
 	data->next_target_frame = (data->next_target_frame + 8) & 0x3FFF;
   }
 
@@ -1160,6 +1288,19 @@ void USBD_AUDIO_ReleaseBufferFromApp(USBD_AUDIO_LoopbackDataTypeDef *data)
 
 void USBD_AUDIO_NotifyUnitIdChanged(uint8_t unit_id) {
 	usb_audio_notify_unit_id_change |= 1 << unit_id;
+}
+
+// Return true when the audio stream is started and stable and we are
+// ready to detect glitches.
+uint32_t USBD_AUDIO_IsEndpointEnabled(int is_in, int index) {
+	USBD_AUDIO_LoopbackDataTypeDef* data;
+	if(is_in) {
+		data = &usb_audio_endpoint_in_data[index];
+	} else {
+		data = &usb_audio_endpoint_out_data[index];
+	}
+
+	return data->current_alternate && !data->waiting_start && !data->waiting_stop;
 }
 /**
   * @}

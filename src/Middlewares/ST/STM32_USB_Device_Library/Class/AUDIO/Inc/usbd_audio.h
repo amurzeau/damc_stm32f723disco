@@ -209,6 +209,8 @@ typedef struct {
 	uint32_t transfer_in_progress;
 	uint32_t incomplete_iso;
 	uint32_t complete_iso;
+	uint32_t waiting_start;
+	uint32_t waiting_stop;
 #ifdef USB_AUDIO_ENABLE_HISTORY
 	struct history_data history[256];
 	struct history_data history_on_isoincomplete[256];
@@ -237,6 +239,7 @@ extern USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_in_data[AUDIO_IN_NUMBER
 uint8_t* USBD_AUDIO_GetBufferFromApp(USBD_AUDIO_LoopbackDataTypeDef *data);
 void USBD_AUDIO_ReleaseBufferFromApp(USBD_AUDIO_LoopbackDataTypeDef *data);
 void USBD_AUDIO_NotifyUnitIdChanged(uint8_t unit_id);
+uint32_t USBD_AUDIO_IsEndpointEnabled(int is_in, int index);
 
 typedef struct
 {

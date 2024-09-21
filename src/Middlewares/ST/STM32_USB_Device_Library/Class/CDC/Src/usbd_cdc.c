@@ -179,10 +179,10 @@ static uint8_t CDCCmdEpAdd = CDC_CMD_EP;
   * @param  cfgidx: Configuration index
   * @retval status
   */
+static USBD_CDC_HandleTypeDef hcdcData;
 static uint8_t USBD_CDC_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
   UNUSED(cfgidx);
-  static USBD_CDC_HandleTypeDef hcdcData;
   USBD_CDC_HandleTypeDef *hcdc;
 
   hcdc = &hcdcData;
@@ -501,13 +501,8 @@ static uint8_t USBD_CDC_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_t 
   // Increase CPU frequency to max will this happen (the interrupt is neededd for the audio part and can't
   // be enabled only on a single endpoint).
 
-  // Disable interrupt, will be reenabled when needed in usbd_audio.c
-  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
-  USB_OTG_GlobalTypeDef *USBx = pcd->Instance;
-  uint32_t USBx_BASE = (uint32_t)USBx;
-  USBx_DEVICE->DOEPMSK &= ~USB_OTG_DOEPMSK_OTEPDM;
-
   static uint32_t last_reset_frame;
+  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
 
   if(pcd->FrameNumber != last_reset_frame) {
 	DAMC_resetFrequencyToMaxPerformance();
