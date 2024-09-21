@@ -10,8 +10,6 @@ struct history_data {
 	const char* operation;
 	uint8_t epnum;
 	uint8_t is_in;
-	uint32_t DOEPCTL;
-	uint32_t DOEPINT;
 };
 
 struct TRACING_Instance {
@@ -35,11 +33,6 @@ void TRACING_add(bool in_ep, uint8_t epnum, const char* operation) {
 	history->operation = operation;
 	history->is_in = in_ep;
 	history->epnum = epnum;
-
-	USB_OTG_GlobalTypeDef* USBx = hpcd_USB_OTG_HS.Instance;
-	uint32_t USBx_BASE = (uint32_t) USBx;
-	history->DOEPCTL = USBx_OUTEP(epnum)->DOEPCTL;
-	history->DOEPINT = USBx_OUTEP(epnum)->DOEPINT;
 }
 
 #endif
