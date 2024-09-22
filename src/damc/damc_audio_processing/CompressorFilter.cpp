@@ -61,7 +61,6 @@ void CompressorFilter::reset() {
 
 void CompressorFilter::processSamples(float** samples, size_t count) {
 	if(enablePeak || enableLoudness) {
-		bool samplesAreAllZeroes = true;
 		float staticGain = gainComputer(0) + makeUpGain;
 		for(size_t i = 0; i < count; i++) {
 			float levelPeak = 0;
@@ -77,9 +76,6 @@ void CompressorFilter::processSamples(float** samples, size_t count) {
 				}
 			}
 
-			if(levelPeak != 0)
-				samplesAreAllZeroes = false;
-
 			float dbGain = doCompression(levelPeak, levelLoudness);
 
 			// db to ratio
@@ -88,13 +84,6 @@ void CompressorFilter::processSamples(float** samples, size_t count) {
 			for(size_t channel = 0; channel < numChannel; channel++) {
 				samples[channel][i] = compressionRatio * samples[channel][i];
 			}
-		}
-
-		if(samplesAreAllZeroes) {
-			// When no sound, avoid big amplification that would cause high volume sound when some sound is played
-			// Make the gain assume the volume is 0dBFS.
-
-			y1 = yL = gainComputer(0.f);
 		}
 	}
 }
@@ -112,7 +101,12 @@ float CompressorFilter::doCompression(float levelPeak, float levelLoudness) {
 		dbSample = std::max(dbSample, lufsRealtimeLevel - lufsTarget.get());
 	}
 
-	levelDetectorSmoothing(gainComputer(dbSample));
+	if(dbSample != -INFINITY) {
+		levelDetectorSmoothing(gainComputer(dbSample));
+	} else {
+		// When a sample is 0, keep the current compression gain.
+		levelDetectorSilenceSmoothing(gainComputer(0));
+	}
 	return -yL;
 }
 
@@ -150,6 +144,21 @@ void CompressorFilter::levelDetectorSmoothing(float dbCompression) {
 	// Added moving max to try to reduce compression level changes
 	float decayedCompression = alphaR * y1 + (1 - alphaR) * dbCompression;
 	y1 = fmaxf(dbCompression, decayedCompression);
+	yL = alphaA * yL + (1 - alphaA) * y1;
+}
+
+void CompressorFilter::levelDetectorSilenceSmoothing(float dbCompression) {
+	// Smooth out to unity gain when the input signal is silence (sample value is 0).
+	// Silence appears in these cases:
+	//  1. When audio is stopped to switch to something else (that might have a different volume)
+	//  2. When audio is silence temporarily (eg: radio/broadcast stream without background music)
+	//  3. During normal audio, when the audio signal crosses 0
+	//
+	// In these cases, we want to:
+	//  - Long term: tend to unity gain in case of switching to a high volume stream (handles 1.)
+	//  - Short term: keep the current compression gain (handles 2. and 3.)
+	// Use the release time as the constant time for this.
+	y1 = alphaR * y1 + (1 - alphaR) * dbCompression;
 	yL = alphaA * yL + (1 - alphaA) * y1;
 }
 

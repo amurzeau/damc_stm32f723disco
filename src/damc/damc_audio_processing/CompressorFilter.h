@@ -21,7 +21,8 @@ public:
 protected:
 	float doCompression(float levelPeak, float levelLoudness);
 	float gainComputer(float sample) const;
-	void levelDetectorSmoothing(float sample);
+	void levelDetectorSmoothing(float dbCompression);
+	void levelDetectorSilenceSmoothing(float dbCompression);
 	float levelToDbPeak(float sample);
 	float levelToDbLoudnessLUFS(float sample);
 	float levelDetectorPeak(float sample);
