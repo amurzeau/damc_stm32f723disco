@@ -115,8 +115,6 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
 static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_AUDIO_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_AUDIO_InTokenWhileTXEmptyCallback(USBD_HandleTypeDef *pdev, uint8_t epnum);
-static void AUDIO_REQ_GetCurrent(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
-static void AUDIO_REQ_GetCtl16(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req, uint16_t value);
 static void AUDIO_REQ_GetControl(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 static void AUDIO_REQ_SetCmd(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 static void *USBD_AUDIO_GetAudioHeaderDesc(uint8_t *pConfDesc);
@@ -1139,54 +1137,6 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
   return (uint8_t)USBD_OK;
 }
 
-/**
-  * @brief  AUDIO_Req_GetCurrent
-  *         Handles the GET_CUR Audio control request.
-  * @param  pdev: device instance
-  * @param  req: setup class request
-  * @retval status
-  */
-static void AUDIO_REQ_GetCurrent(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
-{
-  USBD_AUDIO_HandleTypeDef *haudio;
-  haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
-
-  if (haudio == NULL)
-  {
-    return;
-  }
-
-  (void)USBD_memset(haudio->control_tx_data, 0, USB_MAX_EP0_SIZE);
-
-  /* Send the current mute state */
-  (void)USBD_CtlSendData(pdev, haudio->control_tx_data,
-                         MIN(req->wLength, USB_MAX_EP0_SIZE));
-}
-/**
-  * @brief  AUDIO_Req_GetCurrent
-  *         Handles the GET_CUR Audio control request.
-  * @param  pdev: device instance
-  * @param  req: setup class request
-  * @retval status
-  */
-static void AUDIO_REQ_GetCtl16(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req, uint16_t value)
-{
-  USBD_AUDIO_HandleTypeDef *haudio;
-  haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
-
-  if (haudio == NULL)
-  {
-    return;
-  }
-
-  (void)USBD_memset(haudio->control_tx_data, 0, USB_MAX_EP0_SIZE);
-
-  memcpy(haudio->control_tx_data, &value, sizeof(value));
-
-  /* Send the current mute state */
-  (void)USBD_CtlSendData(pdev, haudio->control_tx_data,
-                         MIN(req->wLength, USB_MAX_EP0_SIZE));
-}
 /**
   * @brief  AUDIO_Req_GetCurrent
   *         Handles the GET_CUR Audio control request.

@@ -133,7 +133,6 @@ static void     FMC_BANK2_WriteData(uint16_t Data);
 static void     FMC_BANK2_WriteReg(uint8_t Reg);
 static uint16_t FMC_BANK2_ReadData(void);
 static void     FMC_BANK2_Init(void);
-static void     FMC_BANK2_MspInit(void);
 
 /* LCD IO functions */
 void            LCD_IO_Init(void);
@@ -651,62 +650,6 @@ static void I2Cx_Error(I2C_HandleTypeDef *i2c_handler, uint8_t Addr)
                             LINK OPERATIONS
 *******************************************************************************/
 /*************************** FMC Routines *************************************/
-/**
-  * @brief  Initializes FMC_BANK2 MSP.
-  * @retval None
-  */
-static void FMC_BANK2_MspInit(void)
-{
-  GPIO_InitTypeDef gpio_init_structure;
-    
-  /* Enable FMC clock */
-  __HAL_RCC_FMC_CLK_ENABLE();
-    
-  /* Enable FSMC clock */
-  __HAL_RCC_FMC_CLK_ENABLE();
-  __HAL_RCC_FMC_FORCE_RESET();
-  __HAL_RCC_FMC_RELEASE_RESET();
-  
-  /* Enable GPIOs clock */
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOE_CLK_ENABLE();
-  __HAL_RCC_GPIOF_CLK_ENABLE();
-  __HAL_RCC_GPIOG_CLK_ENABLE(); 
-  
-  /* Common GPIO configuration */
-  gpio_init_structure.Mode      = GPIO_MODE_AF_PP;
-  gpio_init_structure.Pull      = GPIO_PULLUP;
-  gpio_init_structure.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
-  gpio_init_structure.Alternate = GPIO_AF12_FMC;
-  
-  /* GPIOD configuration */ 
-  /* LCD_PSRAM_D2, LCD_PSRAM_D3, LCD_PSRAM_NOE, LCD_PSRAM_NWE, PSRAM_NE1, LCD_PSRAM_D13, 
-     LCD_PSRAM_D14, LCD_PSRAM_D15, PSRAM_A16, PSRAM_A17, LCD_PSRAM_D0, LCD_PSRAM_D1 */
-  gpio_init_structure.Pin   = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5  | GPIO_PIN_7 | GPIO_PIN_8 |\
-                              GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_14 | GPIO_PIN_15;
-  HAL_GPIO_Init(GPIOD, &gpio_init_structure);
-
-  /* GPIOE configuration */
-  /* PSRAM_NBL0, PSRAM_NBL1, LCD_PSRAM_D4, LCD_PSRAM_D5, LCD_PSRAM_D6, LCD_PSRAM_D7, 
-     LCD_PSRAM_D8, LCD_PSRAM_D9, LCD_PSRAM_D10, LCD_PSRAM_D11, LCD_PSRAM_D12 */
-  gpio_init_structure.Pin  = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_7 | GPIO_PIN_8 | GPIO_PIN_9 |GPIO_PIN_10 |\
-                             GPIO_PIN_11 | GPIO_PIN_12 |GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
-  HAL_GPIO_Init(GPIOE, &gpio_init_structure);
-  
-  /* GPIOF configuration */
-  /* PSRAM_A0, PSRAM_A1, PSRAM_A2, PSRAM_A3, PSRAM_A4, PSRAM_A5, 
-     PSRAM_A6, PSRAM_A7, PSRAM_A8, PSRAM_A9 */
-  gpio_init_structure.Pin  = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 |\
-                             GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15;
-  HAL_GPIO_Init(GPIOF, &gpio_init_structure);
-
-  /* GPIOG configuration */
-  /* PSRAM_A10, PSRAM_A11, PSRAM_A12, PSRAM_A13, PSRAM_A14, PSRAM_A15, LCD_NE */
-  gpio_init_structure.Pin  = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 |\
-                             GPIO_PIN_9 ;  
-  HAL_GPIO_Init(GPIOG, &gpio_init_structure);
-}
-
 
 /**
   * @brief  Initializes LCD IO.
@@ -716,9 +659,6 @@ static void FMC_BANK2_Init(void)
 {  
   SRAM_HandleTypeDef         hsram;
   FMC_NORSRAM_TimingTypeDef  sram_timing;
-
-  /* GPIO configuration for FMC signals (LCD) */
-  // FMC_BANK2_MspInit();
 
   /* PSRAM device configuration */
   hsram.Instance  = FMC_NORSRAM_DEVICE;
