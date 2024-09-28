@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.1)
 
 set(TARGET_NAME damc_common)
 
+# For static_assert
+set(CMAKE_C_STANDARD 11)
+
 add_library(${TARGET_NAME} STATIC
 	BiquadFilter.cpp
 	BiquadFilter.h
