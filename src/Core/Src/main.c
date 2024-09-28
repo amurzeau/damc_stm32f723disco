@@ -28,6 +28,7 @@
 #include "usbd_cdc_if.h"
 #include "memtester.h"
 #include "stm32f723e_discovery_psram.h"
+#include "Tracing.h"
 
 /* USER CODE END Includes */
 
@@ -127,6 +128,8 @@ int main(void)
   MX_GPIO_Init();
   // Initialize PSRAM as external RAM before DAMC_init as DAMC will use the heap on the PSRAM
   BSP_PSRAM_Init();
+
+  TRACING_init();
 
   // memtester_stm32((void*)0x60000000, 512*1024, 10);
 

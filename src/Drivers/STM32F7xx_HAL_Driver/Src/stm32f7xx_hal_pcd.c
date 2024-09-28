@@ -971,8 +971,8 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
   uint32_t fifoemptymsk;
   uint32_t RegVal;
 
-
   //TRACING_add(&loopbackData[2], "IT begin");
+  TRACING_add(false, USBx->GINTSTS, "IT");
 
   /* ensure that we are in device mode */
   if (USB_GetMode(hpcd->Instance) == USB_OTG_MODE_DEVICE)
@@ -998,13 +998,13 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
       USB_MASK_INTERRUPT(hpcd->Instance, USB_OTG_GINTSTS_RXFLVL);
 
       RegVal = USBx->GRXSTSP;
+      TRACING_add(false, (RegVal >> 17) & 0xF, "GRXSTSP");
 
       ep = &hpcd->OUT_ep[RegVal & USB_OTG_GRXSTSP_EPNUM];
 
-      TRACING_add(false, RegVal & USB_OTG_GRXSTSP_EPNUM, "USB_ReadPacket");
-
       if (((RegVal & USB_OTG_GRXSTSP_PKTSTS) >> 17) ==  STS_DATA_UPDT)
       {
+          TRACING_add(false, RegVal & USB_OTG_GRXSTSP_EPNUM, "OUT RXFLVL");
     	  uint16_t recv_size = (RegVal & USB_OTG_GRXSTSP_BCNT) >> 4;
         if (recv_size != 0U)
         {
@@ -1023,7 +1023,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
       }
       else if (((RegVal & USB_OTG_GRXSTSP_PKTSTS) >> 17) == STS_SETUP_UPDT)
       {
-        TRACING_add(false, RegVal & USB_OTG_GRXSTSP_EPNUM, "control USB_ReadPacket");
+        TRACING_add(false, RegVal & USB_OTG_GRXSTSP_EPNUM, "SETUP RXFLVL");
         (void)USB_ReadPacket(USBx, (uint8_t *)hpcd->Setup, 8U);
         ep->xfer_count += (RegVal & USB_OTG_GRXSTSP_BCNT) >> 4;
       }
@@ -1350,6 +1350,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     /* Handle SOF Interrupt */
     if (__HAL_PCD_GET_FLAG(hpcd, USB_OTG_GINTSTS_SOF))
     {
+      TRACING_add(false, 0, "SOF");
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
       hpcd->SOFCallback(hpcd);
 #else

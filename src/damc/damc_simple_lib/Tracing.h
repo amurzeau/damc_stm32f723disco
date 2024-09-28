@@ -12,9 +12,11 @@ extern "C" {
 #ifdef ENABLE_TRACING
 extern uint32_t offset_count;
 
-void TRACING_add(bool in_ep, uint8_t epnum, const char* operation);
+void TRACING_add(bool in_ep, uint32_t epnum, const char* operation);
+void TRACING_init();
 #else
 #define TRACING_add(...)
+#define TRACING_init()
 #endif
 
 #ifdef __cplusplus
