@@ -55,6 +55,7 @@ static uint8_t USBD_COMPOSITE_SOF(USBD_HandleTypeDef *pdev);
 static uint8_t USBD_COMPOSITE_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_COMPOSITE_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_COMPOSITE_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_t epnum);
+static uint8_t USBD_COMPOSITE_InTokenWhileTXEmptyCallback(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t *USBD_COMPOSITE_GetCfgDesc(uint16_t *length);
 uint8_t *USBD_COMPOSITE_GetDeviceQualifierDescriptor(uint16_t *length);
 static uint8_t* USBD_COMPOSITE_GetUsrStrDescriptor(struct _USBD_HandleTypeDef *pdev, uint8_t index,  uint16_t *length);
@@ -79,6 +80,7 @@ USBD_ClassTypeDef  USBD_COMPOSITE =
   USBD_COMPOSITE_IsoINIncomplete,
   USBD_COMPOSITE_IsoOutIncomplete,
   USBD_COMPOSITE_OutTokenWhileDisabled,
+  USBD_COMPOSITE_InTokenWhileTXEmptyCallback,
 #ifdef USE_USBD_COMPOSITE
   NULL,
   NULL,
@@ -771,6 +773,21 @@ static uint8_t USBD_COMPOSITE_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, ui
   uint32_t classId = endpoint_mapping[epnum & 0x0F];
   uint8_t ret = USBD_OK;
   CALL_CLASS_FUNCTION(ret, pdev, classId, OutTokenWhileDisabled, pdev, epnum);
+  return ret;
+}
+
+/**
+  * @brief  USBD_AUDIO_InTokenWhileTXEmptyCallback
+  *         handle OUT token while endpoint disabled event
+  * @param  pdev: device instance
+  * @param  epnum: endpoint index
+  * @retval status
+  */
+static uint8_t USBD_COMPOSITE_InTokenWhileTXEmptyCallback(USBD_HandleTypeDef *pdev, uint8_t epnum)
+{
+  uint32_t classId = endpoint_mapping[epnum & 0x0F];
+  uint8_t ret = USBD_OK;
+  CALL_CLASS_FUNCTION(ret, pdev, classId, InTokenWhileTXEmptyCallback, pdev, epnum);
   return ret;
 }
 

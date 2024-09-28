@@ -338,6 +338,7 @@ void HAL_PCD_DisconnectCallback(PCD_HandleTypeDef *hpcd);
 void HAL_PCD_DataOutStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum);
 void HAL_PCD_DataInStageCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum);
 void HAL_PCD_OutTokenWhileDisabledCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum);
+void HAL_PCD_InTokenWhileTXEmptyCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum);
 void HAL_PCD_ISOOUTIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum);
 void HAL_PCD_ISOINIncompleteCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum);
 /**

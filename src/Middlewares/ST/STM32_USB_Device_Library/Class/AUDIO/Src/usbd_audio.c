@@ -61,6 +61,7 @@ EndBSPDependencies */
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_audio.h"
+#include "stm32f723xx.h"
 #include "usbd_conf.h"
 #include "usbd_ctlreq.h"
 #include "AudioCApi.h"
@@ -113,6 +114,7 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev);
 static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_AUDIO_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_t epnum);
+static uint8_t USBD_AUDIO_InTokenWhileTXEmptyCallback(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static void AUDIO_REQ_GetCurrent(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
 static void AUDIO_REQ_GetCtl16(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req, uint16_t value);
 static void AUDIO_REQ_GetControl(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req);
@@ -142,6 +144,7 @@ USBD_ClassTypeDef USBD_AUDIO =
   USBD_AUDIO_IsoINIncomplete,
   USBD_AUDIO_IsoOutIncomplete,
   USBD_AUDIO_OutTokenWhileDisabled,
+  USBD_AUDIO_InTokenWhileTXEmptyCallback,
 #ifdef USE_USBD_COMPOSITE
   NULL,
   NULL,
@@ -440,6 +443,7 @@ static void USBD_EnableOutTokenWhileDisabled(USBD_HandleTypeDef *pdev) {
   USB_OTG_GlobalTypeDef *USBx = pcd->Instance;
   uint32_t USBx_BASE = (uint32_t)USBx;
   USBx_DEVICE->DOEPMSK |= USB_OTG_DOEPMSK_OTEPDM;
+  USBx_DEVICE->DIEPMSK |= USB_OTG_DIEPMSK_ITTXFEMSK;
 }
 
 static void USBD_DisableOutTokenWhileDisabled(USBD_HandleTypeDef *pdev) {
@@ -461,6 +465,7 @@ static void USBD_DisableOutTokenWhileDisabled(USBD_HandleTypeDef *pdev) {
   USB_OTG_GlobalTypeDef *USBx = pcd->Instance;
   uint32_t USBx_BASE = (uint32_t)USBx;
   USBx_DEVICE->DOEPMSK &= ~USB_OTG_DOEPMSK_OTEPDM;
+  USBx_DEVICE->DIEPMSK &= ~USB_OTG_DIEPMSK_ITTXFEMSK;
 }
 
 /**
@@ -590,7 +595,7 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev,
 					// For the feedback ISO In endpoint, we can't do that and instead will try until we get it
 					// using successive ISO In Incomplete interrupt.
 					data->next_target_frame = -1;
-					data->next_target_frame_feedback = (pcd->FrameNumber + 1) & 0x3FFF;
+					data->next_target_frame_feedback = -1;
 					USBD_EnableOutTokenWhileDisabled(pdev);
 				  }
               }
@@ -943,6 +948,39 @@ static uint8_t USBD_AUDIO_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_
   if(data->current_alternate && data->transfer_in_progress == 0) {
 	  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
 	  data->next_target_frame = (pcd->FrameNumber + 7) & 0x3FFF;
+  }
+
+  return (uint8_t)USBD_OK;
+}
+
+/**
+  * @brief  USBD_AUDIO_InTokenWhileTXEmptyCallback
+  *         handle OUT token while endpoint disabled event
+  * @param  pdev: device instance
+  * @param  epnum: endpoint index
+  * @retval status
+  */
+static uint8_t USBD_AUDIO_InTokenWhileTXEmptyCallback(USBD_HandleTypeDef *pdev, uint8_t epnum)
+{
+  USBD_AUDIO_trace(data, "USBD_AUDIO_InTokenWhileTXEmptyCallback");
+
+  uint8_t is_feedback = USBD_AUDIO_isFeedbackEndpoint(epnum);
+  if(!is_feedback) {
+    return USBD_OK;
+  }
+
+  USBD_AUDIO_LoopbackDataTypeDef* data = USBD_AUDIO_getDataFromEndpoint(epnum, 0);
+  if(data == NULL) {
+	  return USBD_OK;
+  }
+
+  // We got a USBD_AUDIO_InTokenWhileTXEmptyCallback interrupt, this means the USB Host
+  // tried to receive data using a In token.
+  // Schedule a ISO In transmit transfer for the next period.
+  // If that transfer succeed, USBD_AUDIO_InTokenWhileTXEmptyCallback interrupt will be disabled as not needed anymore.
+  if(data->current_alternate) {
+	  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+	  data->next_target_frame_feedback = (pcd->FrameNumber + 127) & 0x3FFF;
   }
 
   return (uint8_t)USBD_OK;

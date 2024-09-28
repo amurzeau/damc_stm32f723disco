@@ -285,6 +285,19 @@ void HAL_PCD_OutTokenWhileDisabledCallback(PCD_HandleTypeDef *hpcd, uint8_t epnu
 }
 
 /**
+  * @brief  IN token received when TX empty.
+  * @param  hpcd PCD handle
+  * @param  epnum endpoint number
+  * @retval None
+  */
+void HAL_PCD_InTokenWhileTXEmptyCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
+{
+  USBD_LL_InTokenWhileTXEmptyCallback((USBD_HandleTypeDef*)hpcd->pData, epnum);
+}
+
+
+
+/**
   * @brief  ISOOUTIncomplete callback.
   * @param  hpcd: PCD handle
   * @param  epnum: Endpoint number

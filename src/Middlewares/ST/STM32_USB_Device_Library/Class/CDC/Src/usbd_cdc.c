@@ -107,6 +107,7 @@ static uint8_t USBD_CDC_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *re
 static uint8_t USBD_CDC_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_CDC_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_CDC_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_t epnum);
+static uint8_t USBD_CDC_InTokenWhileTXEmptyCallback(USBD_HandleTypeDef *pdev, uint8_t epnum);
 static uint8_t USBD_CDC_EP0_RxReady(USBD_HandleTypeDef *pdev);
 
 #ifndef USE_USBD_COMPOSITE
@@ -154,6 +155,7 @@ USBD_ClassTypeDef  USBD_CDC =
   NULL,
 #else
   USBD_CDC_OutTokenWhileDisabled,
+  USBD_CDC_InTokenWhileTXEmptyCallback,
   NULL,
   NULL,
   NULL,
@@ -511,6 +513,31 @@ static uint8_t USBD_CDC_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_t 
 
   return (uint8_t)USBD_OK;
 }
+
+/**
+  * @brief  USBD_CDC_InTokenWhileTXEmptyCallback
+  *         handle OUT token while endpoint disabled event
+  * @param  pdev: device instance
+  * @param  epnum: endpoint index
+  * @retval status
+  */
+static uint8_t USBD_CDC_InTokenWhileTXEmptyCallback(USBD_HandleTypeDef *pdev, uint8_t epnum)
+{
+  // Receiving this interrupt usually will occurs a high number of time taking a large amount of cpu time
+  // Increase CPU frequency to max will this happen (the interrupt is neededd for the audio part and can't
+  // be enabled only on a single endpoint).
+
+  static uint32_t last_reset_frame;
+  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+
+  if(pcd->FrameNumber != last_reset_frame) {
+	DAMC_resetFrequencyToMaxPerformance();
+	last_reset_frame = pcd->FrameNumber;
+  }
+
+  return (uint8_t)USBD_OK;
+}
+
 /**
   * @brief  USBD_CDC_EP0_RxReady
   *         Handle EP0 Rx Ready event

@@ -1167,6 +1167,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
           {
     			TRACING_add(true, epnum, "IN ITTXFE");
             CLEAR_IN_EP_INTR(epnum, USB_OTG_DIEPINT_ITTXFE);
+            HAL_PCD_InTokenWhileTXEmptyCallback(hpcd, (uint8_t)epnum);
           }
           if ((epint & USB_OTG_DIEPINT_INEPNE) == USB_OTG_DIEPINT_INEPNE)
           {
@@ -1626,6 +1627,23 @@ __weak void HAL_PCD_OutTokenWhileDisabledCallback(PCD_HandleTypeDef *hpcd, uint8
 
   /* NOTE : This function should not be modified, when the callback is needed,
             the HAL_PCD_OutTokenWhileDisabledCallback could be implemented in the user file
+   */
+}
+
+/**
+  * @brief  IN token received when TX empty.
+  * @param  hpcd PCD handle
+  * @param  epnum endpoint number
+  * @retval None
+  */
+__weak void HAL_PCD_InTokenWhileTXEmptyCallback(PCD_HandleTypeDef *hpcd, uint8_t epnum)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(hpcd);
+  UNUSED(epnum);
+
+  /* NOTE : This function should not be modified, when the callback is needed,
+            the HAL_PCD_InTokenWhileTXEmptyCallback could be implemented in the user file
    */
 }
 
