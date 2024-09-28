@@ -39,7 +39,7 @@ set(CMAKE_AR                        ${TOOLCHAIN_PREFIX}gcc-ar${TOOLCHAIN_SUFFIX}
 set(CMAKE_RANLIB                        ${TOOLCHAIN_PREFIX}gcc-ranlib${TOOLCHAIN_SUFFIX})
 set(CMAKE_NM                        ${TOOLCHAIN_PREFIX}gcc-nm${TOOLCHAIN_SUFFIX})
 
-set(COMPILER_FLAGS "-mcpu=cortex-m7 -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb --specs=nano.specs -g3 -fdata-sections -ffunction-sections -fstack-usage -fcyclomatic-complexity -fstack-protector")
+set(COMPILER_FLAGS "-mcpu=cortex-m7 -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb --specs=nano.specs -g3 -fdata-sections -ffunction-sections -fstack-usage -fstack-protector")
 
 set(CMAKE_EXECUTABLE_SUFFIX_C       ".elf")
 set(CMAKE_EXECUTABLE_SUFFIX_CXX     ".elf")
