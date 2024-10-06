@@ -2,6 +2,7 @@
 
 #include <MathUtils.h>
 #include <algorithm>
+#include <assert.h>
 #include <fastapprox/fastexp.h>
 #include <fastapprox/fastlog.h>
 #include <math.h>
@@ -25,7 +26,7 @@ ExpanderFilter::ExpanderFilter(OscContainer* parent)
 }
 
 void ExpanderFilter::init(size_t numChannel) {
-	this->numChannel = numChannel;
+	assert(this->numChannel == numChannel);
 	// previousPartialGainComputerOutput.resize(numChannel);
 	// previousLevelDetectorOutput.resize(numChannel);
 }
@@ -77,7 +78,7 @@ float ExpanderFilter::doCompression(float sample, float& y1, float& yL) {
 
 float ExpanderFilter::gainComputer(float dbSample) {
 	float zone = 2 * (dbSample - threshold);
-	if(zone == -INFINITY || zone <= -kneeWidth) {
+	if(zone <= -kneeWidth) {
 		return gainDiffRatio * (threshold - dbSample);
 	} else if(zone >= kneeWidth) {
 		return 0;

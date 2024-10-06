@@ -2,6 +2,7 @@
 
 #include <MathUtils.h>
 #include <algorithm>
+#include <assert.h>
 #include <fastapprox/fastexp.h>
 #include <fastapprox/fastlog.h>
 #include <math.h>
@@ -32,10 +33,14 @@ CompressorFilter::CompressorFilter(OscContainer* parent)
 	    [this](float oscValue) { alphaR = oscValue != 0 ? expf(-1 / (oscValue * 48000)) : 0; });
 	ratio.addChangeCallback([this](float oscValue) {
 		gainDiffRatio = 1 - 1 / oscValue;
+		gainDiffRatioInKnee = gainDiffRatio / (2 * kneeWidth);
 		reset();
 	});
 	threshold.addChangeCallback([this](float oscValue) { reset(); });
-	kneeWidth.addChangeCallback([this](float oscValue) { reset(); });
+	kneeWidth.addChangeCallback([this](float oscValue) {
+		gainDiffRatioInKnee = gainDiffRatio / (2 * kneeWidth);
+		reset();
+	});
 	lufsIntegrationTime.addChangeCallback([this](float oscValue) {
 		for(auto& loudnessMeter : loudnessMeters) {
 			loudnessMeter.setAveragingTime(oscValue);
@@ -49,7 +54,7 @@ CompressorFilter::CompressorFilter(OscContainer* parent)
 }
 
 void CompressorFilter::init(size_t numChannel) {
-	this->numChannel = numChannel;
+	assert(this->numChannel == numChannel);
 	// loudnessMeters.resize(numChannel);
 }
 
@@ -66,14 +71,16 @@ void CompressorFilter::processSamples(float** samples, size_t count) {
 			float levelPeak = 0;
 			float levelLoudness = 0;
 
-			for(size_t channel = 0; channel < numChannel; channel++) {
-				float sample = samples[channel][i];
-				if(enablePeak.get()) {
-					levelPeak = std::max(levelPeak, levelDetectorPeak(sample));
-				}
-				if(enableLoudness.get()) {
-					levelLoudness += levelDetectorLoudnessLUFS(&loudnessMeters[channel], sample);
-				}
+			float sampleLeft = samples[0][i];
+			float sampleRight = samples[1][i];
+
+			if(enablePeak.get()) {
+				levelPeak = levelDetectorPeak(sampleLeft);
+				levelPeak = std::max(levelPeak, levelDetectorPeak(sampleRight));
+			}
+			if(enableLoudness.get()) {
+				levelLoudness = levelDetectorLoudnessLUFS(&loudnessMeters[0], sampleLeft);
+				levelLoudness += levelDetectorLoudnessLUFS(&loudnessMeters[1], sampleRight);
 			}
 
 			float dbGain = doCompression(levelPeak, levelLoudness);
@@ -128,14 +135,16 @@ float CompressorFilter::levelToDbLoudnessLUFS(float sample) {
 }
 
 float CompressorFilter::gainComputer(float dbSample) const {
-	float zone = 2 * (dbSample - threshold);
-	if(zone == -INFINITY || zone <= -kneeWidth) {
+	float thresholdDistance = dbSample - threshold;
+	float zone = 2 * thresholdDistance;
+	if(zone <= -kneeWidth) {
 		return 0;
 	} else if(zone >= kneeWidth) {
-		return gainDiffRatio * (dbSample - threshold);
+		return gainDiffRatio * thresholdDistance;
 	} else {
-		float a = dbSample - threshold + kneeWidth / 2;
-		return gainDiffRatio * (a * a) / (2 * kneeWidth);
+		float a = thresholdDistance + kneeWidth / 2;
+		// Equivalent to gainDiffRatio * (a * a) / (2 * kneeWidth)
+		return gainDiffRatioInKnee * (a * a);
 	}
 }
 

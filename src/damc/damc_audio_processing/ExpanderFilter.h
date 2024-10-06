@@ -18,7 +18,7 @@ protected:
 	void levelDetector(float sample, float& y1, float& yL);
 
 private:
-	size_t numChannel;
+	static constexpr size_t numChannel = 2;
 	std::array<float, 2> previousPartialGainComputerOutput;
 	std::array<float, 2> previousLevelDetectorOutput;
 

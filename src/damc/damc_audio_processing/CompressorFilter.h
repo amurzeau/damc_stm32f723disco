@@ -29,7 +29,7 @@ protected:
 	float levelDetectorLoudnessLUFS(LoudnessMeter* loudnessMeter, float sample);
 
 private:
-	size_t numChannel;
+	static constexpr size_t numChannel = 2;
 
 	// Level to dB function to use
 	using LevelToDbFunction = float (CompressorFilter::*)(float sample);
@@ -52,6 +52,7 @@ private:
 	OscVariable<float> makeUpGain;
 	OscVariable<float> ratio;
 	float gainDiffRatio = 0;
+	float gainDiffRatioInKnee = 0;
 	OscVariable<float> kneeWidth;
 	OscVariable<float> lufsTarget;
 	OscVariable<float> lufsIntegrationTime;
