@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdbool.h>
+#include <usbd_conf.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -19,6 +22,7 @@ enum GlitchType {
 };
 
 void GLITCH_DETECTION_increment_counter(enum GlitchType type) __attribute__((optimize("-O1")));
+void GLITCH_DETECTION_set_USB_out_feedback_state(int outIndex, bool feedback_working);
 
 #ifdef __cplusplus
 }
@@ -43,6 +47,7 @@ protected:
 
 private:
 	std::array<OscReadOnlyVariable<int32_t>, GT_Number> oscGlitchCounters;
+	std::array<OscReadOnlyVariable<bool>, AUDIO_OUT_NUMBER> oscFeedbackReadByHost;
 	OscVariable<bool> oscResetCounters;
 	uv_timer_t updateTimer;
 	size_t nextIndexToUpdate;

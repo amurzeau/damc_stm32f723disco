@@ -202,6 +202,7 @@ typedef struct {
 	uint32_t max_packet_size;
 	uint32_t nominal_packet_size;
 
+	uint32_t index;
 	uint32_t current_alternate;
 	int32_t next_target_frame;
 	int32_t next_target_frame_feedback;

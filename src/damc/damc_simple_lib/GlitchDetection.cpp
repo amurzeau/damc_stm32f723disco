@@ -1,4 +1,5 @@
 #include "GlitchDetection.h"
+#include "usbd_conf.h"
 #include "uv.h"
 #include <main.h>
 #include <stm32f7xx.h>
@@ -6,11 +7,16 @@
 #include <string.h>
 
 static int32_t glitches_counters[GT_Number];
+static bool feedback_read_by_host[AUDIO_OUT_NUMBER];
 
 void GLITCH_DETECTION_increment_counter(enum GlitchType type) {
 	// HAL_GPIO_WritePin(STMOD_UART4_TXD_GPIO_Port, STMOD_UART4_TXD_Pin, GPIO_PIN_SET);
 	glitches_counters[type]++;
 	// HAL_GPIO_WritePin(STMOD_UART4_TXD_GPIO_Port, STMOD_UART4_TXD_Pin, GPIO_PIN_RESET);
+}
+
+void GLITCH_DETECTION_set_USB_out_feedback_state(int outIndex, bool feedback_working) {
+	feedback_read_by_host[outIndex] = feedback_working;
 }
 
 GlitchDetection::GlitchDetection(OscContainer* parent)
@@ -25,6 +31,10 @@ GlitchDetection::GlitchDetection(OscContainer* parent)
           OscReadOnlyVariable<int32_t>{this, "codecOutDmaUnderrun"},
           OscReadOnlyVariable<int32_t>{this, "codecInXRun"},
           OscReadOnlyVariable<int32_t>{this, "codecInDmaOverrun"},
+      },
+      oscFeedbackReadByHost{
+          OscReadOnlyVariable<bool>(this, "feedbackSyncOut0", false),
+          OscReadOnlyVariable<bool>(this, "feedbackSyncOut1", false),
       },
       oscResetCounters(this, "reset", false, false),
       nextIndexToUpdate(0) {
@@ -49,4 +59,8 @@ void GlitchDetection::onUpdateTimer(uv_timer_t* handle) {
 
 	thisInstance->oscGlitchCounters[nextIndexToUpdate].set(glitches_counters[nextIndexToUpdate]);
 	thisInstance->nextIndexToUpdate = (nextIndexToUpdate + 1) % GT_Number;
+
+	for(size_t i = 0; i < AUDIO_OUT_NUMBER; i++) {
+		thisInstance->oscFeedbackReadByHost[i] = feedback_read_by_host[i];
+	}
 }

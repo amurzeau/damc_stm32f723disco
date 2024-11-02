@@ -300,6 +300,7 @@ static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	  data->endpoint_feedback = ep_feedback;
 	  data->max_packet_size = AUDIO_OUT_MAX_PACKET;
 	  data->nominal_packet_size = AUDIO_OUT_PACKET;
+	  data->index = i;
 	  data->current_alternate = 0U;
 	  data->next_target_frame = -1;
 	  data->next_target_frame_feedback = -1;
@@ -343,6 +344,7 @@ static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 	  data->endpoint = ep;
 	  data->max_packet_size = AUDIO_OUT_MAX_PACKET;
 	  data->nominal_packet_size = AUDIO_OUT_PACKET;
+	  data->index = i;
 	  data->current_alternate = 0U;
 	  data->next_target_frame = -1;
 	  data->transfer_in_progress = 0;
@@ -594,6 +596,7 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev,
 					// using successive ISO In Incomplete interrupt.
 					data->next_target_frame = -1;
 					data->next_target_frame_feedback = -1;
+					GLITCH_DETECTION_set_USB_out_feedback_state(data->index, false);
 					USBD_EnableOutTokenWhileDisabled(pdev);
 				  }
               }
@@ -608,6 +611,8 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev,
 				  // we need to cancel it and disable OutTokenWhileDisabled if not needed.
 			      data->waiting_start = 0;
 				  USBD_DisableOutTokenWhileDisabled(pdev);
+				  // Mark the stream as out of sync
+				  GLITCH_DETECTION_set_USB_out_feedback_state(data->index, false);
 			  }
 			  data->waiting_stop = 0;
 
@@ -846,7 +851,13 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
   if(is_feedback) {
 	  if(data->current_alternate) {
 		  data->next_target_frame_feedback = (pcd->FrameNumber + 126) & 0x3FFF;
+
+		  if(!data->waiting_stop) {
+		    // The feedback transfer was lost and we are not stopping, the host is not reading the feedback clock anymore
+		    GLITCH_DETECTION_set_USB_out_feedback_state(data->index, false);
+		  }
 	  }
+
   } else {
 	  USBD_AUDIO_trace(data, "IsoINIncomplete (usbd_audio.c)");
 	  data->transfer_in_progress = 0;
@@ -1015,6 +1026,9 @@ static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
 		  // Schedule the next feedback transfer
 		  data->next_target_frame_feedback = (data->next_target_frame_feedback + 128) & 0x3FFF;
+
+		  // Mark audio out sync as working as the host read our feedback clock data
+		  GLITCH_DETECTION_set_USB_out_feedback_state(data->index, true);
 	  } else {
 		  // Used to ensure we never start a transfer while one is already scheduled.
 		  data->transfer_in_progress = 0;
