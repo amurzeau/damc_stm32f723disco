@@ -1,19 +1,27 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-	{
-		"cwd": "${workspaceFolder}",
-		"executable": "${command:cmake.launchTargetPath}",
-		"name": "Debug with ST-Link",
-		"request": "launch",
-		"type": "cortex-debug",
-		"showDevDebugOutput": "none",
-		"servertype": "stlink",
-		"liveWatch": {
-			"enabled": true,
-			"samplesPerSecond": 4
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Python Debugger: Current File",
+			"type": "debugpy",
+			"request": "launch",
+			"program": "${file}",
+			"console": "integratedTerminal",
+			"justMyCode": false
 		},
-		"svdPath": "STM32F723.svd"
-	}
-  ]
+		{
+			"cwd": "${workspaceFolder}",
+			"executable": "${command:cmake.launchTargetPath}",
+			"name": "Debug with ST-Link",
+			"request": "launch",
+			"type": "cortex-debug",
+			"showDevDebugOutput": "none",
+			"servertype": "stlink",
+			"liveWatch": {
+				"enabled": true,
+				"samplesPerSecond": 4
+			},
+			"svdPath": "STM32F723.svd"
+		}
+	]
 }
