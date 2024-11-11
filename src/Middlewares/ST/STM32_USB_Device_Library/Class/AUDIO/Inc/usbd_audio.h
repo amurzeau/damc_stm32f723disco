@@ -178,14 +178,7 @@ struct history_data {
 	uint32_t DOEPINT;
 };
 
-enum USBD_AUDIO_BufferState {
-	BS_AvailableForUSB,
-	BS_USBBusy,
-	BS_AvailableForApp,
-};
-
 typedef struct {
-	volatile enum USBD_AUDIO_BufferState state;
 	uint32_t size;
 	uint8_t buffer[AUDIO_OUT_MAX_PACKET];
 } USBD_AUDIO_Buffer;
@@ -221,9 +214,7 @@ typedef struct {
 	uint8_t history_save_disable;
 #endif
 	int32_t accumulated_transmit_error;
-	uint32_t usb_index_for_prepare;
-	uint32_t usb_index_for_processing;
-	USBD_AUDIO_Buffer buffer[2] __attribute__((aligned(4)));
+	USBD_AUDIO_Buffer buffer __attribute__((aligned(4)));
 	USBD_AUDIO_ControlTypeDef control;
 	uint8_t buffer_feedback[AUDIO_OUT_FEEDBACK_MAX_PACKET] __attribute__((aligned(4)));
 } USBD_AUDIO_LoopbackDataTypeDef;
@@ -237,8 +228,6 @@ void USBD_AUDIO_trace(USBD_AUDIO_LoopbackDataTypeDef* data, const char* operatio
 extern volatile uint8_t usb_new_frame_flag;
 extern USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_out_data[AUDIO_OUT_NUMBER];
 extern USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_in_data[AUDIO_IN_NUMBER];
-uint8_t* USBD_AUDIO_GetBufferFromApp(USBD_AUDIO_LoopbackDataTypeDef *data);
-void USBD_AUDIO_ReleaseBufferFromApp(USBD_AUDIO_LoopbackDataTypeDef *data);
 void USBD_AUDIO_NotifyUnitIdChanged(uint8_t unit_id);
 uint32_t USBD_AUDIO_IsEndpointEnabled(int is_in, int index);
 
