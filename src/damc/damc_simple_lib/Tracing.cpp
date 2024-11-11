@@ -1,9 +1,10 @@
 #include "Tracing.h"
+
+#ifdef ENABLE_TRACING
+
 #include "cmsis_gcc.h"
 #include <stm32f7xx.h>
 #include <stm32f7xx_hal_pcd.h>
-
-#ifdef ENABLE_TRACING
 
 struct history_data {
 	uint32_t cycles;
@@ -44,6 +45,10 @@ void TRACING_init() {
 	*((volatile unsigned*) (ITM_BASE + 0x40304)) = 0x00000100; /* Formatter and Flush Control Register */
 }
 
+void TRACING_gpio_set(bool value) {
+	HAL_GPIO_WritePin(GPIOH, GPIO_PIN_14, value ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
+
 __STATIC_INLINE uint32_t ITM_SendChar32(uint32_t ch) {
 	if(((ITM->TCR & ITM_TCR_ITMENA_Msk) != 0UL) && /* ITM enabled */
 	   ((ITM->TER & 1UL) != 0UL))                  /* ITM Port #0 enabled */
@@ -77,7 +82,7 @@ void TRACING_add(bool in_ep, uint32_t epnum, const char* operation) {
 	history->is_in = in_ep;
 	history->epnum = epnum;
 
-	ITM_SendChar32(epnum);
+	ITM_SendChar32(epnum | (in_ep << 7));
 
 	const char* p = operation;
 	// clang-format off

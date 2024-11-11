@@ -1004,7 +1004,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
       if (((RegVal & USB_OTG_GRXSTSP_PKTSTS) >> 17) ==  STS_DATA_UPDT)
       {
-          TRACING_add(false, RegVal & USB_OTG_GRXSTSP_EPNUM, "OUT RXFLVL");
+          TRACING_add(false, RegVal & USB_OTG_GRXSTSP_EPNUM, "RXFLVL");
     	  uint16_t recv_size = (RegVal & USB_OTG_GRXSTSP_BCNT) >> 4;
         if (recv_size != 0U)
         {
@@ -1050,14 +1050,14 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
           if ((epint & USB_OTG_DOEPINT_XFRC) == USB_OTG_DOEPINT_XFRC)
           {
-  			TRACING_add(false, epnum, "OUT XFRC");
+  			TRACING_add(false, epnum, "XFRC");
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_XFRC);
             (void)PCD_EP_OutXfrComplete_int(hpcd, epnum);
           }
 
           if ((epint & USB_OTG_DOEPINT_STUP) == USB_OTG_DOEPINT_STUP)
           {
-    		TRACING_add(false, epnum, "OUT STUP");
+    		TRACING_add(false, epnum, "STUP");
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_STUP);
             /* Class B setup phase done for previous decoded setup */
             (void)PCD_EP_OutSetupPacket_int(hpcd, epnum);
@@ -1065,7 +1065,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
           if ((epint & USB_OTG_DOEPINT_OTEPDIS) == USB_OTG_DOEPINT_OTEPDIS)
           {
-    		TRACING_add(false, epnum, "OUT OTEPDIS");
+    		TRACING_add(false, epnum, "OTEPDIS");
 #if (USE_HAL_PCD_REGISTER_CALLBACKS == 1U)
 #error unsupported
 #else
@@ -1082,7 +1082,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
               USBx_DEVICE->DCTL |= USB_OTG_DCTL_CGONAK;
             }
 
-      		TRACING_add(false, epnum, "OUT EPDISD");
+      		TRACING_add(false, epnum, "EPDISD");
 
             ep = &hpcd->OUT_ep[epnum];
 
@@ -1103,14 +1103,14 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
           /* Clear Status Phase Received interrupt */
           if ((epint & USB_OTG_DOEPINT_OTEPSPR) == USB_OTG_DOEPINT_OTEPSPR)
           {
-    		TRACING_add(false, epnum, "OUT OTEPSPR");
+    		TRACING_add(false, epnum, "OTEPSPR");
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_OTEPSPR);
           }
 
           /* Clear OUT NAK interrupt */
           if ((epint & USB_OTG_DOEPINT_NAK) == USB_OTG_DOEPINT_NAK)
           {
-      		TRACING_add(false, epnum, "OUT NAK");
+      		TRACING_add(false, epnum, "NAK");
             CLEAR_OUT_EP_INTR(epnum, USB_OTG_DOEPINT_NAK);
           }
         }
@@ -1134,7 +1134,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
 
           if ((epint & USB_OTG_DIEPINT_XFRC) == USB_OTG_DIEPINT_XFRC)
           {
-    			TRACING_add(true, epnum, "IN XFRC");
+    			TRACING_add(true, epnum, "XFRC");
             fifoemptymsk = (uint32_t)(0x1UL << (epnum & EP_ADDR_MSK));
             USBx_DEVICE->DIEPEMPMSK &= ~fifoemptymsk;
 
@@ -1160,23 +1160,23 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
           }
           if ((epint & USB_OTG_DIEPINT_TOC) == USB_OTG_DIEPINT_TOC)
           {
-  			TRACING_add(true, epnum, "IN TOC");
+  			TRACING_add(true, epnum, "TOC");
             CLEAR_IN_EP_INTR(epnum, USB_OTG_DIEPINT_TOC);
           }
           if ((epint & USB_OTG_DIEPINT_ITTXFE) == USB_OTG_DIEPINT_ITTXFE)
           {
-    			TRACING_add(true, epnum, "IN ITTXFE");
+    			TRACING_add(true, epnum, "ITTXFE");
             CLEAR_IN_EP_INTR(epnum, USB_OTG_DIEPINT_ITTXFE);
             HAL_PCD_InTokenWhileTXEmptyCallback(hpcd, (uint8_t)epnum);
           }
           if ((epint & USB_OTG_DIEPINT_INEPNE) == USB_OTG_DIEPINT_INEPNE)
           {
-    			TRACING_add(true, epnum, "IN INEPNE");
+    			TRACING_add(true, epnum, "INEPNE");
             CLEAR_IN_EP_INTR(epnum, USB_OTG_DIEPINT_INEPNE);
           }
           if ((epint & USB_OTG_DIEPINT_EPDISD) == USB_OTG_DIEPINT_EPDISD)
           {
-    			TRACING_add(true, epnum, "IN EPDISD");
+            TRACING_add(true, epnum, "EPDISD");
             (void)USB_FlushTxFifo(USBx, epnum);
 
             ep = &hpcd->IN_ep[epnum];
@@ -1196,7 +1196,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
           }
           if ((epint & USB_OTG_DIEPINT_TXFE) == USB_OTG_DIEPINT_TXFE)
           {
-  			TRACING_add(true, epnum, "IN TXFE");
+  			TRACING_add(true, epnum, "TXFE");
             (void)PCD_WriteEmptyTxFifo(hpcd, epnum);
           }
         }
@@ -1366,7 +1366,7 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
     {
       uint32_t is_ep_aborted = 0;
       USBx->GINTMSK &= ~USB_OTG_GINTMSK_GONAKEFFM;
-      TRACING_add(false, 0, "Global NAK done");
+      TRACING_add(false, 0, "BOUTNAKEFF");
 
       for (epnum = 1U; epnum < hpcd->Init.dev_endpoints; epnum++)
       {
