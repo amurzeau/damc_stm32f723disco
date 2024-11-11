@@ -27,16 +27,17 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_ioreq.h"
 
-enum USBD_COMPOSITE_ClassId {
-	CI_Composite,
-	CI_AudioClass,
-	CI_CDCClass,
-	CI_NUMBER,
+enum USBD_COMPOSITE_ClassId
+{
+  CI_Composite,
+  CI_AudioClass,
+  CI_CDCClass,
+  CI_NUMBER,
 };
 
 typedef struct
 {
-	USBD_ClassTypeDef* classes[CI_NUMBER];
+  USBD_ClassTypeDef *classes[CI_NUMBER];
 } USBD_COMPOSITE_HandleTypeDef;
 
 
@@ -55,7 +56,7 @@ extern USBD_ClassTypeDef USBD_COMPOSITE;
 }
 #endif
 
-#endif  /* __USB_COMPOSITE_H */
+#endif /* __USB_COMPOSITE_H */
 /**
   * @}
   */
@@ -63,4 +64,3 @@ extern USBD_ClassTypeDef USBD_COMPOSITE;
 /**
   * @}
   */
-

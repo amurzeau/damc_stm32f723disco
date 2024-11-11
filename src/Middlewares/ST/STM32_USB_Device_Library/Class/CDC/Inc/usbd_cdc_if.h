@@ -28,22 +28,21 @@ extern "C" {
 #include "usbd_cdc.h"
 
 /* Exported types ------------------------------------------------------------*/
-typedef void (*USB_CDC_IF_notifyDataReady)(void* arg);
+typedef void (*USB_CDC_IF_notifyDataReady)(void *arg);
 
 /* Exported constants --------------------------------------------------------*/
 
-extern USBD_CDC_ItfTypeDef  USBD_CDC_IF_fops;
+extern USBD_CDC_ItfTypeDef USBD_CDC_IF_fops;
 
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 
 void USB_CDC_IF_TX_write(const uint8_t *Buf, uint32_t Len);
 uint32_t USB_CDC_IF_RX_read(uint8_t *Buf, uint32_t max_len);
-void USB_CDC_IF_set_rx_data_ready_callback(USB_CDC_IF_notifyDataReady callback, void* arg);
+void USB_CDC_IF_set_rx_data_ready_callback(USB_CDC_IF_notifyDataReady callback, void *arg);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __USBD_CDC_IF_TEMPLATE_H */
-
