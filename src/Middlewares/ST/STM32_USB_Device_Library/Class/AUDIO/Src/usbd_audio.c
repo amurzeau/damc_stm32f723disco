@@ -438,7 +438,6 @@ static void USBD_EnableOutTokenWhileDisabled(USBD_HandleTypeDef *pdev) {
   USB_OTG_GlobalTypeDef *USBx = pcd->Instance;
   uint32_t USBx_BASE = (uint32_t)USBx;
   USBx_DEVICE->DOEPMSK |= USB_OTG_DOEPMSK_OTEPDM;
-  USBx_DEVICE->DIEPMSK |= USB_OTG_DIEPMSK_ITTXFEMSK;
 }
 
 static void USBD_DisableOutTokenWhileDisabled(USBD_HandleTypeDef *pdev) {
@@ -460,7 +459,6 @@ static void USBD_DisableOutTokenWhileDisabled(USBD_HandleTypeDef *pdev) {
   USB_OTG_GlobalTypeDef *USBx = pcd->Instance;
   uint32_t USBx_BASE = (uint32_t)USBx;
   USBx_DEVICE->DOEPMSK &= ~USB_OTG_DOEPMSK_OTEPDM;
-  USBx_DEVICE->DIEPMSK &= ~USB_OTG_DIEPMSK_ITTXFEMSK;
 }
 
 /**
@@ -579,9 +577,8 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev,
               ret = USBD_FAIL;
             } else {
               if(req->wValue == 1 && data->current_alternate == 0) {
-            	  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
             	  if(data->is_in) {
-					data->next_target_frame = (pcd->FrameNumber + 1) & 0x3FFF;
+					data->next_target_frame = -1;
 				  } else {
 					// ISO Out endpoint activated, we need to know which frame number the USB Host will use
 					// for these ISO Out transfers.
@@ -594,6 +591,9 @@ static uint8_t USBD_AUDIO_Setup(USBD_HandleTypeDef *pdev,
 					GLITCH_DETECTION_set_USB_out_feedback_state(data->index, false);
 					USBD_EnableOutTokenWhileDisabled(pdev);
 				  }
+				  // We will start many ISO IN transfert with Incomplete IRQ at each micro frame
+				  // leading to higher CPU usage, reset CPU frequency to max
+				  DAMC_resetFrequencyToMaxPerformance();
               }
               data->current_alternate = req->wValue;
 			  if(data->current_alternate) {
@@ -732,7 +732,12 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
   for(size_t i = 0; i < AUDIO_IN_NUMBER; i++) {
 	  USBD_AUDIO_LoopbackDataTypeDef* data = &usb_audio_endpoint_in_data[i];
 
-	  if(data->current_alternate && data->next_target_frame == frameNumber) {
+	  if(data->current_alternate) {
+		if(data->next_target_frame == -1 && data->transfer_in_progress == 0) {
+			// Transfer ZLP at each microframe to detect the first frame number of the ISO period
+			data->transfer_in_progress = 1;
+			USBD_LL_Transmit(pdev, data->endpoint, zero_data, 0);
+		} else if(data->next_target_frame == frameNumber) {
 		  while(data->transfer_in_progress > 0);
 		  data->transfer_in_progress = 1;
 		  USBD_AUDIO_Buffer* buffer = &data->buffer;
@@ -754,6 +759,7 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
 		  } else {
 			  USBD_LL_Transmit(pdev, data->endpoint, zero_data, data->nominal_packet_size);
 		  }
+		}
 	  }
   }
 
@@ -769,11 +775,12 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
 			  USBD_AUDIO_trace(data, "USBD_LL_PrepareReceive");
 			  USBD_LL_PrepareReceive(pdev, data->endpoint, buffer->buffer, data->max_packet_size);
 	  	  }
-		  if(data->next_target_frame_feedback == frameNumber) {
+		  if((data->next_target_frame_feedback == -1 && !data->feedback_transfer_in_progress) || data->next_target_frame_feedback == frameNumber) {
 			  data->buffer_feedback[0] = data->feedback & 0xFF;
 			  data->buffer_feedback[1] = (data->feedback >> 8) & 0xFF;
 			  data->buffer_feedback[2] = (data->feedback >> 16) & 0xFF;
 			  data->buffer_feedback[3] = (data->feedback >> 24) & 0xFF;
+			  data->feedback_transfer_in_progress = 1;
 			  USBD_LL_Transmit(pdev, data->endpoint_feedback, data->buffer_feedback, sizeof(data->buffer_feedback));
 		  }
 	  }
@@ -817,16 +824,26 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
 	  return USBD_OK;
   }
 
-  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+  data->incomplete_iso++;
 
   // The USB Host did not emitted a ISO In token for the frame we scheduled it,
-  // either the USB Host is not reading thed ISO In endpoint or
+  // either the USB Host is not reading the ISO In endpoint or
   // it is reading on a different frame number.
   // Schedule a transfer at a different frame number to try to sync with the USB Host.
 
   if(is_feedback) {
+	  data->feedback_transfer_in_progress = 0;
 	  if(data->current_alternate) {
-		  data->next_target_frame_feedback = (pcd->FrameNumber + 126) & 0x3FFF;
+		if(data->next_target_frame_feedback != -1) {
+			// First time we get incomplete, reset CPU frequency to max in case we get many Incomplete IRQ
+			DAMC_resetFrequencyToMaxPerformance();
+		}
+		
+		data->next_target_frame_feedback = -1; // (pcd->FrameNumber + 126) & 0x3FFF;
+
+		// Prepare for next SOF with ZLP to check for IN token
+		data->feedback_transfer_in_progress = 1;
+		USBD_LL_Transmit(pdev, data->endpoint_feedback, data->buffer_feedback, 0);
 
 		  if(!data->waiting_stop) {
 		    // The feedback transfer was lost and we are not stopping, the host is not reading the feedback clock anymore
@@ -837,10 +854,17 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
   } else {
 	  USBD_AUDIO_trace(data, "IsoINIncomplete (usbd_audio.c)");
 	  data->transfer_in_progress = 0;
-	  data->incomplete_iso++;
 
 	  if(data->current_alternate) {
-		  data->next_target_frame = (pcd->FrameNumber + 6) & 0x3FFF;
+		  if(data->next_target_frame != -1) {
+		  	// First time we get incomplete, reset CPU frequency to max in case we get many Incomplete IRQ
+		  	DAMC_resetFrequencyToMaxPerformance();
+		  }
+		  data->next_target_frame = -1; // (pcd->FrameNumber + 6) & 0x3FFF;
+
+		  // Prepare for next SOF with ZLP to check for IN token
+		  data->transfer_in_progress = 1;
+		  USBD_LL_Transmit(pdev, data->endpoint, zero_data, 0);
 
 		  if(!data->waiting_start) {
 			  // We are not waiting for a start, so we got ISO transfer previously but not anymore.
@@ -881,18 +905,18 @@ static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epn
 
 
   if(data->current_alternate && !data->waiting_start) {
-    // We are not waiting for a start, so we got ISO transfer previously but not anymore.
-    // Assume the stream is stopping.
-    // If it was a glitch (lost ISO transfer) and we will get ISO transfer later, DataOut will handle that case
-    // and notify the glitch.
-    data->waiting_stop = 1;
+	// We are not waiting for a start, so we got ISO transfer previously but not anymore.
+	// Assume the stream is stopping.
+	// If it was a glitch (lost ISO transfer) and we will get ISO transfer later, DataOut will handle that case
+	// and notify the glitch.
+	data->waiting_stop = 1;
 
-    // Don't update data->next_target_frame to keep the current running state
-    // but reenable OutTokenWhileDisabled in case we got desync.
+	// Don't update data->next_target_frame to keep the current running state
+	// but reenable OutTokenWhileDisabled in case we got desync.
 	// So we are also waiting for a possible start too (along with a possible stop)
 	// If it was just a glitch, OutTokenWhileDisabled will be disabled again in DataOut.
 	data->waiting_start = 1;
-    USBD_EnableOutTokenWhileDisabled(pdev);
+	USBD_EnableOutTokenWhileDisabled(pdev);
   }
 
   return (uint8_t)USBD_OK;
@@ -948,6 +972,8 @@ static uint8_t USBD_AUDIO_OutTokenWhileDisabled(USBD_HandleTypeDef *pdev, uint8_
 static uint8_t USBD_AUDIO_InTokenWhileTXEmptyCallback(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
   USBD_AUDIO_trace(data, "USBD_AUDIO_InTokenWhileTXEmptyCallback");
+  if(epnum == 3)
+  return USBD_OK;
 
   uint8_t is_feedback = USBD_AUDIO_isFeedbackEndpoint(epnum);
   if(!is_feedback) {
@@ -996,12 +1022,15 @@ static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 	  }
 
 	  if(is_feedback) {
+		  data->feedback_transfer_in_progress = 0;
 		  if(data->current_alternate == 0) {
 			return USBD_OK;
 		  }
 
 		  // Schedule the next feedback transfer
-		  data->next_target_frame_feedback = (data->next_target_frame_feedback + 128) & 0x3FFF;
+		  // Note: next_target_frame_feedback is -1 when we get the first ISO In token
+		  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+		  data->next_target_frame_feedback = (pcd->FrameNumber + 127) & 0x3FFF;
 
 		  // Mark audio out sync as working as the host read our feedback clock data
 		  GLITCH_DETECTION_set_USB_out_feedback_state(data->index, true);
@@ -1019,6 +1048,10 @@ static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 		  // Count number of completed ISO transfer for statistics
 		  data->complete_iso++;
 
+		  // Schedule next ISO transfer frame number
+		  PCD_HandleTypeDef* pcd = (PCD_HandleTypeDef*)pdev->pData;
+		  data->next_target_frame = (pcd->FrameNumber + 7) & 0x3FFF;
+
 		  // Stream just started, this is the first ISO transfer done.
 		  // This will enable glitch detection.
 		  if(data->waiting_start) {
@@ -1033,9 +1066,6 @@ static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 		  }
 
 		  USBD_AUDIO_trace(data, "DataIn");
-
-		  // Schedule next ISO transfer frame number
-		  data->next_target_frame = (data->next_target_frame + 8) & 0x3FFF;
 	  }
   }
 

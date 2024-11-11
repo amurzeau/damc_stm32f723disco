@@ -201,6 +201,7 @@ typedef struct {
 	int32_t next_target_frame_feedback;
 	uint32_t feedback;
 	uint32_t transfer_in_progress;
+	uint32_t feedback_transfer_in_progress;
 	uint32_t incomplete_iso;
 	uint32_t complete_iso;
 	uint32_t waiting_start;
