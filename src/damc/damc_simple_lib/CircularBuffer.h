@@ -33,6 +33,8 @@ public:
 		out_write_offset = 0;
 		in_read_offset = 0;
 	}
+	void resetBufferProcessedFlag() { buffer_processed = false; }
+	bool isBufferProcessed() { return buffer_processed; }
 
 private:
 	// Double buffer and dual channel
@@ -40,6 +42,7 @@ private:
 	std::array<T, 48 * N> buffer __attribute__((aligned(32)));
 	size_t out_write_offset;
 	size_t in_read_offset;
+	bool buffer_processed;
 };
 
 template<typename T, int N, bool do_manage_cache> CircularBuffer<T, N, do_manage_cache>::CircularBuffer() {
@@ -81,6 +84,7 @@ size_t CircularBuffer<T, N, do_manage_cache>::writeOutBuffer(uint32_t dma_read_o
 	}
 	assert(out_write_offset == start);
 	out_write_offset = end;
+	buffer_processed = true;
 
 	return size;
 }
@@ -136,6 +140,7 @@ size_t CircularBuffer<T, N, do_manage_cache>::readInBuffer(uint32_t dma_write_of
 	}
 	assert(in_read_offset == start);
 	in_read_offset = end;
+	buffer_processed = true;
 
 	return size;
 }

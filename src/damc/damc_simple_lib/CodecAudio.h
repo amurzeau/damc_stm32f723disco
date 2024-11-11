@@ -20,7 +20,14 @@ public:
 	void processAudioInterleavedOutput(const CodecFrame* data_input, size_t nframes);
 	void processAudioInterleavedInput(CodecFrame* data_output, size_t nframes);
 
+	/** @brief Get DMA read position in samples unit.
+	 * Return the position of the hardware DMA read pointer in the buffer.
+	 */
 	uint32_t getDMAOutPos();
+
+	/** @brief Get DMA write position in samples unit.
+	 * Return the position of the hardware DMA write pointer in the buffer.
+	 */
 	uint32_t getDMAInPos();
 
 	void setMicBias(bool enable);
