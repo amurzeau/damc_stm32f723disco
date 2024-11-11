@@ -2,3 +2,4 @@
 /Release
 /build
 /.venv
+/.vscode/.cortex-debug.*
