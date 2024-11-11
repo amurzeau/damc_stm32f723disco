@@ -928,6 +928,11 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
         // If it was a glitch (lost ISO transfer) and we will get ISO transfer later, DataIn will handle that case
         // and notify the glitch.
         data->waiting_stop = 1;
+
+        // We are going back to searching the first IN token.
+        // So we are also waiting for a possible start too (along with a possible stop)
+        // If it was just a glitch, we will act as if a new stream is started.
+        data->waiting_start = 1;
       }
     }
   }
@@ -1132,6 +1137,8 @@ static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
       if (data->waiting_start)
       {
         data->waiting_start = 0;
+        // Reset audio buffer
+        DAMC_resetAudioBuffer(DUB_In);
       }
 
       // If we lost a ISO transfer previously and got DataIn now,

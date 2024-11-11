@@ -29,6 +29,10 @@ public:
 	}
 	size_t getWritePos() { return out_write_offset; }
 	size_t getReadPos() { return in_read_offset; }
+	void reset() {
+		out_write_offset = 0;
+		in_read_offset = 0;
+	}
 
 private:
 	// Double buffer and dual channel

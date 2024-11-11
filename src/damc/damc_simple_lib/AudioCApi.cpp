@@ -196,6 +196,10 @@ uint32_t DAMC_getUSBInSizeValue(enum DAMC_USB_Buffer_e index) {
 	return usb_in_size;
 }
 
+void DAMC_resetAudioBuffer(enum DAMC_USB_Buffer_e index) {
+	usbBuffers[index].reset();
+}
+
 __attribute__((used)) uint32_t available_usb_buffer[3];
 size_t DAMC_writeAudioSample(enum DAMC_USB_Buffer_e index, const void* data, size_t size) {
 	size_t writtenSize = usbBuffers[index].writeOutBuffer(usbBuffers[index].getReadPos(), (const uint32_t*) data, size);
