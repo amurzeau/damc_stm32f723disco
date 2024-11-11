@@ -420,13 +420,6 @@ void CodecDamcHATInit::startTxDMA(void* buffer, size_t nframes) {
 	    &hsai_tx,
 	    (uint8_t*) buffer,
 	    nframes * sizeof(CodecAudio::CodecFrame::headphone) / sizeof(CodecAudio::CodecFrame::headphone[0]));
-
-	// Wait the SAI FIFO to be not empty before starting the SAI
-	while((hsai_tx.Instance->SR & SAI_xSR_FLVL) == SAI_FIFOSTATUS_EMPTY) {
-	}
-
-	/* Enable SAI peripheral */
-	__HAL_SAI_ENABLE(&hsai_tx);
 }
 
 void CodecDamcHATInit::startRxDMA(void* buffer, size_t nframes) {
@@ -435,9 +428,6 @@ void CodecDamcHATInit::startRxDMA(void* buffer, size_t nframes) {
 	    &hsai_rx,
 	    (uint8_t*) buffer,
 	    nframes * sizeof(CodecAudio::CodecFrame::headphone) / sizeof(CodecAudio::CodecFrame::headphone[0]));
-
-	/* Enable SAI peripheral */
-	__HAL_SAI_ENABLE(&hsai_rx);
 }
 
 uint16_t CodecDamcHATInit::getTxRemainingCount(void) {
