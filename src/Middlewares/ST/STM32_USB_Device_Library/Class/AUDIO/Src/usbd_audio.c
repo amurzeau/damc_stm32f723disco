@@ -817,7 +817,6 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
         while (data->transfer_in_progress > 0)
           ;
         data->transfer_in_progress = 1;
-        data->feedback = DAMC_getUSBFeedbackValue(i);
         USBD_AUDIO_Buffer *buffer = &data->buffer;
         USBD_AUDIO_trace(data, "USBD_LL_PrepareReceive");
         USBD_LL_PrepareReceive(pdev, data->endpoint, buffer->buffer, data->max_packet_size);
@@ -1216,6 +1215,8 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
       data->waiting_stop = 0;
       GLITCH_DETECTION_increment_counter(GT_UsbIsochronousTransferLost);
     }
+
+    data->feedback = DAMC_getUSBFeedbackValue(data->index);
 
     int32_t index = ((epnum & 0x0F) - (AUDIO_OUT_EP & 0x0F)) / 2;
     uint32_t nframes = buffer->size / 4;
