@@ -1218,9 +1218,8 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 
     data->feedback = DAMC_getUSBFeedbackValue(data->index);
 
-    int32_t index = ((epnum & 0x0F) - (AUDIO_OUT_EP & 0x0F)) / 2;
     uint32_t nframes = buffer->size / 4;
-    size_t writtenSize = DAMC_writeAudioSample(index, buffer->buffer, nframes);
+    size_t writtenSize = DAMC_writeAudioSample(data->index, buffer->buffer, nframes);
     if (writtenSize != nframes)
     {
       GLITCH_DETECTION_increment_counter(GT_UsbOutOverrun);
