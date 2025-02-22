@@ -25,7 +25,7 @@ install(FILES
 	$<TARGET_FILE_DIR:${TARGET_NAME}>/${TARGET_NAME}.bin
 	$<TARGET_FILE_DIR:${TARGET_NAME}>/${TARGET_NAME}.hex
 	$<TARGET_FILE_DIR:${TARGET_NAME}>/${TARGET_NAME}.list
-	DESTINATION ./
+	DESTINATION .
 	COMPONENT all
 )
 
@@ -33,14 +33,14 @@ install(FILES
 	$<TARGET_FILE_DIR:${TARGET_NAME}>/${TARGET_NAME}.bin
 	$<TARGET_FILE_DIR:${TARGET_NAME}>/${TARGET_NAME}.hex
 	dist/README.stlink_dragdrop.txt
-	DESTINATION ./
+	DESTINATION .
 	COMPONENT stlink_dragdrop
 )
 
 install(FILES
 	$<TARGET_FILE:${TARGET_NAME}>
 	dist/README.stm32cubeprogrammer.txt
-	DESTINATION ./
+	DESTINATION .
 	COMPONENT stm32cubeprogrammer
 )
 
