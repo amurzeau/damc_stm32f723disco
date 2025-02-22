@@ -224,6 +224,11 @@ uint32_t DAMC_getUSBFeedbackValue(enum DAMC_USB_Buffer_e index) {
 
 	diff_usb[index] = diff_buffering;
 
+	// Assuming 0 clock drift, when 1 sample is missing, the host will compensate it in
+	// 8192 microframes, that is 1.024 second.
+	// 8192 is a convient value leading to integer operations.
+	// 65536 is the ratio for the decimal part of feedback, being in 16.16 fixed point format.
+	// So 1.0f == 65536.
 	feedback -= diff_buffering * (65536 / 8192) * div_ratio;
 	return feedback;
 }
