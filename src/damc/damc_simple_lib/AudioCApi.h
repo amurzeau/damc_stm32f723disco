@@ -31,6 +31,7 @@ void DAMC_resetFrequencyToMaxPerformance();
 void DAMC_setControlFromUSB(
     uint8_t unit_id, uint8_t control_selector, uint8_t channel, uint8_t bRequest, uint16_t value);
 uint16_t DAMC_getControlFromUSB(uint8_t unit_id, uint8_t control_selector, uint8_t channel, uint8_t bRequest);
+void DAMC_resetBufferProcessedFlags();
 
 enum DAMC_USB_Buffer_e {
 	DUB_Out1,

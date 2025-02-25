@@ -2,7 +2,6 @@
 
 #include <array>
 #include <stdint.h>
-#include <vector>
 
 #include <spdlog/spdlog.h>
 
@@ -22,27 +21,46 @@ public:
 	size_t getSize() { return buffer.size() * getElementSize(); }
 	size_t getCount() { return buffer.size(); }
 	size_t getAvailableReadForDMA(uint32_t dma_read_offset) {
-		return (buffer.size() + out_write_offset - dma_read_offset) % buffer.size();
+		return (buffer.size() + out_write_offset.offset - dma_read_offset) % buffer.size();
 	}
 	size_t getAvailableWriteForDMA(uint32_t dma_write_offset) {
-		return (buffer.size() + dma_write_offset - in_read_offset) % buffer.size();
+		return (buffer.size() + dma_write_offset - in_read_offset.offset) % buffer.size();
 	}
-	size_t getWritePos() { return out_write_offset; }
-	size_t getReadPos() { return in_read_offset; }
-	void reset() {
-		out_write_offset = 0;
-		in_read_offset = 0;
+	size_t getWritePos() { return out_write_offset.offset; }
+	size_t getReadPos() { return in_read_offset.offset; }
+	void reset(size_t available_space) {
+		assert(available_space < buffer.size());
+		// Configure buffers so there are available_space space for reading of empty data
+		in_read_offset.offset = 0;
+		out_write_offset.offset = (uint16_t) available_space;
+		memset(buffer.data(), 0, available_space * sizeof(buffer[0]));
 	}
-	void resetBufferProcessedFlag() { buffer_processed = false; }
-	bool isBufferProcessed() { return buffer_processed; }
+	void resetBufferProcessedFlag() {
+		assert(out_write_offset.offset < buffer.size());
+		assert(in_read_offset.offset < buffer.size());
+		__DSB();
+		out_write_offset.buffer_processed = false;
+		in_read_offset.buffer_processed = false;
+		__DSB();
+		assert(out_write_offset.offset < buffer.size());
+		assert(in_read_offset.offset < buffer.size());
+	}
+	uint16_t isBufferWritten() { return out_write_offset.buffer_processed; }
+	uint16_t isBufferRead() { return in_read_offset.buffer_processed; }
 
 private:
+	union Offset {
+		struct {
+			uint16_t buffer_processed : 16;
+			uint16_t offset : 16;
+		};
+		uint32_t raw;
+	};
 	// Double buffer and dual channel
 	// This must be 32 byte aligned for cache handling
 	std::array<T, 48 * N> buffer __attribute__((aligned(32)));
-	size_t out_write_offset;
-	size_t in_read_offset;
-	bool buffer_processed;
+	Offset out_write_offset;
+	Offset in_read_offset;
 };
 
 template<typename T, int N, bool do_manage_cache> CircularBuffer<T, N, do_manage_cache>::CircularBuffer() {
@@ -51,10 +69,10 @@ template<typename T, int N, bool do_manage_cache> CircularBuffer<T, N, do_manage
 
 template<typename T, int N, bool do_manage_cache>
 size_t CircularBuffer<T, N, do_manage_cache>::writeOutBuffer(uint32_t dma_read_offset, const T* data, size_t nframes) {
-	uint16_t start = out_write_offset;
+	uint16_t start = out_write_offset.offset;
 	uint16_t size = nframes;
 
-	uint16_t max_size = (dma_read_offset - out_write_offset - 1 + buffer.size()) % buffer.size();
+	uint16_t max_size = (dma_read_offset - out_write_offset.offset - 1 + buffer.size()) % buffer.size();
 
 	if(size > max_size)
 		size = max_size;
@@ -82,16 +100,18 @@ size_t CircularBuffer<T, N, do_manage_cache>::writeOutBuffer(uint32_t dma_read_o
 	} else {
 		__DSB();
 	}
-	assert(out_write_offset == start);
-	out_write_offset = end;
-	buffer_processed = true;
+	assert(out_write_offset.offset == start);
+
+	// Atomically update both the write pointer and the buffer processed flag
+	// using a single 32 bits write.
+	out_write_offset.raw = Offset{true, end}.raw;
 
 	return size;
 }
 
 template<typename T, int N, bool do_manage_cache>
 size_t CircularBuffer<T, N, do_manage_cache>::readInBuffer(uint32_t dma_write_offset, T* data, size_t nframes) {
-	uint16_t start = in_read_offset;
+	uint16_t start = in_read_offset.offset;
 
 	uint16_t end = dma_write_offset;
 	uint16_t size = (end - start + buffer.size()) % buffer.size();
@@ -138,9 +158,11 @@ size_t CircularBuffer<T, N, do_manage_cache>::readInBuffer(uint32_t dma_write_of
 	if(!do_manage_cache) {
 		__DSB();
 	}
-	assert(in_read_offset == start);
-	in_read_offset = end;
-	buffer_processed = true;
+	assert(in_read_offset.offset == start);
+
+	// Atomically update both the read pointer and the buffer processed flag
+	// using a single 32 bits write.
+	in_read_offset.raw = Offset{true, end}.raw;
 
 	return size;
 }

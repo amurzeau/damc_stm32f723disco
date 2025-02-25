@@ -438,6 +438,17 @@ uint16_t CodecDamcHATInit::getRxRemainingCount(void) {
 	return __HAL_DMA_GET_COUNTER(hsai_rx.hdmarx);
 }
 
+bool CodecDamcHATInit::isDMAIsrFlagSet(bool insertWaitStates) {
+	if(insertWaitStates) {
+		// Do a dummy read from the SAI peripheral
+		(void) hsai_tx.Instance->SR;
+	}
+
+	uint32_t ISR = *(volatile uint32_t*) hsai_tx.hdmatx->StreamBaseAddress;
+
+	return (ISR & ((DMA_FLAG_HTIF0_4 | DMA_FLAG_TCIF0_4) << hsai_tx.hdmatx->StreamIndex)) != RESET;
+}
+
 void CodecDamcHATInit::writeI2c(uint8_t address, uint8_t value) {
 	HAL_StatusTypeDef status = HAL_I2C_Mem_Write(&hi2c, 0x30, address, 1, &value, 1, 1000);
 	if(status != HAL_OK) {

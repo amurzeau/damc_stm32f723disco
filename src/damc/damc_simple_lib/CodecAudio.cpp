@@ -95,6 +95,14 @@ uint32_t CodecAudio::getDMAInPos() {
 	return dma_write_offset;
 }
 
+bool CodecAudio::isAudioProcessingInterruptPending(bool insertWaitStates) {
+	if(useTlvAsMclkMaster) {
+		return codecDamcHATInit.isDMAIsrFlagSet(insertWaitStates);
+	} else {
+		return codecSTM32F723EDiscoInit.isDMAIsrFlagSet(insertWaitStates);
+	}
+}
+
 void CodecAudio::setMicBias(bool enable) {
 	if(useTlvAsMclkMaster) {
 		codecDamcHATInit.setMicBias(enable);

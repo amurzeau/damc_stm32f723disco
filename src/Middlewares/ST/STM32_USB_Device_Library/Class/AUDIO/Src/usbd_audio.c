@@ -782,6 +782,13 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
         USBD_AUDIO_Buffer *buffer = &data->buffer;
         USBD_AUDIO_trace(data, "USBD_LL_Transmit");
 
+
+        if (data->waiting_start)
+        {
+          // Reset audio buffer when the stream is starting
+          DAMC_resetAudioBuffer(DUB_In);
+        }
+
         uint32_t size_to_read = DAMC_getUSBInSizeValue(DUB_In + i);
         data->accumulated_transmit_error += size_to_read;
         size_to_read = data->accumulated_transmit_error / 65536;
@@ -876,6 +883,11 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
   // The USB Host did not emitted a ISO In token for the frame we scheduled it,
   // either the USB Host is not reading the ISO In endpoint or
   // it is reading on a different frame number.
+  //
+  // This event happen at the end of a micro-frame, before the next SOF.
+  // So we still have time to prepare a ZLP transfer
+  // in case the Host emit ISO In token on the next micro-frame.
+  //
   // Schedule a transfer at a different frame number to try to sync with the USB Host.
 
   if (is_feedback)
@@ -889,17 +901,17 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
         DAMC_resetFrequencyToMaxPerformance();
       }
 
-      data->next_target_frame_feedback = -1;  // (pcd->FrameNumber + 126) & 0x3FFF;
-
       // Prepare for next SOF with ZLP to check for IN token
       data->feedback_transfer_in_progress = 1;
       USBD_LL_Transmit(pdev, data->endpoint_feedback, data->buffer_feedback, 0);
 
-      if (!data->waiting_stop)
-      {
-        // The feedback transfer was lost and we are not stopping, the host is not reading the feedback clock anymore
-        GLITCH_DETECTION_set_USB_out_feedback_state(data->index, false);
-      }
+      // Reset next_target_frame_feedback to -1.
+      // In case a ZLP transfer is not prepared, SOF handler will take care of it.
+      // This happens for the initial transfer to be done after the host switch USB alternate to 1.
+      data->next_target_frame_feedback = -1;
+
+      // The feedback transfer was lost and we are not stopping, the host is not reading the feedback clock anymore
+      GLITCH_DETECTION_set_USB_out_feedback_state(data->index, false);
     }
   }
   else
@@ -914,7 +926,9 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
         // First time we get incomplete, reset CPU frequency to max in case we get many Incomplete IRQ
         DAMC_resetFrequencyToMaxPerformance();
       }
-      data->next_target_frame = -1;  // (pcd->FrameNumber + 6) & 0x3FFF;
+
+      // SOF will try a ZLP transfer at each micro-frame to find on which FrameNumber the ISO IN transfer is.
+      data->next_target_frame = -1;
 
       // Prepare for next SOF with ZLP to check for IN token
       data->transfer_in_progress = 1;
@@ -1136,8 +1150,6 @@ static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
       if (data->waiting_start)
       {
         data->waiting_start = 0;
-        // Reset audio buffer
-        DAMC_resetAudioBuffer(DUB_In);
       }
 
       // If we lost a ISO transfer previously and got DataIn now,
@@ -1187,6 +1199,13 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
     data->transfer_in_progress = 0;
     data->complete_iso++;
 
+    // Reset USB audio buffer when starting to have the perfect buffering level
+    // This will avoid early underrun or overrun due to the host audio clock not yet synchronized
+    if (data->complete_iso == 1 && data->waiting_start)
+    {
+      DAMC_resetAudioBuffer(data->index);
+    }
+
     // Assume we are fully started at correct speed after 2 feedbacks,
     // which is 16*2 = 32 data ISO xfer.
     // We are not counting feedback transfer as they might not be done by the USB Host (Windows).
@@ -1216,6 +1235,11 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
       GLITCH_DETECTION_increment_counter(GT_UsbIsochronousTransferLost);
     }
 
+    // Compute feedback to target usbBuffers with 0.25ms of available
+    // samples when DMA starts a new buffer (+1ms that we will add just after by DAMC_writeAudioSample).
+    // Do this just before adding the received USB OUT samples so the 0.25
+    // margin is really a margin and not systematically reduced by waiting the next
+    // USB OUT transfer later.
     data->feedback = DAMC_getUSBFeedbackValue(data->index);
 
     uint32_t nframes = buffer->size / 4;

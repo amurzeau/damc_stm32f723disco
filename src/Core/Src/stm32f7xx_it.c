@@ -248,6 +248,8 @@ void AUDIO_OUT_SAIx_DMAx_IRQHandler(void)
 {
   // Only monitor cpu usage on TX DMA interrupt
   DAMC_beginMeasure(TMI_AudioProcessing);
+  // Reset buffer processed flags before the DMA interrupt is cleared.
+  DAMC_resetBufferProcessedFlags();
   HAL_DMA_IRQHandler(haudio_out_sai.hdmatx);
   DAMC_endMeasure(TMI_AudioProcessing);
 }
@@ -268,6 +270,8 @@ void AUDIO_IN_INT_IRQHandler(void)
 void DMA2_Stream3_IRQHandler(void) {
   // Only monitor cpu usage on TX DMA interrupt
   DAMC_beginMeasure(TMI_AudioProcessing);
+  // Reset buffer processed flags before the DMA interrupt is cleared.
+  DAMC_resetBufferProcessedFlags();
   HAL_DMA_IRQHandler(hdma2_stream3);
   DAMC_endMeasure(TMI_AudioProcessing);
 }

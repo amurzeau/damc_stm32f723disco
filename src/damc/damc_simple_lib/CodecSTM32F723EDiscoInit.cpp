@@ -128,3 +128,13 @@ uint16_t CodecSTM32F723EDiscoInit::getTxRemainingCount(void) {
 uint16_t CodecSTM32F723EDiscoInit::getRxRemainingCount(void) {
 	return __HAL_DMA_GET_COUNTER(haudio_in_sai.hdmarx);
 }
+
+bool CodecSTM32F723EDiscoInit::isDMAIsrFlagSet(bool insertWaitStates) {
+	if(insertWaitStates) {
+		// Do a dummy read from the SAI peripheral
+		(void) haudio_out_sai.Instance->SR;
+	}
+	uint32_t ISR = *(volatile uint32_t*) haudio_out_sai.hdmatx->StreamBaseAddress;
+
+	return (ISR & ((DMA_FLAG_HTIF0_4 | DMA_FLAG_TCIF0_4) << haudio_out_sai.hdmatx->StreamIndex)) != RESET;
+}

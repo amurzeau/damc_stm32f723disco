@@ -24,6 +24,7 @@ public:
 	void startRxDMA(void* buffer, size_t nframes);
 	uint16_t getTxRemainingCount();
 	uint16_t getRxRemainingCount();
+	bool isDMAIsrFlagSet(bool insertWaitStates);
 
 	void setMicBias(bool enable);
 

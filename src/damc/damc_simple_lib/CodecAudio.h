@@ -30,6 +30,12 @@ public:
 	 */
 	uint32_t getDMAInPos();
 
+	/** @brief Check if the audio processing interrupt is pending.
+	 * @param insertWaitStates true to insert a SAI peripheral dummy read before reading ISR
+	 * @return true if the DMA ISR flag is set
+	 */
+	bool isAudioProcessingInterruptPending(bool insertWaitStates);
+
 	void setMicBias(bool enable);
 
 	static CodecAudio instance;
