@@ -24,17 +24,44 @@ public:
 		return (buffer.size() + out_write_offset.offset - dma_read_offset) % buffer.size();
 	}
 	size_t getAvailableWriteForDMA(uint32_t dma_write_offset) {
-		return (buffer.size() + dma_write_offset - in_read_offset.offset) % buffer.size();
+		return (buffer.size() + in_read_offset.offset - dma_write_offset - 1) % buffer.size();
 	}
 	size_t getWritePos() { return out_write_offset.offset; }
 	size_t getReadPos() { return in_read_offset.offset; }
-	void reset(size_t available_space) {
+
+	// Call to reset buffer to a given size when the read pos is controlled in another thread
+	void resetWritePos(size_t available_space) {
 		assert(available_space < buffer.size());
 		// Configure buffers so there are available_space space for reading of empty data
-		in_read_offset.offset = 0;
-		out_write_offset.offset = (uint16_t) available_space;
-		memset(buffer.data(), 0, available_space * sizeof(buffer[0]));
+		out_write_offset.offset = (uint16_t) (available_space + in_read_offset.offset) % buffer.size();
+		silenceAvailableSamples();
 	}
+
+	// Call to reset buffer to a given size when the write pos is controlled in another thread
+	void resetReadPos(size_t available_space) {
+		assert(available_space < buffer.size());
+		// Configure buffers so there are available_space space for reading of empty data
+		in_read_offset.offset = (uint16_t) (buffer.size() + out_write_offset.offset - available_space) % buffer.size();
+		silenceAvailableSamples();
+	}
+
+	void silenceAvailableSamples() {
+		uint16_t start = in_read_offset.offset;
+		uint16_t end = out_write_offset.offset;
+
+		if(end < start) {
+			// Clear between start and end of buffer
+			uint16_t first_chunk_size = buffer.size() - start;
+			memset(&buffer[start], 0, first_chunk_size * sizeof(buffer[0]));
+
+			// then between begin of buffer and end
+			memset(&buffer[0], 0, end * sizeof(buffer[0]));
+		} else {
+			// Clear from start to end
+			memset(&buffer[start], 0, (end - start) * sizeof(buffer[0]));
+		}
+	}
+
 	void resetBufferProcessedFlag() {
 		assert(out_write_offset.offset < buffer.size());
 		assert(in_read_offset.offset < buffer.size());
@@ -45,6 +72,7 @@ public:
 		assert(out_write_offset.offset < buffer.size());
 		assert(in_read_offset.offset < buffer.size());
 	}
+
 	uint16_t isBufferWritten() { return out_write_offset.buffer_processed; }
 	uint16_t isBufferRead() { return in_read_offset.buffer_processed; }
 

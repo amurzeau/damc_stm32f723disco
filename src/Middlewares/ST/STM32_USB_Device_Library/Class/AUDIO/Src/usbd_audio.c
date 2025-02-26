@@ -782,11 +782,24 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
         USBD_AUDIO_Buffer *buffer = &data->buffer;
         USBD_AUDIO_trace(data, "USBD_LL_Transmit");
 
-
+        // Stream started, next_target_frame is not -1 so we got the first ISO transfer done.
+        // This will enable glitch detection.
         if (data->waiting_start)
         {
-          // Reset audio buffer when the stream is starting
-          DAMC_resetAudioBuffer(DUB_In);
+          // We must not set waiting_start to 0 on the same frame as the reset as we might
+          // have preempted an audio processing period inside DAMC_writeAudioSample with a full buffer
+          // which will cause a buffer overflow detection after returning from this interrupt.
+          if (data->complete_iso == 1)
+          {
+            // Reset audio buffer when the stream is starting, we are doing the first non-ZLP transfer
+            DAMC_resetAudioBuffer(DUB_In + i);
+
+            data->accumulated_transmit_error = 0;
+          }
+          else if (data->complete_iso > 1)
+          {
+            data->waiting_start = 0;
+          }
         }
 
         uint32_t size_to_read = DAMC_getUSBInSizeValue(DUB_In + i);
@@ -798,7 +811,7 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
         }
         data->accumulated_transmit_error -= size_to_read * 65536;
 
-        buffer->size = DAMC_readAudioSample(DUB_In, buffer->buffer, size_to_read) * 4;
+        buffer->size = DAMC_readAudioSample(DUB_In + i, buffer->buffer, size_to_read) * 4;
 
         if (buffer->size > 0)
         {
@@ -934,6 +947,9 @@ static uint8_t USBD_AUDIO_IsoINIncomplete(USBD_HandleTypeDef *pdev, uint8_t epnu
       data->transfer_in_progress = 1;
       USBD_LL_Transmit(pdev, data->endpoint, zero_data, 0);
 
+      // Reset complete_iso to prepare for the next start
+      data->complete_iso = 0;
+
       if (!data->waiting_start)
       {
         // We are not waiting for a start, so we got ISO transfer previously but not anymore.
@@ -979,6 +995,8 @@ static uint8_t USBD_AUDIO_IsoOutIncomplete(USBD_HandleTypeDef *pdev, uint8_t epn
   data->transfer_in_progress = 0;
   data->incomplete_iso++;
 
+  // Reset complete_iso to prepare for the next start
+  data->complete_iso = 0;
 
   if (data->current_alternate && !data->waiting_start)
   {
@@ -1144,13 +1162,6 @@ static uint8_t USBD_AUDIO_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
       // Schedule next ISO transfer frame number
       PCD_HandleTypeDef *pcd = (PCD_HandleTypeDef *)pdev->pData;
       data->next_target_frame = (pcd->FrameNumber + 7) & 0x3FFF;
-
-      // Stream just started, this is the first ISO transfer done.
-      // This will enable glitch detection.
-      if (data->waiting_start)
-      {
-        data->waiting_start = 0;
-      }
 
       // If we lost a ISO transfer previously and got DataIn now,
       // a ISO transfer got lost and the stream is continuing instead of stopping.
@@ -1385,7 +1396,25 @@ uint32_t USBD_AUDIO_IsEndpointEnabled(int is_in, int index)
     data = &usb_audio_endpoint_out_data[index];
   }
 
-  return data->current_alternate && !data->waiting_start && !data->waiting_stop;
+  // Read current_alternate last to cover the case where
+  // between reading the flags, the stream is stopped (which means waiting_* and current_alternate are set to 0).
+  //
+  // With "data->current_alternate && !data->waiting_start && !data->waiting_stop",
+  // we can have a case like this:
+  //  - Initial state: waiting_start = 1, waiting_stop = 1, current_alternate = 1
+  //  - Audio processing thread call USBD_AUDIO_IsEndpointEnabled
+  //  - USBD_AUDIO_IsEndpointEnabled check for current_alternate => == 1
+  //  - Audio processing thread is preempted by USB thread
+  //  - USB thread process a SETUP packet that stop the stream and set waiting_start = 0, waiting_stop = 0, current_alternate = 0
+  //  - Audio processing thread resume
+  //  - USBD_AUDIO_IsEndpointEnabled check for !waiting_start and !waiting_stop => ok they are now 0
+  // This leads to false positive glitch detection when the USB stream is stopped.
+
+  bool state1 = !data->waiting_start && !data->waiting_stop && data->current_alternate;
+  __DMB();
+  bool state2 = !data->waiting_start && !data->waiting_stop && data->current_alternate;
+
+  return state1 && state2;
 }
 /**
   * @}

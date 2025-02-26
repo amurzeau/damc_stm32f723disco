@@ -1,22 +1,27 @@
 #include "GlitchDetection.h"
 #include "usbd_conf.h"
 #include "uv.h"
+#include <atomic>
 #include <main.h>
 #include <stm32f7xx.h>
 #include <stm32f7xx_hal_gpio.h>
 #include <string.h>
 
-static int32_t glitches_counters[GT_Number];
-static bool feedback_read_by_host[AUDIO_OUT_NUMBER];
+static std::atomic_int32_t glitches_counters[GT_Number];
+static std::atomic_bool feedback_read_by_host[AUDIO_OUT_NUMBER];
 
 void GLITCH_DETECTION_increment_counter(enum GlitchType type) {
 	// HAL_GPIO_WritePin(STMOD_UART4_TXD_GPIO_Port, STMOD_UART4_TXD_Pin, GPIO_PIN_SET);
-	glitches_counters[type]++;
+
+	// Relaxed atomic: no dependency on other variables.
+	glitches_counters[type].fetch_add(1, std::memory_order_relaxed);
+
 	// HAL_GPIO_WritePin(STMOD_UART4_TXD_GPIO_Port, STMOD_UART4_TXD_Pin, GPIO_PIN_RESET);
 }
 
 void GLITCH_DETECTION_set_USB_out_feedback_state(int outIndex, bool feedback_working) {
-	feedback_read_by_host[outIndex] = feedback_working;
+	// Relaxed atomic: no dependency on other variables.
+	feedback_read_by_host[outIndex].store(feedback_working, std::memory_order_relaxed);
 }
 
 GlitchDetection::GlitchDetection(OscContainer* parent)
@@ -47,7 +52,11 @@ void GlitchDetection::start() {
 
 	oscResetCounters.addChangeCallback([](bool value) {
 		if(value) {
-			memset(glitches_counters, 0, sizeof(glitches_counters));
+			// Concurrent reset with increments from ISRs
+			// Use 32 bits atomic writes instead of memcpy.
+			for(std::atomic_int32_t& glitches_counter : glitches_counters) {
+				glitches_counter.store(0, std::memory_order_relaxed);
+			}
 		}
 	});
 }
@@ -61,6 +70,7 @@ void GlitchDetection::onUpdateTimer(uv_timer_t* handle) {
 	thisInstance->nextIndexToUpdate = (nextIndexToUpdate + 1) % GT_Number;
 
 	for(size_t i = 0; i < AUDIO_OUT_NUMBER; i++) {
-		thisInstance->oscFeedbackReadByHost[i] = feedback_read_by_host[i];
+		// Relaxed atomic: no dependency on other variables.
+		thisInstance->oscFeedbackReadByHost[i] = feedback_read_by_host[i].load(std::memory_order_relaxed);
 	}
 }

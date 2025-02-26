@@ -53,7 +53,7 @@ void CodecAudio::processAudioInterleavedOutput(const CodecFrame* data_input, siz
 volatile uint32_t diff_dma_in;
 void CodecAudio::processAudioInterleavedInput(CodecFrame* data_output, size_t nframes) {
 	uint16_t dma_write_offset = getDMAInPos();
-	uint32_t availableForDma = codecBuffers.out_buffer.getAvailableWriteForDMA(dma_write_offset);
+	uint32_t availableForDma = codecBuffers.in_buffer.getAvailableWriteForDMA(dma_write_offset);
 	diff_dma_in = availableForDma;
 	size_t readSize = codecBuffers.in_buffer.readInBuffer(dma_write_offset, data_output, nframes);
 

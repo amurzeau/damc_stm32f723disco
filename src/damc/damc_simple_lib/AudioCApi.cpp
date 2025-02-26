@@ -5,6 +5,8 @@
 #include "TimeMeasure.h"
 #include "Tracing.h"
 #include "usbd_conf.h"
+#include <atomic>
+#include <string.h>
 #include <usbd_audio.h>
 #include <uv.h>
 
@@ -75,10 +77,18 @@ void DAMC_resetBufferProcessedFlags() {
 		buffer.resetBufferProcessedFlag();
 }
 
+__attribute__((used)) std::atomic_uint32_t usb_available_read_lock[3];
+__attribute__((used)) std::atomic_uint32_t usb_available_write_lock[3];
+__attribute__((used)) uint32_t data_after_reset[3];
+
 __attribute__((used)) int32_t diff_usb[3];
 __attribute__((used)) int32_t expected_buff[3];
+__attribute__((used)) int32_t adj_usb_buff[3];
 __attribute__((used)) int32_t usb_buff[3];
 __attribute__((used)) int32_t dma_pos_at_usb[3];
+__attribute__((used)) int32_t buffer_processed_flag[3];
+__attribute__((used)) int32_t dma_isr_flag[3];
+__attribute__((used)) int32_t available_data_for_processing[3];
 __attribute__((used)) int32_t div_ratio = 1;
 
 __attribute__((used)) int32_t feedback_glitch_buffer_processed[3];
@@ -284,11 +294,53 @@ static int32_t DAMC_adjustUsbBufferAvailableForCurrentProcessingPeriod(enum DAMC
 	 */
 	if(dma_interrupt_flag || !buffer_processed) {
 		// We expect usbBuffers to be read in the current audio processing period
-		// Adjust the amount of samples as if the DMA ISR and buffer processing were done at the same time atomically.
+		// Adjust only for theses cases:
+		// - a DAMC_readAudioSample/DAMC_writeAudioSample will occur later in the audio processing period and will
+		// transfer 48 samples
+		// - a DAMC_readAudioSample/DAMC_writeAudioSample is in progress which could lead to a short read/write if the
+		// buffer is empty or full.
+
+		// Reseting while the buffer is full/empty might be ignored
+
 		if(index != DUB_In) {
-			usb_buffering -= 48;
+			if(usb_available_read_lock[index] == 2) {
+				data_after_reset[index]++;
+
+				// We interrupted a DAMC_readAudioSample, reseting won't have any effect and only the current available
+				// data will be read instead of 48 samples.
+				uint32_t available_data = usbBuffers[index].getAvailableReadForDMA(usbBuffers[index].getReadPos());
+				if(available_data > 48)
+					available_data = 48;
+				available_data_for_processing[index] = available_data;
+				usb_buffering = usb_buffering - available_data;
+			} else {
+				// Notify audio processing thread that we modified the usb buffer
+				usb_available_read_lock[index] = 1;
+				// The buffer will be processed later in the audio period
+				// Adjust the amount of samples as if the DMA ISR and buffer processing were done at the same time
+				// atomically.
+				usb_buffering -= 48;
+			}
 		} else {
-			usb_buffering += 48;
+			if(usb_available_write_lock[index] == 2) {
+				data_after_reset[index]++;
+
+				// We interrupted a DAMC_writeAudioSample, reseting won't have any effect and only the current available
+				// buffer max will be written instead of 48 samples.
+				uint32_t available_buffer_space =
+				    usbBuffers[index].getAvailableWriteForDMA(usbBuffers[index].getWritePos());
+				if(available_buffer_space > 48)
+					available_buffer_space = 48;
+				available_data_for_processing[index] = available_buffer_space;
+				usb_buffering = usb_buffering + available_buffer_space;
+			} else {
+				// Notify audio processing thread that we modified the usb buffer
+				usb_available_write_lock[index] = 1;
+				// The buffer will be processed later in the audio period
+				// Adjust the amount of samples as if the DMA ISR and buffer processing were done at the same time
+				// atomically.
+				usb_buffering += 48;
+			}
 		}
 	}
 
@@ -319,6 +371,12 @@ static int32_t DAMC_adjustUsbBufferAvailableForCurrentProcessingPeriod(enum DAMC
 	//  Copy to codec buffer:    |   | 1 |   |   |
 	//  Sent by DMA to codec:    |   |   1   |   |
 	//
+	// For input:
+	//  Received from codec with DMA:  1   |   |   |   |
+	//  DAMC audio processing:         |   | 1 |   |   |
+	//  Copy to usbBuffer:             |   |  1|   |   |
+	//  Received from USB IN:          |   | * |   |1  |
+	//
 	// Latency = 2.25ms + codec latency
 
 	int32_t expected_buffering;
@@ -329,14 +387,36 @@ static int32_t DAMC_adjustUsbBufferAvailableForCurrentProcessingPeriod(enum DAMC
 		expected_buffering = (48 / 4) + dma_pos;
 	} else {
 		// Expected = 1.25 buffer (= 1.25 * 48 samples) + remaining DMA record size
-		expected_buffering = 48 + (48 / 4) + (48 - dma_pos);
+		// Almost empty case, USB speed a bit faster, there is 2 reads in a single audio processing period:
+		//  - usbBuffers.write done at the end of previous period (dma_pos ~= 0): +48
+		//  - usbBuffers.read done just after, at the beginning of a new period (dma_pos ~= 0): -48
+		//  - usbBuffers.read done at the end of period, before usbBuffers.write is done (dma_pos ~= 48): -48
+		//  => At the beginning of the period, there must be at least 96 samples in buffer.
+		//     As we adjust usb_buffering as if the usbBuffers.write for the current audio period is already done, 48
+		//     must be added.
+		//  => At the beginning of the period, expected_buffering >= 144.
+		//     If buffering is insufficient, no glitch will appear, less samples will be sent on USB.
+		//
+		// Almost full case, USB speed a bit slower, there is no read in an audio processing period (P1):
+		//  - usbBuffers.read done at the end of period P0 (dma_pos ~= 48) -48
+		//  - usbBuffers.write done at the beginning of next period P1 (dma_pos ~= 0) +48
+		//  - usbBuffers.write done at the beginning of next period P2 (dma_pos ~= 0) +48
+		//  - usbBuffers.read done at the beginning of period P2 (dma_pos ~= 48) -48
+		//  => With need to avoid buffer overflow, so at beginning of period P2, there must be < 144 samples in buffer.
+		//     This is a hard limit to avoid overflow.
+		// So expected_buffering need to be 144 with a margin to avoid overflow, so a bit less (margin = 0.25 period).
+		expected_buffering = 48 * 2 - (48 / 4) + (48 - dma_pos);
 	}
 
 	// Update debug monitoring varialbes
 	expected_buff[index] = expected_buffering;
 	dma_pos_at_usb[index] = dma_pos;
+	adj_usb_buff[index] = usb_buffering;
+	buffer_processed_flag[index] = buffer_processed;
+	dma_isr_flag[index] = dma_interrupt_flag;
 
-	if(usb_buffering != 0 && (usb_buffering - expected_buffering > 24 || usb_buffering - expected_buffering < -24)) {
+	if(saved_usb_buffering != 0 &&
+	   ((usb_buffering - expected_buffering) > 24 || (usb_buffering - expected_buffering) < -24)) {
 		feedback_glitch_buffer_processed[index] = saved_buffer_processed;
 		feedback_glitch_dma_pos[index] = saved_dma_pos;
 		feedback_glitch_dma_interrupt_flag[index] = saved_dma_interrupt_flag;
@@ -355,6 +435,7 @@ static int32_t DAMC_adjustUsbBufferAvailableForCurrentProcessingPeriod(enum DAMC
  *                the configuration information for SAI module.
  * @retval None
  */
+volatile USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_in_data_backup;
 static void DAMC_processAudioFromDMAInterrupt() {
 	TRACING_add(false, 0, "Audio Processing start");
 
@@ -380,6 +461,7 @@ static void DAMC_processAudioFromDMAInterrupt() {
 	for(size_t i = 0; i < AUDIO_OUT_NUMBER; i++) {
 		size_t readSize =
 		    DAMC_readAudioSample((enum DAMC_USB_Buffer_e)(DUB_Out1 + i), &usb_buffers[DUB_Out1 + i], nframes);
+		memcpy((void*) &usb_audio_endpoint_in_data_backup, &usb_audio_endpoint_out_data[i], 0x44);
 		if(USBD_AUDIO_IsEndpointEnabled(false, i) && readSize != nframes) {
 			GLITCH_DETECTION_increment_counter(GT_UsbOutUnderrun);
 		}
@@ -391,13 +473,15 @@ static void DAMC_processAudioFromDMAInterrupt() {
 	                                                       sizeof(endpoint_in_buffer) / sizeof(endpoint_in_buffer[0]),
 	                                                       nframes);
 
+	// Put in usbBuffers IN samples from previous audio processing period
+	// Doing this before audio processing ensure more constant buffering as
+	// we update usbBuffers always early in the audio processing period, never late even with heavy audio processing.
 	for(size_t i = 0; i < AUDIO_IN_NUMBER; i++) {
-		if(USBD_AUDIO_IsEndpointEnabled(true, i)) {
-			size_t writtenSize =
-			    DAMC_writeAudioSample((enum DAMC_USB_Buffer_e)(DUB_In + i), &usb_buffers[DUB_In + i], nframes);
-			if(writtenSize != nframes) {
-				GLITCH_DETECTION_increment_counter(GT_UsbInOverrun);
-			}
+		size_t writtenSize =
+		    DAMC_writeAudioSample((enum DAMC_USB_Buffer_e)(DUB_In + i), &usb_buffers[DUB_In + i], nframes);
+		memcpy((void*) &usb_audio_endpoint_in_data_backup, &usb_audio_endpoint_in_data[i], 0x44);
+		if(USBD_AUDIO_IsEndpointEnabled(true, i) && writtenSize != nframes) {
+			GLITCH_DETECTION_increment_counter(GT_UsbInOverrun);
 		}
 	}
 
@@ -435,6 +519,18 @@ uint32_t DAMC_getUSBFeedbackValue(enum DAMC_USB_Buffer_e index) {
 	usb_buff[index] = usb_buffering;
 	diff_usb[index] = diff_buffering;
 
+	TRACING_add_feedback(index,
+	                     diff_usb[index],
+	                     expected_buff[index],
+	                     adj_usb_buff[index],
+	                     usb_buff[index],
+	                     dma_pos_at_usb[index],
+	                     buffer_processed_flag[index],
+	                     dma_isr_flag[index],
+	                     available_data_for_processing[index],
+	                     usb_available_read_lock[index],
+	                     "Feedback OUT");
+
 	// Assuming 0 clock drift, when 1 sample is missing, the host will compensate it in
 	// 8192 microframes, that is 1.024 second.
 	// 8192 is a convient value leading to integer operations.
@@ -444,15 +540,32 @@ uint32_t DAMC_getUSBFeedbackValue(enum DAMC_USB_Buffer_e index) {
 	return feedback;
 }
 
+__attribute__((used)) int32_t usb_reset_expected_buffering[3];
 __attribute__((used)) int32_t is_underdma;
 uint32_t DAMC_getUSBInSizeValue(enum DAMC_USB_Buffer_e index) {
 	uint32_t usb_in_size = 48 << 16;  // nominal value: 48 samples per transfer
 
-	uint32_t usb_buffering = usbBuffers[index].getAvailableWriteForDMA(usbBuffers[index].getWritePos());
+	uint32_t usb_buffering = usbBuffers[index].getAvailableReadForDMA(usbBuffers[index].getReadPos());
 	int32_t diff_buffering = DAMC_adjustUsbBufferAvailableForCurrentProcessingPeriod(index, usb_buffering);
 
 	usb_buff[index] = usb_buffering;
 	diff_usb[index] = diff_buffering;
+
+	TRACING_add_feedback(index,
+	                     diff_usb[index],
+	                     expected_buff[index],
+	                     adj_usb_buff[index],
+	                     usb_buff[index],
+	                     dma_pos_at_usb[index],
+	                     buffer_processed_flag[index],
+	                     dma_isr_flag[index],
+	                     available_data_for_processing[index],
+	                     usb_available_write_lock[index],
+	                     "Feedback IN");
+
+	if(index == DUB_In && (diff_buffering > 24 || diff_buffering < -24)) {
+		is_underdma = true;
+	}
 
 	usb_in_size += diff_buffering * (65536 / 1024) * div_ratio;
 	return usb_in_size;
@@ -471,14 +584,53 @@ void DAMC_resetAudioBuffer(enum DAMC_USB_Buffer_e index) {
 	// Get expected buffering
 	int32_t expected_buffering = -DAMC_adjustUsbBufferAvailableForCurrentProcessingPeriod(index, 0);
 
-	usbBuffers[index].reset(expected_buffering);
+	if(index != DUB_In) {
+		usbBuffers[index].resetWritePos(expected_buffering);
+	} else {
+		usbBuffers[index].resetReadPos(expected_buffering);
+	}
+
+	TRACING_reset();
+	TRACING_add_feedback(index,
+	                     0,
+	                     expected_buff[index],
+	                     adj_usb_buff[index],
+	                     expected_buffering,
+	                     dma_pos_at_usb[index],
+	                     buffer_processed_flag[index],
+	                     dma_isr_flag[index],
+	                     available_data_for_processing[index],
+	                     index == DUB_In ? usb_available_write_lock[index] : usb_available_read_lock[index],
+	                     "Reset usbBuffers");
+
+	if(index == DUB_In) {
+		DAMC_getUSBInSizeValue(index);
+	}
 }
 
 __attribute__((used)) uint32_t available_usb_buffer[3];
 size_t DAMC_writeAudioSample(enum DAMC_USB_Buffer_e index, const void* data, size_t size) {
-	size_t writtenSize = usbBuffers[index].writeOutBuffer(usbBuffers[index].getReadPos(), (const uint32_t*) data, size);
+	uint32_t usb_read_pos;
+	uint32_t expected_value;
 
-	available_usb_buffer[index] = usbBuffers[index].getAvailableReadForDMA(usbBuffers[index].getReadPos());
+	// Ensure atomic read of usb pos with usb_available_write_lock.
+	// If USB interrupt occurs in-between and cause a usbBuffers reset, retry to read the position.
+	// If USB interrupt occurs after having set usb_available_write_lock, it will assume we won't see the reset.
+	do {
+		expected_value = 0;
+		usb_available_write_lock[index] = 0;
+		__DMB();
+		usb_read_pos = usbBuffers[index].getReadPos();
+	} while(!usb_available_write_lock[index].compare_exchange_strong(expected_value, 2, std::memory_order_relaxed));
+
+	size_t writtenSize = usbBuffers[index].writeOutBuffer(usb_read_pos, (const uint32_t*) data, size);
+
+	usb_available_write_lock[index] = 0;
+
+	uint32_t available_size = usbBuffers[index].getAvailableReadForDMA(usb_read_pos);
+	uint32_t dma_pos = CodecAudio::instance.getDMAOutPos() % 48;
+	TRACING_add_buffer(index, available_size, dma_pos, "Write usbBuffers");
+	available_usb_buffer[index] = available_size;
 
 	return writtenSize;
 }
@@ -488,11 +640,30 @@ __attribute__((used)) size_t available_usb_buffer_read_underflow[3];
 size_t DAMC_readAudioSample(enum DAMC_USB_Buffer_e index, void* data, size_t size) {
 	available_usb_buffer_read[index] = usbBuffers[index].getAvailableReadForDMA(usbBuffers[index].getReadPos());
 
-	size_t readSize = usbBuffers[index].readInBuffer(usbBuffers[index].getWritePos(), (uint32_t*) data, size);
+	uint32_t usb_write_pos;
+	uint32_t expected_value;
+
+	// Ensure atomic read of usb pos with usb_available_read_lock.
+	// If USB interrupt occurs in-between and cause a usbBuffers reset, retry to read the position.
+	// If USB interrupt occurs after having set usb_available_read_lock, it will assume we won't see the reset.
+	do {
+		expected_value = 0;
+		usb_available_read_lock[index] = 0;
+		__DMB();
+		usb_write_pos = usbBuffers[index].getWritePos();
+	} while(!usb_available_read_lock[index].compare_exchange_strong(expected_value, 2, std::memory_order_relaxed));
+
+	size_t readSize = usbBuffers[index].readInBuffer(usb_write_pos, (uint32_t*) data, size);
+
+	usb_available_read_lock[index] = 0;
 
 	if(readSize != size) {
 		available_usb_buffer_read_underflow[index] = available_usb_buffer_read[index];
 	}
+
+	uint32_t available_size = usbBuffers[index].getAvailableReadForDMA(usbBuffers[index].getReadPos());
+	uint32_t dma_pos = CodecAudio::instance.getDMAOutPos() % 48;
+	TRACING_add_buffer(index, available_size, dma_pos, "Read usbBuffers");
 
 	return readSize;
 }

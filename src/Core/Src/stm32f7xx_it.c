@@ -223,8 +223,24 @@ void TIM2_IRQHandler(void)
 /**
   * @brief This function handles USB On The Go HS global interrupt.
   */
-void OTG_HS_IRQHandler(void)
+
+uint32_t original_program_pointer;
+void OTG_HS_IRQHandler_real(uint32_t original_msp)
 {
+  // Stack when interrupt happen
+  // 0x2FF4 preempted task's stack data
+  // 0x2FF0 xPSR
+  // 0x2FEC PC
+  // 0x2FE8 LR
+  // 0x2FE4 R12
+  // 0x2FE0 R3
+  // 0x2FDC R2
+  // 0x2FD8 R1
+  // 0x2FD4 R0  <--- Thread Stack Pointer when interrupt happened (R13)
+  const uint32_t *sp = (const uint32_t *)original_msp;
+  original_program_pointer = sp[6];
+  __DMB();
+
   /* USER CODE BEGIN OTG_HS_IRQn 0 */
   DAMC_beginMeasure(TMI_UsbInterrupt);
   SYS_LD_USER2_GPIO_Port->BSRR = SYS_LD_USER2_Pin << 16;
@@ -235,8 +251,27 @@ void OTG_HS_IRQHandler(void)
   SYS_LD_USER2_GPIO_Port->BSRR = SYS_LD_USER2_Pin;
   DAMC_endMeasure(TMI_UsbInterrupt);
 
+  __DMB();
+  original_program_pointer = 0;
+
   /* USER CODE END OTG_HS_IRQn 1 */
 }
+
+__attribute__((naked)) void OTG_HS_IRQHandler(void)
+{
+  // Find the original stack pointer in a naked function to ensure the compiler doesn't use the stack for local variables.
+  // The real ISR handle is then called with the stack pointer value as argument
+  asm("tst lr, #4\n"                                          // Test for MSP or PSP
+      "ite eq\n"                                              // If equal
+      "mrseq r0, msp\n"                                       //  r0 = msp
+      "mrsne r0, psp\n"                                       // else r0 = psp
+      "b %[OTG_HS_IRQHandler_real]\n"                         // Call real handler
+      :                                                       // output
+      : [OTG_HS_IRQHandler_real] "i"(OTG_HS_IRQHandler_real)  // input
+      : "r0"                                                  // clobber
+  );
+}
+
 
 /* USER CODE BEGIN 1 */
 
