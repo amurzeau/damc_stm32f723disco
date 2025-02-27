@@ -74,7 +74,6 @@ static void DAMC_checkAudioInterruptLost() {
  *                the configuration information for SAI module.
  * @retval None
  */
-volatile USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_in_data_backup;
 static void DAMC_processAudioFromDMAInterrupt() {
 	TRACING_add(false, 0, "Audio Processing start");
 
@@ -99,7 +98,6 @@ static void DAMC_processAudioFromDMAInterrupt() {
 
 	for(size_t i = 0; i < AUDIO_OUT_NUMBER; i++) {
 		size_t readSize = usbBuffers[DUB_Out1 + i].readAudioSample(true, &usb_buffers[DUB_Out1 + i], nframes);
-		memcpy((void*) &usb_audio_endpoint_in_data_backup, &usb_audio_endpoint_out_data[i], 0x44);
 		if(USBD_AUDIO_IsEndpointEnabled(false, i) && readSize != nframes) {
 			GLITCH_DETECTION_increment_counter(GT_UsbOutUnderrun);
 		}
@@ -116,7 +114,6 @@ static void DAMC_processAudioFromDMAInterrupt() {
 	// we update usbBuffers always early in the audio processing period, never late even with heavy audio processing.
 	for(size_t i = 0; i < AUDIO_IN_NUMBER; i++) {
 		size_t writtenSize = usbBuffers[DUB_In + i].writeAudioSample(true, &usb_buffers[DUB_In + i], nframes);
-		memcpy((void*) &usb_audio_endpoint_in_data_backup, &usb_audio_endpoint_in_data[i], 0x44);
 		if(USBD_AUDIO_IsEndpointEnabled(true, i) && writtenSize != nframes) {
 			GLITCH_DETECTION_increment_counter(GT_UsbInOverrun);
 		}

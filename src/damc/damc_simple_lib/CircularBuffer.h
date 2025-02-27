@@ -63,14 +63,8 @@ public:
 	}
 
 	void resetBufferProcessedFlag() {
-		assert(out_write_offset.offset < buffer.size());
-		assert(in_read_offset.offset < buffer.size());
-		__DSB();
 		out_write_offset.buffer_processed = false;
 		in_read_offset.buffer_processed = false;
-		__DSB();
-		assert(out_write_offset.offset < buffer.size());
-		assert(in_read_offset.offset < buffer.size());
 	}
 
 	uint16_t isBufferWritten() { return out_write_offset.buffer_processed; }
@@ -126,7 +120,7 @@ size_t CircularBuffer<T, N, do_manage_cache>::writeOutBuffer(uint32_t dma_read_o
 	if(do_manage_cache) {
 		SCB_CleanDCache_by_Addr((uint32_t*) buffer.data(), buffer.size() * sizeof(buffer[0]));
 	} else {
-		__DSB();
+		__DMB();
 	}
 	assert(out_write_offset.offset == start);
 
@@ -184,7 +178,7 @@ size_t CircularBuffer<T, N, do_manage_cache>::readInBuffer(uint32_t dma_write_of
 	}
 
 	if(!do_manage_cache) {
-		__DSB();
+		__DMB();
 	}
 	assert(in_read_offset.offset == start);
 
