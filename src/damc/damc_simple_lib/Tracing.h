@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define ENABLE_TRACING
+// #define ENABLE_TRACING
 
 #ifdef ENABLE_TRACING
 extern uint32_t offset_count;
@@ -34,6 +34,7 @@ void TRACING_gpio_set(bool value);
 #define TRACING_reset()
 #define TRACING_add(...)
 #define TRACING_add_buffer(...)
+#define TRACING_add_feedback(...)
 #define TRACING_gpio_set(...)
 #endif
 
