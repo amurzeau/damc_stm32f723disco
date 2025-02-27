@@ -31,7 +31,6 @@ void DAMC_resetFrequencyToMaxPerformance();
 void DAMC_setControlFromUSB(
     uint8_t unit_id, uint8_t control_selector, uint8_t channel, uint8_t bRequest, uint16_t value);
 uint16_t DAMC_getControlFromUSB(uint8_t unit_id, uint8_t control_selector, uint8_t channel, uint8_t bRequest);
-void DAMC_resetBufferProcessedFlags();
 
 enum DAMC_USB_Buffer_e {
 	DUB_Out1,
@@ -41,6 +40,7 @@ enum DAMC_USB_Buffer_e {
 uint32_t DAMC_getUSBFeedbackValue(enum DAMC_USB_Buffer_e index);
 uint32_t DAMC_getUSBInSizeValue(enum DAMC_USB_Buffer_e index);
 
+void DAMC_resetBufferProcessedFlags();
 void DAMC_resetAudioBuffer(enum DAMC_USB_Buffer_e index);
 size_t DAMC_writeAudioSample(enum DAMC_USB_Buffer_e index, const void* data, size_t size);
 size_t DAMC_readAudioSample(enum DAMC_USB_Buffer_e index, void* data, size_t size);
