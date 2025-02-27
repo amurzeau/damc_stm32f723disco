@@ -782,27 +782,32 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
         USBD_AUDIO_Buffer *buffer = &data->buffer;
         USBD_AUDIO_trace(data, "USBD_LL_Transmit");
 
-        // Stream started, next_target_frame is not -1 so we got the first ISO transfer done.
-        // This will enable glitch detection.
-        if (data->waiting_start)
+        uint32_t size_to_read;
+
+        if (data->waiting_start && data->complete_iso == 1)
         {
           // We must not set waiting_start to 0 on the same frame as the reset as we might
           // have preempted an audio processing period inside DAMC_writeAudioSample with a full buffer
           // which will cause a buffer overflow detection after returning from this interrupt.
-          if (data->complete_iso == 1)
-          {
-            // Reset audio buffer when the stream is starting, we are doing the first non-ZLP transfer
-            DAMC_resetAudioBuffer(DUB_In + i);
 
-            data->accumulated_transmit_error = 0;
-          }
-          else if (data->complete_iso > 1)
-          {
-            data->waiting_start = 0;
-          }
+          // Reset audio buffer when the stream is starting, we are doing the first non-ZLP transfer
+          DAMC_resetAudioBuffer(DUB_In + i);
+
+          data->accumulated_transmit_error = 0;
+          size_to_read = 48 << 16;
+        }
+        else
+        {
+          size_to_read = DAMC_getUSBInSizeValue(DUB_In + i);
         }
 
-        uint32_t size_to_read = DAMC_getUSBInSizeValue(DUB_In + i);
+        // Stream started, next_target_frame is not -1 so we got the first ISO transfer done.
+        // This will enable glitch detection.
+        if (data->waiting_start && data->complete_iso > 1)
+        {
+          data->waiting_start = 0;
+        }
+
         data->accumulated_transmit_error += size_to_read;
         size_to_read = data->accumulated_transmit_error / 65536;
         if (size_to_read > sizeof(buffer->buffer) / 4)
@@ -811,7 +816,7 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
         }
         data->accumulated_transmit_error -= size_to_read * 65536;
 
-        buffer->size = DAMC_readAudioSample(DUB_In + i, buffer->buffer, size_to_read) * 4;
+        buffer->size = DAMC_readAudioSampleFromUSB(DUB_In + i, buffer->buffer, size_to_read) * 4;
 
         if (buffer->size > 0)
         {
@@ -1215,6 +1220,28 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
     if (data->complete_iso == 1 && data->waiting_start)
     {
       DAMC_resetAudioBuffer(data->index);
+
+      // Don't compute feedback when we reset audio buffers as the feedback will always be the perfect one (no drift).
+      // If we compute feedback, we might get wrong values in this case:
+      //  - USB ISR preempt the audio processing ISR while reading the usb buffer. The audio pro
+      //    - The audio processing ISR will only read available data before usb buffer reset, which might be 0 if there was underflow.
+      //    - DAMC_resetAudioBuffer take into account that the read in the current processing period won't read 48 samples but maybe 0
+      //  - Then computing feedback would assume a full read of 48 samples by the audio processing ISR:
+      //    - DAMC_getUSBFeedbackValue would compute the available space, but after the reset, which will be 48 samples instead of
+      //      the previous state that would be 0 sample in case of underflow.
+      // Thus, the feedback might get non-exact value.
+      // No calling it reduce edge cases.
+      // Use the default feedback of 6 << 16 which means no clock drift.
+      data->feedback = 6 << 16;
+    }
+    else
+    {
+      // Compute feedback to target usbBuffers with 0.25ms of available
+      // samples when DMA starts a new buffer (+1ms that we will add just after by DAMC_writeAudioSample).
+      // Do this just before adding the received USB OUT samples so the 0.25
+      // margin is really a margin and not systematically reduced by waiting the next
+      // USB OUT transfer later.
+      data->feedback = DAMC_getUSBFeedbackValue(data->index);
     }
 
     // Assume we are fully started at correct speed after 2 feedbacks,
@@ -1246,15 +1273,8 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
       GLITCH_DETECTION_increment_counter(GT_UsbIsochronousTransferLost);
     }
 
-    // Compute feedback to target usbBuffers with 0.25ms of available
-    // samples when DMA starts a new buffer (+1ms that we will add just after by DAMC_writeAudioSample).
-    // Do this just before adding the received USB OUT samples so the 0.25
-    // margin is really a margin and not systematically reduced by waiting the next
-    // USB OUT transfer later.
-    data->feedback = DAMC_getUSBFeedbackValue(data->index);
-
     uint32_t nframes = buffer->size / 4;
-    size_t writtenSize = DAMC_writeAudioSample(data->index, buffer->buffer, nframes);
+    size_t writtenSize = DAMC_writeAudioSampleFromUSB(data->index, buffer->buffer, nframes);
     if (writtenSize != nframes)
     {
       GLITCH_DETECTION_increment_counter(GT_UsbOutOverrun);
