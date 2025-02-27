@@ -98,7 +98,7 @@ void UsbAudioBuffer::resetBufferProcessedFlagFromAudio() {
  * 16    |/                         |/                                                    |/                         |
  * adj:  ---+                       ------------------------------+    *                  ---+                       -
  */
-int32_t UsbAudioBuffer::adjustUsbBufferAvailableForCurrentProcessingPeriodFromUSB(int32_t usb_buffering) {
+int32_t UsbAudioBuffer::adjustUsbBufferAvailableForCurrentProcessingPeriodFromUSB(bool inReset, int32_t usb_buffering) {
 	// Note: DMA ISR is cleared after usbBuffers.resetBufferProcessedFlag is called
 	// in AUDIO_OUT_SAIx_DMAx_IRQHandler().
 	// This function is called from USB interrupt, so DMA ISR can't preempt this function.
@@ -217,44 +217,23 @@ int32_t UsbAudioBuffer::adjustUsbBufferAvailableForCurrentProcessingPeriodFromUS
 
 		// Reseting while the buffer is full/empty might be ignored
 
-		if(direction == DirectionUsbToAudio) {
-			if(readOwner.load(std::memory_order_relaxed) == OwnerUsedByAudioProcess) {
-				data_after_reset++;
+		if(processingByAudioISR.load(std::memory_order_relaxed) == OwnerUsedByAudioProcess) {
+			data_after_reset++;
 
-				// We interrupted a DAMC_readAudioSample, reseting won't have any effect and only the current available
-				// data will be read instead of 48 samples.
-				uint32_t available_data = buffer.getAvailableReadForDMA(buffer.getReadPos());
-				if(available_data > 48)
-					available_data = 48;
-				available_data_for_processing = available_data;
-				usb_buffering -= available_data;
-			} else {
-				// Notify audio processing thread that we modified the usb buffer
-				readOwner.store(OwnerPointerChanged, std::memory_order_relaxed);
-				// The buffer will be processed later in the audio period
-				// Adjust the amount of samples as if the DMA ISR and buffer processing were done at the same time
-				// atomically.
-				usb_buffering -= 48;
-			}
+			// We interrupted a DAMC_readAudioSample, reseting won't have any effect and only the current available
+			// data will be read instead of 48 samples.
+			uint32_t available_data = usb_buffering;
+			if(available_data > 48)
+				available_data = 48;
+			available_data_for_processing = available_data;
+			usb_buffering -= available_data;
 		} else {
-			if(writeOwner.load(std::memory_order_relaxed) == OwnerUsedByAudioProcess) {
-				data_after_reset++;
-
-				// We interrupted a DAMC_writeAudioSample, reseting won't have any effect and only the current available
-				// buffer max will be written instead of 48 samples.
-				uint32_t available_buffer_space = buffer.getAvailableWriteForDMA(buffer.getWritePos());
-				if(available_buffer_space > 48)
-					available_buffer_space = 48;
-				available_data_for_processing = available_buffer_space;
-				usb_buffering += available_buffer_space;
-			} else {
-				// Notify audio processing thread that we modified the usb buffer
-				writeOwner.store(OwnerPointerChanged, std::memory_order_relaxed);
-				// The buffer will be processed later in the audio period
-				// Adjust the amount of samples as if the DMA ISR and buffer processing were done at the same time
-				// atomically.
-				usb_buffering += 48;
-			}
+			// The buffer will be processed later in the audio period.
+			// If we reset before the start of reading/writing the buffer by the audio processing ISR, it will
+			// read/write a full 48 samples as we will add them just after feedback/reset.
+			// Adjust the amount of samples as if the DMA ISR and buffer processing were done at the same time
+			// atomically.
+			usb_buffering -= 48;
 		}
 	}
 
@@ -295,32 +274,9 @@ int32_t UsbAudioBuffer::adjustUsbBufferAvailableForCurrentProcessingPeriodFromUS
 
 	int32_t expected_buffering;
 
-	if(direction == DirectionUsbToAudio) {
-		// Expected = 1.25 buffer (= 1.25 * 48 samples) + elapsed time since previous DMA pos reset
-		// We are running just before getting a new buffer, so remove 48 from the expected result
-		expected_buffering = (48 / 4) + dma_pos;
-	} else {
-		// Expected = 1.25 buffer (= 1.25 * 48 samples) + remaining DMA record size
-		// Almost empty case, USB speed a bit faster, there is 2 reads in a single audio processing period:
-		//  - usbBuffers.write done at the end of previous period (dma_pos ~= 0): +48
-		//  - usbBuffers.read done just after, at the beginning of a new period (dma_pos ~= 0): -48
-		//  - usbBuffers.read done at the end of period, before usbBuffers.write is done (dma_pos ~= 48): -48
-		//  => At the beginning of the period, there must be at least 96 samples in buffer.
-		//     As we adjust usb_buffering as if the usbBuffers.write for the current audio period is already done, 48
-		//     must be added.
-		//  => At the beginning of the period, expected_buffering >= 144.
-		//     If buffering is insufficient, no glitch will appear, less samples will be sent on USB.
-		//
-		// Almost full case, USB speed a bit slower, there is no read in an audio processing period (P1):
-		//  - usbBuffers.read done at the end of period P0 (dma_pos ~= 48) -48
-		//  - usbBuffers.write done at the beginning of next period P1 (dma_pos ~= 0) +48
-		//  - usbBuffers.write done at the beginning of next period P2 (dma_pos ~= 0) +48
-		//  - usbBuffers.read done at the beginning of period P2 (dma_pos ~= 48) -48
-		//  => With need to avoid buffer overflow, so at beginning of period P2, there must be < 144 samples in buffer.
-		//     This is a hard limit to avoid overflow.
-		// So expected_buffering need to be 144 with a margin to avoid overflow, so a bit less (margin = 0.25 period).
-		expected_buffering = 48 * 2 - (48 / 4) + (48 - dma_pos);
-	}
+	// Expected = 1.25 buffer (= 1.25 * 48 samples) + elapsed time since previous DMA pos reset
+	// We are running just before getting a new buffer, so remove 48 from the expected result
+	expected_buffering = (48 / 4) + dma_pos;
 
 	// Update debug monitoring variables
 	expected_buff = expected_buffering;
@@ -329,8 +285,7 @@ int32_t UsbAudioBuffer::adjustUsbBufferAvailableForCurrentProcessingPeriodFromUS
 	buffer_processed_flag = buffer_processed;
 	dma_isr_flag = dma_interrupt_flag;
 
-	if(saved_usb_buffering != 0 &&
-	   ((usb_buffering - expected_buffering) > 24 || (usb_buffering - expected_buffering) < -24)) {
+	if(!inReset && ((usb_buffering - expected_buffering) > 24 || (usb_buffering - expected_buffering) < -24)) {
 		feedback_glitch_buffer_processed = saved_buffer_processed;
 		feedback_glitch_dma_pos = saved_dma_pos;
 		feedback_glitch_dma_interrupt_flag = saved_dma_interrupt_flag;
@@ -345,7 +300,7 @@ uint32_t UsbAudioBuffer::getUSBFeedbackValue() {
 	uint32_t feedback = 6 << 16;  // nominal value: 6 samples per microframe
 
 	uint32_t usb_buffering = buffer.getAvailableReadForDMA(buffer.getReadPos());
-	int32_t diff_buffering = adjustUsbBufferAvailableForCurrentProcessingPeriodFromUSB(usb_buffering);
+	int32_t diff_buffering = adjustUsbBufferAvailableForCurrentProcessingPeriodFromUSB(false, usb_buffering);
 	usb_buff = usb_buffering;
 	diff_usb = diff_buffering;
 
@@ -358,7 +313,7 @@ uint32_t UsbAudioBuffer::getUSBFeedbackValue() {
 	                     buffer_processed_flag,
 	                     dma_isr_flag,
 	                     available_data_for_processing,
-	                     readOwner,
+	                     processingByAudioISR,
 	                     "Feedback OUT");
 
 	// Assuming 0 clock drift, when 1 sample is missing, the host will compensate it in
@@ -373,8 +328,8 @@ uint32_t UsbAudioBuffer::getUSBFeedbackValue() {
 uint32_t UsbAudioBuffer::getUSBInSizeValue() {
 	uint32_t usb_in_size = 48 << 16;  // nominal value: 48 samples per transfer
 
-	uint32_t usb_buffering = buffer.getAvailableReadForDMA(buffer.getReadPos());
-	int32_t diff_buffering = adjustUsbBufferAvailableForCurrentProcessingPeriodFromUSB(usb_buffering);
+	uint32_t usb_buffering = buffer.getAvailableWriteForDMA(buffer.getWritePos());
+	int32_t diff_buffering = adjustUsbBufferAvailableForCurrentProcessingPeriodFromUSB(false, usb_buffering);
 
 	usb_buff = usb_buffering;
 	diff_usb = diff_buffering;
@@ -388,10 +343,10 @@ uint32_t UsbAudioBuffer::getUSBInSizeValue() {
 	                     buffer_processed_flag,
 	                     dma_isr_flag,
 	                     available_data_for_processing,
-	                     writeOwner,
+	                     processingByAudioISR,
 	                     "Feedback IN");
 
-	usb_in_size += diff_buffering * (65536 / 1024);
+	usb_in_size -= diff_buffering * (65536 / 1024);
 	return usb_in_size;
 }
 
@@ -404,15 +359,32 @@ uint32_t UsbAudioBuffer::getUSBInSizeValue() {
  * samples in the buffer so we don't get a buffer overflow or underflow
  * before the feedback to USB Host adjust the buffer margin.
  */
+volatile uint32_t dummy;
 void UsbAudioBuffer::resetAudioBufferFromUSB() {
 	// Get expected buffering
-	int32_t expected_buffering = -adjustUsbBufferAvailableForCurrentProcessingPeriodFromUSB(0);
+	uint32_t usb_buffering;
+
+	if(direction == DirectionUsbToAudio) {
+		usb_buffering = buffer.getAvailableReadForDMA(buffer.getReadPos());
+	} else {
+		usb_buffering = buffer.getAvailableWriteForDMA(buffer.getWritePos());
+	}
+
+	int32_t expected_buffering = -adjustUsbBufferAvailableForCurrentProcessingPeriodFromUSB(true, usb_buffering);
+
+	expected_buffering += usb_buffering;
+
+	if(processingByAudioISR.load(std::memory_order_relaxed) == OwnerUsedByAudioProcess) {
+		dummy = 1;
+	}
 
 	if(direction == DirectionUsbToAudio) {
 		buffer.resetWritePos(expected_buffering);
 	} else {
-		buffer.resetReadPos(expected_buffering);
+		buffer.resetReadPos(buffer.getCount() - expected_buffering);
 	}
+	// Notify audio processing thread that we modified the usb buffer
+	processingByAudioISR.store(OwnerPointerChanged, std::memory_order_relaxed);
 
 	TRACING_reset();
 	TRACING_add_feedback(index,
@@ -424,28 +396,34 @@ void UsbAudioBuffer::resetAudioBufferFromUSB() {
 	                     buffer_processed_flag,
 	                     dma_isr_flag,
 	                     available_data_for_processing,
-	                     direction == DirectionUsbToAudio ? readOwner : writeOwner,
+	                     processingByAudioISR,
 	                     "Reset usbBuffers");
 }
 
-size_t UsbAudioBuffer::writeAudioSample(const void* data, size_t size) {
+size_t UsbAudioBuffer::writeAudioSample(bool fromAudioISR, const void* data, size_t size) {
 	uint32_t usb_read_pos;
 	BufferOwner expected_value;
 
-	// Ensure atomic read of usb pos with usb_available_write_lock.
-	// If USB interrupt occurs in-between and cause a usbBuffers reset, retry to read the position.
-	// If USB interrupt occurs after having set usb_available_write_lock, it will assume we won't see the reset.
-	do {
-		expected_value = OwnerUnused;
-		writeOwner.store(OwnerUnused, std::memory_order_relaxed);
-		__DMB();
+	if(fromAudioISR) {
+		// Ensure atomic read of usb pos with usb_available_write_lock.
+		// If USB interrupt occurs in-between and cause a usbBuffers reset, retry to read the position.
+		// If USB interrupt occurs after having set usb_available_write_lock, it will assume we won't see the reset.
+		do {
+			expected_value = OwnerUnused;
+			processingByAudioISR.store(OwnerUnused, std::memory_order_relaxed);
+			__DMB();
+			usb_read_pos = buffer.getReadPos();
+		} while(!processingByAudioISR.compare_exchange_strong(
+		    expected_value, OwnerUsedByAudioProcess, std::memory_order_acquire, std::memory_order_relaxed));
+	} else {
 		usb_read_pos = buffer.getReadPos();
-	} while(!writeOwner.compare_exchange_strong(
-	    expected_value, OwnerUsedByAudioProcess, std::memory_order_acquire, std::memory_order_relaxed));
+	}
 
 	size_t writtenSize = buffer.writeOutBuffer(usb_read_pos, (const uint32_t*) data, size);
 
-	writeOwner.store(OwnerUnused, std::memory_order_release);
+	if(fromAudioISR) {
+		processingByAudioISR.store(OwnerUnused, std::memory_order_release);
+	}
 
 	uint32_t available_size = buffer.getAvailableReadForDMA(usb_read_pos);
 	uint32_t dma_pos = CodecAudio::instance.getDMAOutPos() % 48;
@@ -454,24 +432,30 @@ size_t UsbAudioBuffer::writeAudioSample(const void* data, size_t size) {
 	return writtenSize;
 }
 
-size_t UsbAudioBuffer::readAudioSample(void* data, size_t size) {
+size_t UsbAudioBuffer::readAudioSample(bool fromAudioISR, void* data, size_t size) {
 	uint32_t usb_write_pos;
 	BufferOwner expected_value;
 
-	// Ensure atomic read of usb pos with usb_available_read_lock.
-	// If USB interrupt occurs in-between and cause a usbBuffers reset, retry to read the position.
-	// If USB interrupt occurs after having set usb_available_read_lock, it will assume we won't see the reset.
-	do {
-		expected_value = OwnerUnused;
-		readOwner.store(OwnerUnused, std::memory_order_relaxed);
-		__DMB();
+	if(fromAudioISR) {
+		// Ensure atomic read of usb pos with usb_available_read_lock.
+		// If USB interrupt occurs in-between and cause a usbBuffers reset, retry to read the position.
+		// If USB interrupt occurs after having set usb_available_read_lock, it will assume we won't see the reset.
+		do {
+			expected_value = OwnerUnused;
+			processingByAudioISR.store(OwnerUnused, std::memory_order_relaxed);
+			__DMB();
+			usb_write_pos = buffer.getWritePos();
+		} while(!processingByAudioISR.compare_exchange_strong(
+		    expected_value, OwnerUsedByAudioProcess, std::memory_order_acquire, std::memory_order_relaxed));
+	} else {
 		usb_write_pos = buffer.getWritePos();
-	} while(!readOwner.compare_exchange_strong(
-	    expected_value, OwnerUsedByAudioProcess, std::memory_order_acquire, std::memory_order_relaxed));
+	}
 
 	size_t readSize = buffer.readInBuffer(usb_write_pos, (uint32_t*) data, size);
 
-	readOwner.store(OwnerUnused, std::memory_order_relaxed);
+	if(fromAudioISR) {
+		processingByAudioISR.store(OwnerUnused, std::memory_order_relaxed);
+	}
 
 	uint32_t available_size = buffer.getAvailableReadForDMA(buffer.getReadPos());
 	uint32_t dma_pos = CodecAudio::instance.getDMAOutPos() % 48;

@@ -98,8 +98,7 @@ static void DAMC_processAudioFromDMAInterrupt() {
 	};
 
 	for(size_t i = 0; i < AUDIO_OUT_NUMBER; i++) {
-		size_t readSize =
-		    DAMC_readAudioSample((enum DAMC_USB_Buffer_e)(DUB_Out1 + i), &usb_buffers[DUB_Out1 + i], nframes);
+		size_t readSize = usbBuffers[DUB_Out1 + i].readAudioSample(true, &usb_buffers[DUB_Out1 + i], nframes);
 		memcpy((void*) &usb_audio_endpoint_in_data_backup, &usb_audio_endpoint_out_data[i], 0x44);
 		if(USBD_AUDIO_IsEndpointEnabled(false, i) && readSize != nframes) {
 			GLITCH_DETECTION_increment_counter(GT_UsbOutUnderrun);
@@ -116,8 +115,7 @@ static void DAMC_processAudioFromDMAInterrupt() {
 	// Doing this before audio processing ensure more constant buffering as
 	// we update usbBuffers always early in the audio processing period, never late even with heavy audio processing.
 	for(size_t i = 0; i < AUDIO_IN_NUMBER; i++) {
-		size_t writtenSize =
-		    DAMC_writeAudioSample((enum DAMC_USB_Buffer_e)(DUB_In + i), &usb_buffers[DUB_In + i], nframes);
+		size_t writtenSize = usbBuffers[DUB_In + i].writeAudioSample(true, &usb_buffers[DUB_In + i], nframes);
 		memcpy((void*) &usb_audio_endpoint_in_data_backup, &usb_audio_endpoint_in_data[i], 0x44);
 		if(USBD_AUDIO_IsEndpointEnabled(true, i) && writtenSize != nframes) {
 			GLITCH_DETECTION_increment_counter(GT_UsbInOverrun);
@@ -176,10 +174,10 @@ void DAMC_resetAudioBuffer(enum DAMC_USB_Buffer_e index) {
 	usbBuffers[index].resetAudioBufferFromUSB();
 }
 
-size_t DAMC_writeAudioSample(enum DAMC_USB_Buffer_e index, const void* data, size_t size) {
-	return usbBuffers[index].writeAudioSample(data, size);
+size_t DAMC_writeAudioSampleFromUSB(enum DAMC_USB_Buffer_e index, const void* data, size_t size) {
+	return usbBuffers[index].writeAudioSample(false, data, size);
 }
 
-size_t DAMC_readAudioSample(enum DAMC_USB_Buffer_e index, void* data, size_t size) {
-	return usbBuffers[index].readAudioSample(data, size);
+size_t DAMC_readAudioSampleFromUSB(enum DAMC_USB_Buffer_e index, void* data, size_t size) {
+	return usbBuffers[index].readAudioSample(false, data, size);
 }

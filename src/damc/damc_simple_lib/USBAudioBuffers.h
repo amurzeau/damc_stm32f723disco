@@ -27,16 +27,15 @@ public:
 	uint32_t getUSBFeedbackValue();
 	uint32_t getUSBInSizeValue();
 	void resetAudioBufferFromUSB();
-	size_t writeAudioSample(const void* data, size_t size);
-	size_t readAudioSample(void* data, size_t size);
+	size_t writeAudioSample(bool fromAudioISR, const void* data, size_t size);
+	size_t readAudioSample(bool fromAudioISR, void* data, size_t size);
 
 protected:
-	int32_t adjustUsbBufferAvailableForCurrentProcessingPeriodFromUSB(int32_t usb_buffering);
+	int32_t adjustUsbBufferAvailableForCurrentProcessingPeriodFromUSB(bool inReset, int32_t usb_buffering);
 
 private:
 	CircularBuffer<uint32_t, 3, false> buffer;
-	std::atomic<BufferOwner> readOwner = OwnerUnused;
-	std::atomic<BufferOwner> writeOwner = OwnerUnused;
+	std::atomic<BufferOwner> processingByAudioISR = OwnerUnused;
 	enum DAMC_USB_Buffer_e index;
 	BufferDirection direction;
 

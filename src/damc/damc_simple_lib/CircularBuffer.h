@@ -79,10 +79,10 @@ public:
 private:
 	union Offset {
 		struct {
-			uint16_t buffer_processed : 16;
-			uint16_t offset : 16;
+			uint16_t buffer_processed : 16;  // Set from Audio ISR
+			uint16_t offset : 16;  // Set from both Audio ISR (data read/write) and USB ISR (data read/write and resets)
 		};
-		uint32_t raw;
+		uint32_t raw;  // offset and buffer_processed must be set atomically both at once from Audio ISR
 	};
 	// Double buffer and dual channel
 	// This must be 32 byte aligned for cache handling

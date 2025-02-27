@@ -42,8 +42,8 @@ uint32_t DAMC_getUSBInSizeValue(enum DAMC_USB_Buffer_e index);
 
 void DAMC_resetBufferProcessedFlags();
 void DAMC_resetAudioBuffer(enum DAMC_USB_Buffer_e index);
-size_t DAMC_writeAudioSample(enum DAMC_USB_Buffer_e index, const void* data, size_t size);
-size_t DAMC_readAudioSample(enum DAMC_USB_Buffer_e index, void* data, size_t size);
+size_t DAMC_writeAudioSampleFromUSB(enum DAMC_USB_Buffer_e index, const void* data, size_t size);
+size_t DAMC_readAudioSampleFromUSB(enum DAMC_USB_Buffer_e index, void* data, size_t size);
 
 void DAMC_setEndpointEnabled(enum DAMC_USB_Buffer_e index, bool is_enabled);
 
