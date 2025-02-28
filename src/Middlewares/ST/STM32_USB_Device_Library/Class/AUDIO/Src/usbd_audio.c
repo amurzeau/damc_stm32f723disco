@@ -271,7 +271,6 @@ USBD_AUDIO_LoopbackDataTypeDef usb_audio_endpoint_in_data[AUDIO_IN_NUMBER];
 static uint16_t usb_audio_notify_unit_id_change;
 static uint16_t usb_audio_notify_in_progress_data;
 
-volatile uint8_t usb_new_frame_flag;
 static volatile uint32_t *SCB_DEMCR = (volatile uint32_t *)0xE000EDFC;  //address of the register
 
 static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
@@ -294,12 +293,6 @@ static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   *SCB_DEMCR = *SCB_DEMCR | 0x01000000;
   DWT->CYCCNT = 0;
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-
-
-#ifdef USE_USBD_COMPOSITE
-  /* Get the Endpoints addresses allocated for this class instance */
-  AUDIOOutEpAdd = USBD_CoreGetEPAdd(pdev, USBD_EP_OUT, USBD_EP_TYPE_ISOC, (uint8_t)pdev->classId);
-#endif /* USE_USBD_COMPOSITE */
 
   for (size_t i = 0; i < AUDIO_OUT_NUMBER; i++)
   {
@@ -405,12 +398,6 @@ static uint8_t USBD_AUDIO_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 static uint8_t USBD_AUDIO_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
   UNUSED(cfgidx);
-
-#ifdef USE_USBD_COMPOSITE
-  /* Get the Endpoints addresses allocated for this class instance */
-  AUDIOOutEpAdd = USBD_CoreGetEPAdd(pdev, USBD_EP_OUT, USBD_EP_TYPE_ISOC, (uint8_t)pdev->classId);
-#endif /* USE_USBD_COMPOSITE */
-
 
   /* DeInit  physical Interface components */
   if (pdev->pClassDataCmsit[pdev->classId] != NULL)
@@ -753,11 +740,6 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
   }
 
   previous_framenumber = frameNumber;
-
-  if ((frameNumber % 8) == 0)
-  {
-    usb_new_frame_flag = 1;
-  }
 
   // Start ISO transfers when needed according to the frame number.
   // All transfers are started here.
@@ -1198,11 +1180,6 @@ static uint8_t USBD_AUDIO_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
   USBD_AUDIO_HandleTypeDef *haudio;
 
-#ifdef USE_USBD_COMPOSITE
-  /* Get the Endpoints addresses allocated for this class instance */
-  AUDIOOutEpAdd = USBD_CoreGetEPAdd(pdev, USBD_EP_OUT, USBD_EP_TYPE_ISOC, (uint8_t)pdev->classId);
-#endif /* USE_USBD_COMPOSITE */
-
   haudio = (USBD_AUDIO_HandleTypeDef *)pdev->pClassDataCmsit[pdev->classId];
   USBD_AUDIO_LoopbackDataTypeDef *data = USBD_AUDIO_getDataFromEndpoint(epnum, 0);
 
@@ -1345,30 +1322,6 @@ static void AUDIO_REQ_SetCmd(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req
     (void)USBD_CtlPrepareRx(pdev, haudio->control_tx_data, haudio->control_req.wLength);
   }
 }
-
-
-#ifdef USE_USBD_COMPOSITE
-/**
-  * @brief  USBD_AUDIO_GetEpPcktSze
-  * @param  pdev: device instance (reserved for future use)
-  * @param  If: Interface number (reserved for future use)
-  * @param  Ep: Endpoint number (reserved for future use)
-  * @retval status
-  */
-uint32_t USBD_AUDIO_GetEpPcktSze(USBD_HandleTypeDef *pdev, uint8_t If, uint8_t Ep)
-{
-  uint32_t mps;
-
-  UNUSED(pdev);
-  UNUSED(If);
-  UNUSED(Ep);
-
-  mps = AUDIO_PACKET_SZE_WORD;
-
-  /* Return the wMaxPacketSize value in Bytes (Freq(Samples)*2(Stereo)*2(HalfWord)) */
-  return mps;
-}
-#endif /* USE_USBD_COMPOSITE */
 
 /**
   * @brief  USBD_AUDIO_GetAudioHeaderDesc
