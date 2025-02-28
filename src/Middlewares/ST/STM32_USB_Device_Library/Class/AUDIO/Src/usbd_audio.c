@@ -794,10 +794,13 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
           DAMC_resetAudioBuffer(DUB_In + i);
 
           data->accumulated_transmit_error = 0;
+
+          // Don't compute feedback when we reset audio buffers as the feedback will always be the perfect one (no drift).
           size_to_read = 48 << 16;
         }
         else
         {
+          // Compute number of sample to send back
           size_to_read = DAMC_getUSBInSizeValue(DUB_In + i);
         }
 
@@ -808,6 +811,7 @@ static uint8_t USBD_AUDIO_SOF(USBD_HandleTypeDef *pdev)
           data->waiting_start = 0;
         }
 
+        // Accumulate rounding error
         data->accumulated_transmit_error += size_to_read;
         size_to_read = data->accumulated_transmit_error / 65536;
         if (size_to_read > sizeof(buffer->buffer) / 4)
