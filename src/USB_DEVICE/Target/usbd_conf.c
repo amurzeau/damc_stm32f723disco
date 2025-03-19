@@ -97,8 +97,6 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
 
     /* Peripheral clock enable */
     __HAL_RCC_OTGPHYC_CLK_ENABLE();
-    __HAL_RCC_USB_OTG_HS_CLK_ENABLE();
-    __HAL_RCC_USB_OTG_HS_ULPI_CLK_ENABLE();
 
     /* Peripheral interrupt init */
     HAL_NVIC_SetPriority(OTG_HS_IRQn, 0, 0);
@@ -118,8 +116,6 @@ void HAL_PCD_MspDeInit(PCD_HandleTypeDef* pcdHandle)
   /* USER CODE END USB_OTG_HS_MspDeInit 0 */
     /* Disable Peripheral clock */
     __HAL_RCC_OTGPHYC_CLK_DISABLE();
-    __HAL_RCC_USB_OTG_HS_CLK_DISABLE();
-    __HAL_RCC_USB_OTG_HS_ULPI_CLK_DISABLE();
 
     /**USB_OTG_HS GPIO Configuration
     PB14     ------> USB_OTG_HS_DM
