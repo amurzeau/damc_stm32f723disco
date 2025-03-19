@@ -30,4 +30,31 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>src</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>src/CMSIS-DSP</name>
+			<type>2</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/CMSIS-DSP</locationURI>
+		</link>
+		<link>
+			<name>src/cmake</name>
+			<type>2</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/cmake</locationURI>
+		</link>
+		<link>
+			<name>src/damc</name>
+			<type>2</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/damc</locationURI>
+		</link>
+		<link>
+			<name>src/memtester</name>
+			<type>2</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/memtester</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>

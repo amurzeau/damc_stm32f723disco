@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <variant>
 #include <vector>
+#include <stdint.h>
 
 template<class T> struct osc_type_name {};
 
