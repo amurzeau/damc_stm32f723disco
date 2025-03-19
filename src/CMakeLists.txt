@@ -12,6 +12,7 @@ target_link_libraries(CMSISDSP PUBLIC stm32cube_headers)
 
 
 file(GLOB_RECURSE SOURCE_LIST
+	USBClass/*.c USBClass/*.h USBClass/*.cpp
 	damc/*.c damc/*.h damc/*.cpp
 	memtester/*.c memtester/*.h memtester/*.cpp
 )
@@ -22,7 +23,10 @@ target_link_libraries(${TARGET_NAME} PUBLIC CMSISDSP)
 target_link_libraries(${TARGET_NAME} PUBLIC stm32cube)
 
 target_include_directories(
-    ${TARGET_NAME} PRIVATE	
+    ${TARGET_NAME} PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/USBClass/AUDIO/Inc
+    ${CMAKE_CURRENT_LIST_DIR}/USBClass/COMPOSITE/Inc
+    ${CMAKE_CURRENT_LIST_DIR}/USBClass/CDC/Inc
     ${CMAKE_CURRENT_LIST_DIR}/damc/deps
     ${CMAKE_CURRENT_LIST_DIR}/damc/deps/libuv_microcontroller
     ${CMAKE_CURRENT_LIST_DIR}/damc/damc_audio_processing
