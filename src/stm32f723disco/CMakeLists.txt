@@ -32,8 +32,10 @@ file(GLOB_RECURSE SOURCE_LIST
 	Components/*.c Components/*.h Components/*.cpp
 	Core/*.c Core/*.h Core/*.cpp Core/*.s
 	Drivers/*.c Drivers/*.h Drivers/*.cpp
-	Middlewares/*.c Middlewares/*.h Middlewares/*.cpp
 	USB_DEVICE/*.c USB_DEVICE/*.h USB_DEVICE/*.cpp
+	Middlewares/ST/STM32_USB_Device_Library/Core/*.c
+	Middlewares/ST/STM32_USB_Device_Library/Core/*.h
+	Middlewares/ST/STM32_USB_Device_Library/Core/*.cpp
 )
 
 add_library(stm32cube INTERFACE)
@@ -45,9 +47,6 @@ target_include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/USB_DEVICE/Target
     ${CMAKE_CURRENT_LIST_DIR}/BSP
     ${CMAKE_CURRENT_LIST_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
-    ${CMAKE_CURRENT_LIST_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/AUDIO/Inc
-    ${CMAKE_CURRENT_LIST_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/COMPOSITE/Inc
-    ${CMAKE_CURRENT_LIST_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
 )
 
 target_link_libraries(stm32cube INTERFACE stm32cube_headers)
