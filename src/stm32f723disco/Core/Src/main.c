@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include <usb_device.h>
 #include "AudioCApi.h"
 #include "stm32f723e_discovery_psram.h"
 #include "Tracing.h"
