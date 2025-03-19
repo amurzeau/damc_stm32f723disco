@@ -19,7 +19,21 @@
 			"servertype": "stlink",
 			"liveWatch": {
 				"enabled": true,
-				"samplesPerSecond": 4
+				"samplesPerSecond": 1
+			},
+			"svdPath": "STM32F723.svd"
+		},
+		{
+			"cwd": "${workspaceFolder}",
+			"executable": "${command:cmake.launchTargetPath}",
+			"name": "Attach with ST-Link",
+			"request": "attach",
+			"type": "cortex-debug",
+			"showDevDebugOutput": "none",
+			"servertype": "stlink",
+			"liveWatch": {
+				"enabled": true,
+				"samplesPerSecond": 1
 			},
 			"svdPath": "STM32F723.svd"
 		}
