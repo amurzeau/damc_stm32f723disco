@@ -1,2 +1,6 @@
 /Debug
 /Release
+/build
+/.venv
+/.vscode/.cortex-debug.*
+.settings
