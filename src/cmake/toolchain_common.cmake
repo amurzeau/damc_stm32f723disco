@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
-macro(define_toolchain COMPILER_FLAGS)
+macro(define_toolchain ARG_TARGET_NAME COMPILER_FLAGS)
+	set(TOOLCHAIN_TARGET_NAME ${ARG_TARGET_NAME})
 	set(CMAKE_SYSTEM_NAME               Generic)
 	set(CMAKE_SYSTEM_PROCESSOR          arm)
 
