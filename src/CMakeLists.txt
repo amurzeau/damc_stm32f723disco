@@ -4,7 +4,7 @@ include(cmake/st-project.cmake)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_subdirectory(stm32f723disco)
+add_subdirectory(${TOOLCHAIN_TARGET_NAME})
 
 set(DISABLEFLOAT16 ON)
 add_subdirectory(CMSIS-DSP)
