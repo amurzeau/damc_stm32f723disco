@@ -8,7 +8,12 @@ if(GIT_FOUND)
 		OUTPUT_VARIABLE DAMC_GIT_VERSION
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
-	string(REGEX REPLACE "^v?([0-9]+\\.[0-9]+(\\.[0-9]+)?).*\$" "\\1" DAMC_GIT_VERSION_TRIMMED ${DAMC_GIT_VERSION})
+	if(DAMC_GIT_VERSION_TRIMMED MATCHES "^v?([0-9]+\\.[0-9]+(\\.[0-9]+)?).*\$")
+		string(REGEX REPLACE "^v?([0-9]+\\.[0-9]+(\\.[0-9]+)?).*\$" "\\1" DAMC_GIT_VERSION_TRIMMED ${DAMC_GIT_VERSION})
+	else()
+		set(DAMC_GIT_VERSION_TRIMMED "0.0.0")
+		set(DAMC_GIT_VERSION "unknown-rev")
+	endif()
 else()
 	set(DAMC_GIT_VERSION_TRIMMED "0.0.0")
 	set(DAMC_GIT_VERSION "unknown-rev")
