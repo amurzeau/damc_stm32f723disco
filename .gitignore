@@ -1,5 +1,5 @@
-/Debug
-/Release
-/build
+Debug
+Release
+build
 /.venv
 /.vscode/.cortex-debug.*

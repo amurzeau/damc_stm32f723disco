@@ -1,7 +1,12 @@
 [
 	{
-		"name": "GCC STM32",
-		"toolchainFile": "src/cmake/gcc-arm-none-eabi.cmake",
-		"triple": "arm-none-eabi"
+		"name": "GCC STM32F7",
+		"toolchainFile": "src/cmake/toolchain_stm32f7.cmake",
+		"triple": "arm-stm32f7-eabi"
+	},
+	{
+		"name": "GCC STM32N6",
+		"toolchainFile": "src/cmake/toolchain_stm32n6.cmake",
+		"triple": "arm-stm32n6-eabi"
 	}
 ]
