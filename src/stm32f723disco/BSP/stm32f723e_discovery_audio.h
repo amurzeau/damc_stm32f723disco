@@ -198,6 +198,11 @@
 /** @defgroup STM32F723E_DISCOVERY_AUDIO_Exported_Variables STM32F723E_DISCOVERY_AUDIO Exported Variables
   * @{
   */
+ /* Play  */
+ extern SAI_HandleTypeDef haudio_out_sai;
+
+ /* Record  */
+ extern SAI_HandleTypeDef haudio_in_sai;
  /**
   * @}
   */

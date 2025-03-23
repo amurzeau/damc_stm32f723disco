@@ -15,6 +15,7 @@ file(GLOB_RECURSE SOURCE_LIST
 	USBClass/*.c USBClass/*.h USBClass/*.cpp
 	damc/*.c damc/*.h damc/*.cpp
 	memtester/*.c memtester/*.h memtester/*.cpp
+    Fonts/*.c Fonts/*.h Fonts/*.cpp
 )
 
 add_executable(${TARGET_NAME} ${SOURCE_LIST})
@@ -27,6 +28,7 @@ target_include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/USBClass/AUDIO/Inc
     ${CMAKE_CURRENT_LIST_DIR}/USBClass/COMPOSITE/Inc
     ${CMAKE_CURRENT_LIST_DIR}/USBClass/CDC/Inc
+    ${CMAKE_CURRENT_LIST_DIR}/Fonts
     ${CMAKE_CURRENT_LIST_DIR}/damc/deps
     ${CMAKE_CURRENT_LIST_DIR}/damc/deps/libuv_microcontroller
     ${CMAKE_CURRENT_LIST_DIR}/damc/damc_audio_processing

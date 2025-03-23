@@ -59,7 +59,7 @@ EndDependencies */
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f723e_discovery_lcd.h"  
-#include "../Components/Fonts/fonts.h"
+#include "fonts.h"
 //#include "../Components/Fonts/font24.c"
 //#include "../Components/Fonts/font20.c"
 //#include "../Components/Fonts/font16.c"
@@ -90,6 +90,8 @@ EndDependencies */
   */
 #define POLY_X(Z)              ((int32_t)((Points + Z)->X))
 #define POLY_Y(Z)              ((int32_t)((Points + Z)->Y))      
+#define LINE(x) ((x) * (((sFONT *)BSP_LCD_GetFont())->Height))
+
 /**
   * @}
   */ 

@@ -28,7 +28,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f723e_discovery.h" 
 #include "../Components/st7789h2/st7789h2.h"
-#include "../Components/Fonts/fonts.h"
+#include "fonts.h"
 
 /** @addtogroup BSP
   * @{

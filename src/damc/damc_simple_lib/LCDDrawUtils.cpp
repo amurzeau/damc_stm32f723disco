@@ -1,9 +1,8 @@
 #include "LCDDrawUtils.h"
-#include "Fonts/fonts.h"
 #include "LCDController.h"
+#include "fonts.h"
 
 #ifdef STM32F723xx
-#include "../Components/Fonts/fonts.h"
 #include <stm32f723e_discovery.h>
 #include <stm32f723e_discovery_lcd.h>
 #include <stm32f723e_discovery_ts.h>
@@ -68,12 +67,18 @@ void LCDDisplayOff() {
 	BSP_LCD_DisplayOff();
 }
 
+void LCDDrawPixel(uint16_t Xpos, uint16_t Ypos, uint32_t RGB_Code) {
+	BSP_LCD_DrawPixel(Xpos, Ypos, RGB_Code);
+}
+
 void LCDFillScreen(uint32_t color) {
-	BSP_LCD_FillRect(0, 0, LCD_DEFAULT_WIDTH, LCD_DEFAULT_HEIGHT, color);
+	BSP_LCD_SetTextColor(color);
+	BSP_LCD_FillRect(0, 0, BSP_LCD_GetXSize(), BSP_LCD_GetYSize());
 }
 
 void LCDFillRect(uint16_t Xpos, uint16_t Ypos, uint16_t Xsize, uint16_t Ysize, uint32_t color) {
-	BSP_LCD_FillRect(Xpos, Ypos, Xsize, Ysize, color);
+	BSP_LCD_SetTextColor(color);
+	BSP_LCD_FillRect(Xpos, Ypos, Xsize, Ysize);
 }
 
 #elif defined(STM32N657xx)
@@ -332,17 +337,17 @@ void LCDDisplayStringAt(uint16_t Xpos, uint16_t Ypos, uint32_t color, const char
 		size++;
 
 	switch(Mode) {
-		case CENTER_MODE: {
+		case LCD_CENTER_MODE: {
 			refcolumn = Xpos - (size * LCDGetFont()->Width) / 2;
 			refline = Ypos - LCDGetFont()->Height / 2;
 			break;
 		}
-		case LEFT_MODE: {
+		case LCD_LEFT_MODE: {
 			refcolumn = Xpos;
 			refline = Ypos;
 			break;
 		}
-		case RIGHT_MODE: {
+		case LCD_RIGHT_MODE: {
 			refcolumn = Xpos - (size * LCDGetFont()->Width);
 			refline = Ypos;
 			break;

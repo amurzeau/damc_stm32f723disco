@@ -10,8 +10,8 @@
 #include <math.h>
 #include <string.h>
 
-void circularBufferCleanDataCache(volatile void* addr, int32_t dsize);
-void circularBufferInvalidateDataCache(volatile void* addr, int32_t dsize);
+void circularBufferCleanDataCache(uint32_t* addr, int32_t dsize);
+void circularBufferInvalidateDataCache(uint32_t* addr, int32_t dsize);
 
 template<typename T, int N, bool do_manage_cache> class CircularBuffer {
 public:

@@ -208,11 +208,11 @@ void LCDController::drawHeader() {
 
 		if(i > 0) {
 			// Print separator
-			LCDDisplayStringAt(numberOfColumnsDrawn, 0, LCD_UTILS_COLOR_WHITE, ">", LEFT_MODE);
+			LCDDisplayStringAt(numberOfColumnsDrawn, 0, LCD_UTILS_COLOR_WHITE, ">", LCD_LEFT_MODE);
 			numberOfColumnsDrawn += 1 * charWidth;
 		}
 
-		LCDDisplayStringAt(numberOfColumnsDrawn, 0, LCD_UTILS_COLOR_WHITE, menu->name, LEFT_MODE);
+		LCDDisplayStringAt(numberOfColumnsDrawn, 0, LCD_UTILS_COLOR_WHITE, menu->name, LCD_LEFT_MODE);
 		numberOfColumnsDrawn += strlen(menu->name) * charWidth;
 	}
 
@@ -235,7 +235,7 @@ void LCDController::drawPanelButtonX1(PanelPosition panelIndex,
 	         108,
 	         60,
 	         buttonClick);
-	LCDDisplayStringAt(6 + 108 / 2 + offset, 114 + 60 / 2, LCD_UTILS_COLOR_WHITE, buttonName, CENTER_MODE);
+	LCDDisplayStringAt(6 + 108 / 2 + offset, 114 + 60 / 2, LCD_UTILS_COLOR_WHITE, buttonName, LCD_CENTER_MODE);
 }
 
 void LCDController::drawPanelButtonX2(PanelPosition panelIndex,
@@ -262,8 +262,8 @@ void LCDController::drawPanelButtonX2(PanelPosition panelIndex,
 	         60,
 	         button2Click);
 
-	LCDDisplayStringAt(6 + 108 / 2 + offset, 60 + 60 / 2, LCD_UTILS_COLOR_WHITE, button1Name, CENTER_MODE);
-	LCDDisplayStringAt(6 + 108 / 2 + offset, 168 + 60 / 2, LCD_UTILS_COLOR_WHITE, button2Name, CENTER_MODE);
+	LCDDisplayStringAt(6 + 108 / 2 + offset, 60 + 60 / 2, LCD_UTILS_COLOR_WHITE, button1Name, LCD_CENTER_MODE);
+	LCDDisplayStringAt(6 + 108 / 2 + offset, 168 + 60 / 2, LCD_UTILS_COLOR_WHITE, button2Name, LCD_CENTER_MODE);
 }
 
 void LCDController::drawPanelConfigEnum(PanelPosition panelIndex,
@@ -302,10 +302,10 @@ void LCDController::drawPanelConfigEnum(PanelPosition panelIndex,
 	drawIcon(ICON_ARROW_DOWN, color, 6 + offset, 168, 108, 60, downClick);
 
 	// Title string
-	LCDDisplayStringAt(6 + 108 / 2 + offset, 24 + 30 / 2, LCD_UTILS_COLOR_WHITE, title, CENTER_MODE);
+	LCDDisplayStringAt(6 + 108 / 2 + offset, 24 + 30 / 2, LCD_UTILS_COLOR_WHITE, title, LCD_CENTER_MODE);
 
 	// Value string
-	LCDDisplayStringAt(6 + 108 / 2 + offset, 129 + 30 / 2, LCD_UTILS_COLOR_WHITE, enumString, CENTER_MODE);
+	LCDDisplayStringAt(6 + 108 / 2 + offset, 129 + 30 / 2, LCD_UTILS_COLOR_WHITE, enumString, LCD_CENTER_MODE);
 }
 
 void LCDController::drawPanelConfigFloat(PanelPosition panelIndex,

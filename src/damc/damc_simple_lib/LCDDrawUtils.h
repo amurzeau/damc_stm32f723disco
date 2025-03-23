@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Fonts/fonts.h"
+#include "fonts.h"
 #include <stdint.h>
 
 /**
- * @brief  LCD color
+ * @brief  LCD color in RGB565 format
  */
 #define LCD_UTILS_COLOR_BLUE ((uint16_t) 0x001F)
 #define LCD_UTILS_COLOR_GREEN ((uint16_t) 0x07E0)
@@ -46,9 +46,9 @@ typedef struct {
  * @brief  Line mode structures definition
  */
 typedef enum {
-	CENTER_MODE = 0x01, /* Center mode */
-	RIGHT_MODE = 0x02,  /* Right mode  */
-	LEFT_MODE = 0x03    /* Left mode   */
+	LCD_CENTER_MODE = 0x01, /* Center mode */
+	LCD_RIGHT_MODE = 0x02,  /* Right mode  */
+	LCD_LEFT_MODE = 0x03    /* Left mode   */
 } LCDLineMode;
 
 void LCDInit();

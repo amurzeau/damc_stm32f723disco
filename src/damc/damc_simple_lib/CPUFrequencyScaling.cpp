@@ -3,7 +3,7 @@
 #include "TimeMeasure.h"
 
 #ifdef STM32F723xx
-#include <stm32f7xx_hal_rcc.h>
+#include <stm32f7xx_hal.h>
 
 uint32_t getHPREValueFromDivider(uint32_t divider) {
 	switch(divider) {
