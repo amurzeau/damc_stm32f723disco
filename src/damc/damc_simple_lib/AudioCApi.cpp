@@ -132,7 +132,11 @@ static void DAMC_processAudioFromDMAInterrupt() {
  *                the configuration information for SAI module.
  * @retval None
  */
+#ifdef STM32F723xx
 extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
+#else
+extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(uint32_t Instance) {
+#endif
 	DAMC_processAudioFromDMAInterrupt();
 }
 /**
@@ -141,7 +145,11 @@ extern "C" void BSP_AUDIO_OUT_HalfTransfer_CallBack(void) {
  *                the configuration information for SAI module.
  * @retval None
  */
+#ifdef STM32F723xx
 extern "C" void BSP_AUDIO_OUT_TransferComplete_CallBack(void) {
+#else
+extern "C" void BSP_AUDIO_OUT_TransferComplete_CallBack(uint32_t Instance) {
+#endif
 	DAMC_processAudioFromDMAInterrupt();
 }
 

@@ -1,13 +1,10 @@
 #include "TimeMeasure.h"
 #include <main.h>
-#include <stm32f7xx.h>
-#include <stm32f7xx_hal_gpio.h>
 #include <string.h>
 
-TimeMeasure TimeMeasure::timeMeasure[TMI_NUMBER];
-
-static TimeMeasure* stackRunningTasks[16];
-static int32_t stackRunningTasksIndex = -1;
+#ifdef STM32F723xx
+#include <stm32f7xx.h>
+#include <stm32f7xx_hal_gpio.h>
 
 static GPIO_TypeDef* const DEBUG_GPIO_PORT[] = {
     [TMI_UsbInterrupt] = STMOD_UART4_RXD_s_GPIO_Port,
@@ -22,6 +19,29 @@ static const uint32_t DEBUG_GPIO_PIN[] = {
     [TMI_OtherIRQ] = STMOD_UART4_RXD_Pin,
     [TMI_MainLoop] = STMOD_UART4_TXD_Pin,
 };
+#elif defined(STM32N657xx)
+#include <stm32n6xx.h>
+#include <stm32n6xx_hal_gpio.h>
+
+static GPIO_TypeDef* const DEBUG_GPIO_PORT[] = {
+    [TMI_UsbInterrupt] = STMOD_IO1_GPIO_Port,
+    [TMI_AudioProcessing] = STMOD_IO2_GPIO_Port,
+    [TMI_OtherIRQ] = STMOD_IO3_GPIO_Port,
+    [TMI_MainLoop] = STMOD_IO4_GPIO_Port,
+};
+
+static const uint32_t DEBUG_GPIO_PIN[] = {
+    [TMI_UsbInterrupt] = STMOD_IO1_Pin,
+    [TMI_AudioProcessing] = STMOD_IO2_Pin,
+    [TMI_OtherIRQ] = STMOD_IO3_Pin,
+    [TMI_MainLoop] = STMOD_IO4_Pin,
+};
+#endif
+
+TimeMeasure TimeMeasure::timeMeasure[TMI_NUMBER];
+
+static TimeMeasure* stackRunningTasks[16];
+static int32_t stackRunningTasksIndex = -1;
 
 TimeMeasure::TimeMeasure()
     : index(0),

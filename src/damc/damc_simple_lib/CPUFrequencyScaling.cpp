@@ -1,7 +1,8 @@
 #include "CPUFrequencyScaling.h"
 #include "AudioCApi.h"
 #include "TimeMeasure.h"
-#include <stm32f7xx.h>
+
+#ifdef STM32F723xx
 #include <stm32f7xx_hal_rcc.h>
 
 uint32_t getHPREValueFromDivider(uint32_t divider) {
@@ -37,6 +38,67 @@ uint32_t getPPREValueFromDivider(uint32_t divider) {
 	while(1)
 		;
 }
+
+void setRawAHBDivider(uint32_t current_ahb_divider, uint32_t ahb_divider) {
+	if(ahb_divider < current_ahb_divider) {
+		// Increase flash wait states
+		uint32_t flash_latency = (216 / ahb_divider - 1) / 30;
+		__HAL_FLASH_SET_LATENCY(flash_latency);
+		if(__HAL_FLASH_GET_LATENCY() != flash_latency) {
+			// Failed to set the latency ?
+			while(1)
+				;
+		}
+	}
+
+	// Compute new register RCC->CFGR value to apply new AHB, APB1 and APB2 dividers
+	uint32_t apb1_divider = 8 / ahb_divider;
+	uint32_t apb2_divider = 16 / ahb_divider;
+
+	uint32_t rcc_cfgr = (getHPREValueFromDivider(ahb_divider) << RCC_CFGR_HPRE_Pos) |
+	                    (getPPREValueFromDivider(apb1_divider) << RCC_CFGR_PPRE1_Pos) |
+	                    (getPPREValueFromDivider(apb2_divider) << RCC_CFGR_PPRE2_Pos);
+
+	// Update AHB, APB1 and APB2 dividers
+	MODIFY_REG(RCC->CFGR, RCC_CFGR_HPRE_Msk | RCC_CFGR_PPRE1_Msk | RCC_CFGR_PPRE2_Msk, rcc_cfgr);
+
+	if((READ_REG(RCC->CFGR) & (RCC_CFGR_HPRE_Msk | RCC_CFGR_PPRE1_Msk | RCC_CFGR_PPRE2_Msk)) != rcc_cfgr) {
+		// Failed to set prescalers
+		while(1)
+			;
+	}
+
+	if(ahb_divider > current_ahb_divider) {
+		// Reduce flash wait states
+		uint32_t flash_latency = (216 / ahb_divider - 1) / 30;
+		__HAL_FLASH_SET_LATENCY(flash_latency);
+		if(__HAL_FLASH_GET_LATENCY() != flash_latency) {
+			// Failed to set the latency ?
+			while(1)
+				;
+		}
+	}
+
+	/* Update the SystemCoreClock global variable */
+	SystemCoreClock = HAL_RCC_GetSysClockFreq() / ahb_divider;
+	HAL_InitTick(TICK_INT_PRIORITY);
+}
+
+#elif defined(STM32N657xx)
+#include <stm32n6xx_hal.h>
+#include <stm32n6xx_hal_rcc.h>
+
+void setRawAHBDivider(uint32_t current_ahb_divider, uint32_t ahb_divider) {
+	return;
+	// Set CPU frequency divider
+	LL_RCC_IC1_SetDivider(ahb_divider);
+
+	/* Update the SystemCoreClock global variable */
+	SystemCoreClock = HAL_RCC_GetCpuClockFreq();
+	HAL_InitTick(TICK_INT_PRIORITY);
+}
+
+#endif
 
 CPUFrequencyScaling::CPUFrequencyScaling(OscRoot* oscRoot)
     : OscContainer(oscRoot, "cpu"),
@@ -152,48 +214,7 @@ void CPUFrequencyScaling::setAHBDivider(uint32_t divider) {
 	if(ahb_divider == current_ahb_divider)
 		return;
 
-	if(ahb_divider < current_ahb_divider) {
-		// Increase flash wait states
-		uint32_t flash_latency = (216 / ahb_divider - 1) / 30;
-		__HAL_FLASH_SET_LATENCY(flash_latency);
-		if(__HAL_FLASH_GET_LATENCY() != flash_latency) {
-			// Failed to set the latency ?
-			while(1)
-				;
-		}
-	}
-
-	// Compute new register RCC->CFGR value to apply new AHB, APB1 and APB2 dividers
-	uint32_t apb1_divider = 8 / ahb_divider;
-	uint32_t apb2_divider = 16 / ahb_divider;
-
-	uint32_t rcc_cfgr = (getHPREValueFromDivider(ahb_divider) << RCC_CFGR_HPRE_Pos) |
-	                    (getPPREValueFromDivider(apb1_divider) << RCC_CFGR_PPRE1_Pos) |
-	                    (getPPREValueFromDivider(apb2_divider) << RCC_CFGR_PPRE2_Pos);
-
-	// Update AHB, APB1 and APB2 dividers
-	MODIFY_REG(RCC->CFGR, RCC_CFGR_HPRE_Msk | RCC_CFGR_PPRE1_Msk | RCC_CFGR_PPRE2_Msk, rcc_cfgr);
-
-	if((READ_REG(RCC->CFGR) & (RCC_CFGR_HPRE_Msk | RCC_CFGR_PPRE1_Msk | RCC_CFGR_PPRE2_Msk)) != rcc_cfgr) {
-		// Failed to set prescalers
-		while(1)
-			;
-	}
-
-	if(ahb_divider > current_ahb_divider) {
-		// Reduce flash wait states
-		uint32_t flash_latency = (216 / ahb_divider - 1) / 30;
-		__HAL_FLASH_SET_LATENCY(flash_latency);
-		if(__HAL_FLASH_GET_LATENCY() != flash_latency) {
-			// Failed to set the latency ?
-			while(1)
-				;
-		}
-	}
-
-	/* Update the SystemCoreClock global variable */
-	SystemCoreClock = HAL_RCC_GetSysClockFreq() / ahb_divider;
-	HAL_InitTick(TICK_INT_PRIORITY);
+	setRawAHBDivider(current_ahb_divider, ahb_divider);
 
 	current_ahb_divider = ahb_divider;
 	recent_ahb_divider_change = true;

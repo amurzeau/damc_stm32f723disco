@@ -292,7 +292,7 @@ extern SAI_HandleTypeDef haudio_out_sai;
 
 /* Record  */
 extern SAI_HandleTypeDef haudio_in_sai;
-extern MDF_HandleTypeDef haudio_in_mdf;
+//extern MDF_HandleTypeDef haudio_in_mdf;
 
 /* Audio in and out DMA handles used by SAI and MDF */
 extern DMA_HandleTypeDef hDmaSaiTx, hDmaSaiRx, hDmaMdf;
@@ -371,8 +371,8 @@ void              BSP_AUDIO_IN_HalfTransfer_CallBack(uint32_t Instance);
 void              BSP_AUDIO_IN_Error_CallBack(uint32_t Instance);
 void              BSP_AUDIO_IN_IRQHandler(uint32_t Instance, uint32_t Device);
 
-HAL_StatusTypeDef MX_MDF1_ClockConfig(MDF_HandleTypeDef *hmdf, uint32_t SampleRate);
-HAL_StatusTypeDef MX_MDF1_Init(MDF_HandleTypeDef *hmdf, MX_MDF_Config_t *MXInit);
+//HAL_StatusTypeDef MX_MDF1_ClockConfig(MDF_HandleTypeDef *hmdf, uint32_t SampleRate);
+//HAL_StatusTypeDef MX_MDF1_Init(MDF_HandleTypeDef *hmdf, MX_MDF_Config_t *MXInit);
 /**
   * @}
   */

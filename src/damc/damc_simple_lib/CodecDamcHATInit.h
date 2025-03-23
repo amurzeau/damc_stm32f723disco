@@ -1,10 +1,18 @@
 #pragma once
 #include <stdint.h>
+#ifdef STM32F723xx
 #include <stm32f7xx.h>
 #include <stm32f7xx_hal_dma.h>
 #include <stm32f7xx_hal_i2c.h>
 #include <stm32f7xx_hal_sai.h>
 #include <stm32f7xx_hal_tim.h>
+#elif defined(STM32N657xx)
+#include <stm32n6xx.h>
+#include <stm32n6xx_hal_dma.h>
+#include <stm32n6xx_hal_i2c.h>
+#include <stm32n6xx_hal_sai.h>
+#include <stm32n6xx_hal_tim.h>
+#endif
 
 extern "C" {
 void DMA2_Stream3_IRQHandler(void);

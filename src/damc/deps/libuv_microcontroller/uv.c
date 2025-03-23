@@ -1,9 +1,13 @@
 #include "uv.h"
 #include "queue.h"
 #include <AudioCApi.h>
-#include <stdlib.h>
-#include <stm32f7xx_hal.h>
 #include <string.h>
+
+#ifdef STM32F723xx
+#include <stm32f7xx_hal.h>
+#elif defined(STM32N657xx)
+#include <stm32n6xx_hal.h>
+#endif
 
 enum {
 	UV__HANDLE_INTERNAL = 0x8000,

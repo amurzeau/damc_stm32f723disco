@@ -1,5 +1,5 @@
 #include "DelayFilter.h"
-#include <stm32f7xx.h>
+#include PLATFORM_HEADER
 
 #include <math.h>
 #include <string.h>

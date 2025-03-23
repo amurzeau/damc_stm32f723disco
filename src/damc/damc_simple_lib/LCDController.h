@@ -66,7 +66,7 @@ protected:
 	static void onTouchIrqStatic(uv_async_t* handle);
 	void onTouchIrq();
 
-	void drawIcon(Icon icon, int x, int y, int width, int height, TouchHandleCallback onClick);
+	void drawIcon(Icon icon, uint32_t color, int x, int y, int width, int height, TouchHandleCallback onClick);
 
 	void lcdTurnOn();
 	void lcdTurnOff();

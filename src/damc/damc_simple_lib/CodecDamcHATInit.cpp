@@ -1,4 +1,7 @@
 #include "CodecDamcHATInit.h"
+
+#ifdef STM32F723xx
+
 #include "CodecAudio.h"
 #include <stdlib.h>
 #include <stm32f723e_discovery.h>
@@ -484,3 +487,46 @@ void CodecDamcHATInit::setMicBias(bool enable) {
 		writeI2c(51, 0b00010000);
 	}
 }
+#else
+
+bool CodecDamcHATInit::isAvailable() {
+	return false;
+}
+
+void CodecDamcHATInit::init_i2c() {}
+
+void CodecDamcHATInit::init() {}
+
+void CodecDamcHATInit::init_sai() {}
+
+void CodecDamcHATInit::init_codec() {}
+
+void CodecDamcHATInit::startTxDMA(void* buffer, size_t nframes) {}
+
+void CodecDamcHATInit::startRxDMA(void* buffer, size_t nframes) {}
+
+uint16_t CodecDamcHATInit::getTxRemainingCount(void) {
+	return 0;
+}
+
+uint16_t CodecDamcHATInit::getRxRemainingCount(void) {
+	return 0;
+}
+
+bool CodecDamcHATInit::isDMAIsrFlagSet(bool insertWaitStates) {
+	return false;
+}
+
+void CodecDamcHATInit::writeI2c(uint8_t address, uint8_t value) {}
+
+uint8_t CodecDamcHATInit::readI2c(uint8_t address) {
+	uint8_t value = 0;
+	return value;
+}
+
+void CodecDamcHATInit::setReset(bool value) {}
+
+void CodecDamcHATInit::setTpaEn(bool value) {}
+
+void CodecDamcHATInit::setMicBias(bool enable) {}
+#endif

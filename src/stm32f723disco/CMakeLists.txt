@@ -24,6 +24,7 @@ target_compile_definitions(stm32cube_headers INTERFACE
     USE_STM32F723E_DISCO_REVD
     USE_HAL_DRIVER
     STM32F723xx
+	PLATFORM_HEADER="stm32f723xx.h"
 )
 
 

@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
+# For CMSIS-DSP
+set(HELIUM ON PARENT_SCOPE)
 
 add_library(stm32cube_headers INTERFACE)
 
@@ -23,6 +25,7 @@ target_compile_definitions(stm32cube_headers INTERFACE
     "$<$<CONFIG:Debug>:USE_FULL_ASSERT>"
     USE_HAL_DRIVER
     STM32N657xx
+	PLATFORM_HEADER=\"stm32n657xx.h\"
 )
 
 
@@ -56,6 +59,7 @@ target_include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/FSBL/USB_DEVICE/App
     ${CMAKE_CURRENT_LIST_DIR}/FSBL/USB_DEVICE/Target
     ${CMAKE_CURRENT_LIST_DIR}/FSBL/BSP
+    ${CMAKE_CURRENT_LIST_DIR}/FSBL/Components/Common
     ${CMAKE_CURRENT_LIST_DIR}/FSBL/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
 )
 

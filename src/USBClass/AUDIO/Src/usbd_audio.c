@@ -61,7 +61,7 @@ EndBSPDependencies */
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_audio.h"
-#include "stm32f723xx.h"
+#include PLATFORM_HEADER
 #include "usbd_conf.h"
 #include "usbd_ctlreq.h"
 #include "AudioCApi.h"

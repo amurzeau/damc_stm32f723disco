@@ -3,8 +3,6 @@
 #include "uv.h"
 #include <atomic>
 #include <main.h>
-#include <stm32f7xx.h>
-#include <stm32f7xx_hal_gpio.h>
 #include <string.h>
 
 static std::atomic_int32_t glitches_counters[GT_Number];

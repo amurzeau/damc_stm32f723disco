@@ -1,5 +1,5 @@
 #include "LCDController.h"
-#include "TimeMeasure.h"
+#include "LCDDrawUtils.h"
 #include <Osc/OscReadOnlyVariable.h>
 #include <OscRoot.h>
 #include <Utils.h>
@@ -7,12 +7,6 @@
 #include <math.h>
 #include <spdlog/spdlog.h>
 #include <string.h>
-
-#include "../Components/Fonts/fonts.h"
-#include <stm32f723e_discovery.h>
-#include <stm32f723e_discovery_lcd.h>
-#include <stm32f723e_discovery_ts.h>
-#include <stm32f7xx_hal_gpio.h>
 
 LCDController* LCDController::instance;
 
@@ -46,12 +40,6 @@ struct OscPanelLinkDeclaration {
 	const char* nodes[4];  // at most 4 nodes are configurable (4x one button for bool values)
 };
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	if(GPIO_Pin == TS_INT_PIN) {
-		LCDController::instance->notifyTouchFromIrq();
-	}
-}
-
 LCDController::LCDController(OscRoot* oscRoot)
     : oscRoot(oscRoot), touchX(0), touchY(0), touchIsPressed(true), lcdIsOn(false), menuHistorySize(0), menusState{} {
 	instance = this;
@@ -63,23 +51,9 @@ LCDController::LCDController(OscRoot* oscRoot)
 }
 
 void LCDController::start() {
-	// Initialize FRD154BP2902-D-CTQ LCD touch screen module
+	LCDInit();
 
-	// Initialize FT3267 touchscreen controller
-	TS_IO_Init();
-	HAL_Delay(500);
-	BSP_TS_InitEx(240, 240, LCD_ORIENTATION_LANDSCAPE_ROT180);
-
-	// Enable interrupt mode
-	BSP_TS_ITConfig();
-
-	// Initialize ST7789H2-G4 LCD controller
-	uint8_t status = BSP_LCD_InitEx(LCD_ORIENTATION_LANDSCAPE_ROT180);
-	if(status != LCD_OK) {
-	}
-	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-	BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
-	BSP_LCD_Clear(LCD_COLOR_BLACK);
+	LCDFillScreen(LCD_UTILS_COLOR_BLACK);
 
 	pushMenu("DAMC", &LCDController::drawMenuMain);
 	drawCurrentMenu();
@@ -97,13 +71,9 @@ void LCDController::onTouchIrqStatic(uv_async_t* handle) {
 }
 
 void LCDController::onTouchIrq() {
-	TS_StateTypeDef TS_State = {
-	    .touchDetected = false,
-	};
+	TSState state = TSGetState();
 
-	BSP_TS_GetState(&TS_State);
-
-	if(TS_State.touchDetected > 0 && !touchIsPressed) {
+	if(state.TouchDetected > 0 && !touchIsPressed) {
 		touchIsPressed = true;
 
 		uv_timer_stop(&timerLcdOff);
@@ -111,12 +81,12 @@ void LCDController::onTouchIrq() {
 		if(!lcdIsOn) {
 			lcdTurnOn();
 		} else {
-			handleClick(240 - TS_State.touchX[0], TS_State.touchY[0]);
+			handleClick(240 - state.TouchX, state.TouchY);
 		}
 
 		// Recheck later to detect end of press
 		uv_async_send(&asyncNotifyTouchIrq);
-	} else if(TS_State.touchDetected == 0 && touchIsPressed) {
+	} else if(state.TouchDetected == 0 && touchIsPressed) {
 		touchIsPressed = false;
 		uv_timer_start(&timerLcdOff, &LCDController::onTimerLcdOff, 30000, 0);
 	}
@@ -135,52 +105,51 @@ void LCDController::onTimerLcdOff(uv_timer_t* handle) {
 
 void LCDController::lcdTurnOn() {
 	lcdIsOn = true;
-	BSP_LCD_DisplayOn();
-	HAL_GPIO_WritePin(LCD_BL_CTRL_GPIO_PORT, LCD_BL_CTRL_PIN, GPIO_PIN_SET);
+	LCDDisplayOn();
 }
 
 void LCDController::lcdTurnOff() {
 	lcdIsOn = false;
-	HAL_GPIO_WritePin(LCD_BL_CTRL_GPIO_PORT, LCD_BL_CTRL_PIN, GPIO_PIN_RESET);
-	BSP_LCD_DisplayOff();
+	LCDDisplayOff();
 }
 
-void LCDController::drawIcon(Icon icon, int x, int y, int width, int height, TouchHandleCallback onClick) {
+void LCDController::drawIcon(
+    Icon icon, uint32_t color, int x, int y, int width, int height, TouchHandleCallback onClick) {
 	switch(icon) {
 		case ICON_ARROW_UP: {
 			int pointsX[3] = {x + width / 2, x, x + width};
 			int pointsY[3] = {y, y + height, y + height};
 
-			BSP_LCD_DrawLine(pointsX[0], pointsY[0], pointsX[1], pointsY[1]);
-			BSP_LCD_DrawLine(pointsX[1], pointsY[1], pointsX[2], pointsY[2]);
-			BSP_LCD_DrawLine(pointsX[0], pointsY[0], pointsX[2], pointsY[2]);
+			LCDDrawLine(pointsX[0], pointsY[0], pointsX[1], pointsY[1], color);
+			LCDDrawLine(pointsX[1], pointsY[1], pointsX[2], pointsY[2], color);
+			LCDDrawLine(pointsX[0], pointsY[0], pointsX[2], pointsY[2], color);
 			break;
 		}
 		case ICON_ARROW_DOWN: {
 			int pointsX[3] = {x + width / 2, x, x + width};
 			int pointsY[3] = {y + height, y, y};
 
-			BSP_LCD_DrawLine(pointsX[0], pointsY[0], pointsX[1], pointsY[1]);
-			BSP_LCD_DrawLine(pointsX[1], pointsY[1], pointsX[2], pointsY[2]);
-			BSP_LCD_DrawLine(pointsX[0], pointsY[0], pointsX[2], pointsY[2]);
+			LCDDrawLine(pointsX[0], pointsY[0], pointsX[1], pointsY[1], color);
+			LCDDrawLine(pointsX[1], pointsY[1], pointsX[2], pointsY[2], color);
+			LCDDrawLine(pointsX[0], pointsY[0], pointsX[2], pointsY[2], color);
 			break;
 		}
 		case ICON_ARROW_LEFT: {
 			int pointsX[3] = {x, x + width, x + width};
 			int pointsY[3] = {y + height / 2, y, y + height};
 
-			BSP_LCD_DrawLine(pointsX[0], pointsY[0], pointsX[1], pointsY[1]);
-			BSP_LCD_DrawLine(pointsX[1], pointsY[1], pointsX[2], pointsY[2]);
-			BSP_LCD_DrawLine(pointsX[0], pointsY[0], pointsX[2], pointsY[2]);
+			LCDDrawLine(pointsX[0], pointsY[0], pointsX[1], pointsY[1], color);
+			LCDDrawLine(pointsX[1], pointsY[1], pointsX[2], pointsY[2], color);
+			LCDDrawLine(pointsX[0], pointsY[0], pointsX[2], pointsY[2], color);
 			break;
 		}
 		case ICON_ARROW_RIGHT: {
 			int pointsX[3] = {x + width, x, x};
 			int pointsY[3] = {y + height / 2, y, y + height};
 
-			BSP_LCD_DrawLine(pointsX[0], pointsY[0], pointsX[1], pointsY[1]);
-			BSP_LCD_DrawLine(pointsX[1], pointsY[1], pointsX[2], pointsY[2]);
-			BSP_LCD_DrawLine(pointsX[0], pointsY[0], pointsX[2], pointsY[2]);
+			LCDDrawLine(pointsX[0], pointsY[0], pointsX[1], pointsY[1], color);
+			LCDDrawLine(pointsX[1], pointsY[1], pointsX[2], pointsY[2], color);
+			LCDDrawLine(pointsX[0], pointsY[0], pointsX[2], pointsY[2], color);
 			break;
 		}
 		case ICON_ARROW_BACK: {
@@ -188,7 +157,7 @@ void LCDController::drawIcon(Icon icon, int x, int y, int width, int height, Tou
 			int16_t yMiddle = y + height / 2;
 			int16_t yMidPoint1 = y + height / 3;
 			int16_t yMidPoint2 = y + 2 * height / 3;
-			Point arrowLeftPoints[] = {
+			LCDPoint arrowLeftPoints[] = {
 			    {(int16_t) (x), (int16_t) (yMiddle)},
 			    {(int16_t) (xMiddle), (int16_t) (y)},
 			    {(int16_t) (xMiddle), (int16_t) (yMidPoint1)},
@@ -198,28 +167,28 @@ void LCDController::drawIcon(Icon icon, int x, int y, int width, int height, Tou
 			    {(int16_t) (xMiddle), (int16_t) (y + height)},
 			    {(int16_t) (x), (int16_t) (yMiddle)},
 			};
-			BSP_LCD_DrawPolygon(arrowLeftPoints, sizeof(arrowLeftPoints) / sizeof(arrowLeftPoints[0]));
+			LCDDrawPolygon(arrowLeftPoints, sizeof(arrowLeftPoints) / sizeof(arrowLeftPoints[0]), color);
 			break;
 		}
 		case ICON_BUTTON_RELEASED: {
-			Point arrowLeftPoints[] = {
+			LCDPoint arrowLeftPoints[] = {
 			    {(int16_t) (x), (int16_t) (y)},
 			    {(int16_t) (x), (int16_t) (y + height)},
 			    {(int16_t) (x + width), (int16_t) (y + height)},
 			    {(int16_t) (x + width), (int16_t) (y)},
 			};
-			BSP_LCD_DrawPolygon(arrowLeftPoints, sizeof(arrowLeftPoints) / sizeof(arrowLeftPoints[0]));
+			LCDDrawPolygon(arrowLeftPoints, sizeof(arrowLeftPoints) / sizeof(arrowLeftPoints[0]), color);
 			break;
 		}
 		case ICON_BUTTON_PRESSED:
-			Point arrowLeftPoints[] = {
+			LCDPoint arrowLeftPoints[] = {
 			    {(int16_t) (x), (int16_t) (y)},
 			    {(int16_t) (x), (int16_t) (y + height)},
 			    {(int16_t) (x + width), (int16_t) (y + height)},
 			    {(int16_t) (x + width), (int16_t) (y)},
 			};
-			BSP_LCD_FillRect(x, y, width, height);
-			BSP_LCD_DrawPolygon(arrowLeftPoints, sizeof(arrowLeftPoints) / sizeof(arrowLeftPoints[0]));
+			LCDFillRect(x, y, width, height, color);
+			LCDDrawPolygon(arrowLeftPoints, sizeof(arrowLeftPoints) / sizeof(arrowLeftPoints[0]), color);
 			break;
 	}
 	if(onClick)
@@ -227,31 +196,28 @@ void LCDController::drawIcon(Icon icon, int x, int y, int width, int height, Tou
 }
 
 void LCDController::clearScreen() {
-	BSP_LCD_Clear(LCD_COLOR_BLACK);
+	LCDFillScreen(LCD_UTILS_COLOR_BLACK);
 }
 
 void LCDController::drawHeader() {
 	size_t numberOfColumnsDrawn = 0;
-	size_t charWidth = BSP_LCD_GetFont()->Width;
-
-	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+	size_t charWidth = LCDGetFont()->Width;
 
 	for(size_t i = 0; i < menuHistorySize && numberOfColumnsDrawn < 240; i++) {
 		MenuInfo* menu = &menuHistory[i];
 
 		if(i > 0) {
 			// Print separator
-			BSP_LCD_DisplayStringAt(numberOfColumnsDrawn, 0, ">", LEFT_MODE);
+			LCDDisplayStringAt(numberOfColumnsDrawn, 0, LCD_UTILS_COLOR_WHITE, ">", LEFT_MODE);
 			numberOfColumnsDrawn += 1 * charWidth;
 		}
 
-		BSP_LCD_DisplayStringAt(numberOfColumnsDrawn, 0, menu->name, LEFT_MODE);
+		LCDDisplayStringAt(numberOfColumnsDrawn, 0, LCD_UTILS_COLOR_WHITE, menu->name, LEFT_MODE);
 		numberOfColumnsDrawn += strlen(menu->name) * charWidth;
 	}
 
 	if(menuHistorySize > 1) {
-		BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-		drawIcon(ICON_ARROW_BACK, 2, 8, 24, 16, nullptr);
+		drawIcon(ICON_ARROW_BACK, LCD_UTILS_COLOR_GREEN, 2, 8, 24, 16, nullptr);
 		// Use hardcoded zone for a easier touch
 		touchHandlers.push_back({0, 0, 120, 60, [](LCDController* thisInstance) { thisInstance->popMenu(); }});
 	}
@@ -261,11 +227,15 @@ void LCDController::drawPanelButtonX1(PanelPosition panelIndex,
                                       const char* buttonName,
                                       bool buttonState,
                                       TouchHandleCallback buttonClick) {
-	BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
 	int16_t offset = panelIndex == PP_Left ? 0 : 120;
-	drawIcon(buttonState ? ICON_BUTTON_PRESSED : ICON_BUTTON_RELEASED, 6 + offset, 114, 108, 60, buttonClick);
-	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-	BSP_LCD_DisplayStringAt(6 + 108 / 2 + offset, 114 + 60 / 2, buttonName, CENTER_MODE);
+	drawIcon(buttonState ? ICON_BUTTON_PRESSED : ICON_BUTTON_RELEASED,
+	         LCD_UTILS_COLOR_GREEN,
+	         6 + offset,
+	         114,
+	         108,
+	         60,
+	         buttonClick);
+	LCDDisplayStringAt(6 + 108 / 2 + offset, 114 + 60 / 2, LCD_UTILS_COLOR_WHITE, buttonName, CENTER_MODE);
 }
 
 void LCDController::drawPanelButtonX2(PanelPosition panelIndex,
@@ -275,15 +245,25 @@ void LCDController::drawPanelButtonX2(PanelPosition panelIndex,
                                       const char* button2Name,
                                       bool button2State,
                                       TouchHandleCallback button2Click) {
-	BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
 	int16_t offset = panelIndex == PP_Left ? 0 : 120;
 
-	drawIcon(button1State ? ICON_BUTTON_PRESSED : ICON_BUTTON_RELEASED, 6 + offset, 60, 108, 60, button1Click);
-	drawIcon(button2State ? ICON_BUTTON_PRESSED : ICON_BUTTON_RELEASED, 6 + offset, 168, 108, 60, button2Click);
+	drawIcon(button1State ? ICON_BUTTON_PRESSED : ICON_BUTTON_RELEASED,
+	         LCD_UTILS_COLOR_GREEN,
+	         6 + offset,
+	         60,
+	         108,
+	         60,
+	         button1Click);
+	drawIcon(button2State ? ICON_BUTTON_PRESSED : ICON_BUTTON_RELEASED,
+	         LCD_UTILS_COLOR_GREEN,
+	         6 + offset,
+	         168,
+	         108,
+	         60,
+	         button2Click);
 
-	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-	BSP_LCD_DisplayStringAt(6 + 108 / 2 + offset, 60 + 60 / 2, button1Name, CENTER_MODE);
-	BSP_LCD_DisplayStringAt(6 + 108 / 2 + offset, 168 + 60 / 2, button2Name, CENTER_MODE);
+	LCDDisplayStringAt(6 + 108 / 2 + offset, 60 + 60 / 2, LCD_UTILS_COLOR_WHITE, button1Name, CENTER_MODE);
+	LCDDisplayStringAt(6 + 108 / 2 + offset, 168 + 60 / 2, LCD_UTILS_COLOR_WHITE, button2Name, CENTER_MODE);
 }
 
 void LCDController::drawPanelConfigEnum(PanelPosition panelIndex,
@@ -296,37 +276,36 @@ void LCDController::drawPanelConfigEnum(PanelPosition panelIndex,
 	int16_t offset = panelIndex == PP_Left ? 0 : 120;
 
 	// Groupbox
-	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-	Point groupBoxPoints[] = {
+	LCDPoint groupBoxPoints[] = {
 	    {(int16_t) (6 + offset), (int16_t) (24)},
 	    {(int16_t) (6 + offset), (int16_t) (24 + 210)},
 	    {(int16_t) (114 + offset), (int16_t) (24 + 210)},
 	    {(int16_t) (114 + offset), (int16_t) (24)},
 	};
-	BSP_LCD_DrawPolygon(groupBoxPoints, sizeof(groupBoxPoints) / sizeof(groupBoxPoints[0]));
+	LCDDrawPolygon(groupBoxPoints, sizeof(groupBoxPoints) / sizeof(groupBoxPoints[0]), LCD_UTILS_COLOR_WHITE);
 
 	// Up arrow
+	uint32_t color;
 	if(arrowUpAvailable) {
-		BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
+		color = LCD_UTILS_COLOR_GREEN;
 	} else {
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+		color = LCD_UTILS_COLOR_WHITE;
 	}
-	drawIcon(ICON_ARROW_UP, 6 + offset, 60, 108, 60, upClick);
+	drawIcon(ICON_ARROW_UP, color, 6 + offset, 60, 108, 60, upClick);
 
 	// Down arrow
 	if(arrowDownAvailable) {
-		BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
+		color = LCD_UTILS_COLOR_GREEN;
 	} else {
-		BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+		color = LCD_UTILS_COLOR_WHITE;
 	}
-	drawIcon(ICON_ARROW_DOWN, 6 + offset, 168, 108, 60, downClick);
+	drawIcon(ICON_ARROW_DOWN, color, 6 + offset, 168, 108, 60, downClick);
 
-	BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
 	// Title string
-	BSP_LCD_DisplayStringAt(6 + 108 / 2 + offset, 24 + 30 / 2, title, CENTER_MODE);
+	LCDDisplayStringAt(6 + 108 / 2 + offset, 24 + 30 / 2, LCD_UTILS_COLOR_WHITE, title, CENTER_MODE);
 
 	// Value string
-	BSP_LCD_DisplayStringAt(6 + 108 / 2 + offset, 129 + 30 / 2, enumString, CENTER_MODE);
+	LCDDisplayStringAt(6 + 108 / 2 + offset, 129 + 30 / 2, LCD_UTILS_COLOR_WHITE, enumString, CENTER_MODE);
 }
 
 void LCDController::drawPanelConfigFloat(PanelPosition panelIndex,
@@ -455,10 +434,10 @@ void LCDController::drawMenuStripConfig() {
 }
 
 void LCDController::handleClick(int x, int y) {
-	BSP_LCD_DrawPixel(touchX, touchY, 0x0000);
+	LCDDrawPixel(touchX, touchY, 0x0000);
 	touchX = x;
 	touchY = y;
-	BSP_LCD_DrawPixel(touchX, touchY, 0xFFFF);
+	LCDDrawPixel(touchX, touchY, 0xFFFF);
 
 	for(const auto& touchHandler : touchHandlers) {
 		if((x >= touchHandler.x && x <= touchHandler.x + touchHandler.width) &&

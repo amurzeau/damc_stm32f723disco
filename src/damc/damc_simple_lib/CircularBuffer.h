@@ -6,9 +6,12 @@
 #include <spdlog/spdlog.h>
 
 #include <assert.h>
+#include <atomic>
 #include <math.h>
-#include <stm32f7xx.h>
 #include <string.h>
+
+void circularBufferCleanDataCache(volatile void* addr, int32_t dsize);
+void circularBufferInvalidateDataCache(volatile void* addr, int32_t dsize);
 
 template<typename T, int N, bool do_manage_cache> class CircularBuffer {
 public:
@@ -118,9 +121,9 @@ size_t CircularBuffer<T, N, do_manage_cache>::writeOutBuffer(uint32_t dma_read_o
 
 	assert(end < buffer.size());
 	if(do_manage_cache) {
-		SCB_CleanDCache_by_Addr((uint32_t*) buffer.data(), buffer.size() * sizeof(buffer[0]));
+		circularBufferCleanDataCache((uint32_t*) buffer.data(), buffer.size() * sizeof(buffer[0]));
 	} else {
-		__DMB();
+		std::atomic_signal_fence(std::memory_order_seq_cst);
 	}
 	assert(out_write_offset.offset == start);
 
@@ -150,7 +153,7 @@ size_t CircularBuffer<T, N, do_manage_cache>::readInBuffer(uint32_t dma_write_of
 	uint16_t total_size = 0;
 
 	if(do_manage_cache) {
-		SCB_InvalidateDCache_by_Addr((uint32_t*) buffer.data(), buffer.size() * sizeof(buffer[0]));
+		circularBufferInvalidateDataCache((uint32_t*) buffer.data(), buffer.size() * sizeof(buffer[0]));
 	}
 
 	if(end < start) {
@@ -178,7 +181,7 @@ size_t CircularBuffer<T, N, do_manage_cache>::readInBuffer(uint32_t dma_write_of
 	}
 
 	if(!do_manage_cache) {
-		__DMB();
+		std::atomic_signal_fence(std::memory_order_seq_cst);
 	}
 	assert(in_read_offset.offset == start);
 

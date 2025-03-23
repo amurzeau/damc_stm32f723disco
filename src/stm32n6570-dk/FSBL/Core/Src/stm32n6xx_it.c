@@ -213,6 +213,44 @@ void SysTick_Handler(void)
 /* please refer to the startup file (startup_stm32n6xx.s).                    */
 /******************************************************************************/
 
+/**
+  * @brief This function handles Serial Audio Interface 1 block A interrupt.
+  */
+void SAI1_A_IRQHandler(void)
+{
+  /* USER CODE BEGIN SAI1_A_IRQn 0 */
+
+  /* USER CODE END SAI1_A_IRQn 0 */
+  /* USER CODE BEGIN SAI1_A_IRQn 1 */
+
+  /* USER CODE END SAI1_A_IRQn 1 */
+}
+
+/**
+  * @brief This function handles Serial Audio Interface 1 block B interrupt.
+  */
+void SAI1_B_IRQHandler(void)
+{
+  /* USER CODE BEGIN SAI1_B_IRQn 0 */
+
+  /* USER CODE END SAI1_B_IRQn 0 */
+  /* USER CODE BEGIN SAI1_B_IRQn 1 */
+
+  /* USER CODE END SAI1_B_IRQn 1 */
+}
+
 /* USER CODE BEGIN 1 */
+
+void GPDMA1_Channel2_IRQHandler(void)
+{
+  // TX
+  BSP_AUDIO_OUT_IRQHandler(0, 0);
+}
+
+void GPDMA1_Channel1_IRQHandler(void)
+{
+  // RX
+  BSP_AUDIO_IN_IRQHandler(0, 0);
+}
 
 /* USER CODE END 1 */

@@ -255,7 +255,7 @@ int32_t WM8904_Init(WM8904_Object_t *pObj, WM8904_Init_t *pInit)
   /* Resolution, protocol, frequency and volume */
   /**********************************************/
 
-  tmp = 0x0002U; /* Set resolution to 16B and protocol to I2S*/
+  tmp = 0x0002U | (pInit->Resolution << 2); /* Set resolution to 16B and protocol to I2S*/
   ret +=  wm8904_write_reg(&pObj->Ctx, WM8904_AUDIO_INTERFACE1, &tmp, 2U);
 
   ret += WM8904_SetFrequency(pObj, pInit->Frequency);

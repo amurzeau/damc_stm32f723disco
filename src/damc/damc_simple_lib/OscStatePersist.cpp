@@ -2,7 +2,48 @@
 #include "OscRoot.h"
 #include "TimeMeasure.h"
 
+#ifdef STM32F723xx
 #include <stm32f723e_discovery_qspi.h>
+
+static void MEMORY_init() {
+	BSP_QSPI_Init();
+}
+
+static void MEMORY_erase_block(size_t address) {
+	BSP_QSPI_Erase_Block(address);
+}
+
+static void MEMORY_write(uint8_t* data, size_t address, size_t size) {
+	BSP_QSPI_Write(data, address, size);
+}
+
+static void MEMORY_read(uint8_t* data, size_t address, size_t size) {
+	BSP_QSPI_Read(data, address, size);
+}
+#elif defined(STM32N657xx)
+#include <stm32n6570_discovery_xspi.h>
+
+static void MEMORY_init() {
+	BSP_XSPI_NOR_Init_t init = {
+	    .InterfaceMode = MX66UW1G45G_SPI_MODE,
+	    .TransferRate = MX66UW1G45G_STR_TRANSFER,
+	};
+	BSP_XSPI_NOR_Init(0, &init);
+}
+
+// 0x4000000: 128MB offset
+static void MEMORY_erase_block(size_t address) {
+	BSP_XSPI_NOR_Erase_Block(0, address + 0x4000000, MX66UW1G45G_ERASE_4K);
+}
+
+static void MEMORY_write(uint8_t* data, size_t address, size_t size) {
+	BSP_XSPI_NOR_Write(0, data, address + 0x4000000, size);
+}
+
+static void MEMORY_read(uint8_t* data, size_t address, size_t size) {
+	BSP_XSPI_NOR_Read(0, data, address + 0x4000000, size);
+}
+#endif
 
 OscStatePersist::OscStatePersist(OscRoot* oscRoot)
     : OscContainer(oscRoot, "config"),
@@ -21,7 +62,7 @@ OscStatePersist::OscStatePersist(OscRoot* oscRoot)
 OscStatePersist::~OscStatePersist() {}
 
 void OscStatePersist::init() {
-	BSP_QSPI_Init();
+	MEMORY_init();
 
 	// Load default config
 	using namespace std::literals;
@@ -60,7 +101,7 @@ void OscStatePersist::beginWrite() {
 
 void OscStatePersist::eraseNextBlockSpi() {
 	// Erase 4KB
-	BSP_QSPI_Erase_Block(spiErasedAddress);
+	MEMORY_erase_block(spiErasedAddress);
 	spiErasedAddress += 4096;
 }
 
@@ -78,7 +119,7 @@ void OscStatePersist::writeSpiPage(uint8_t* data, size_t size) {
 		eraseNextBlockSpi();
 	}
 	// Write page
-	BSP_QSPI_Write(data, spiWriteAddress, size);
+	MEMORY_write(data, spiWriteAddress, size);
 	spiWriteAddress += size;
 }
 
@@ -123,7 +164,7 @@ void OscStatePersist::loadState() {
 	buffer.clear();
 
 	for(size_t spiReadAddress = 0; spiReadAddress < 8 * 4096;) {
-		BSP_QSPI_Read(readData, spiReadAddress, 4);
+		MEMORY_read(readData, spiReadAddress, 4);
 		spiReadAddress += 4;
 
 		uint32_t messageSize = readData[0] | (readData[1] << 8);
@@ -138,7 +179,7 @@ void OscStatePersist::loadState() {
 		}
 
 		if(messageSize < 1024) {
-			BSP_QSPI_Read(readData, spiReadAddress, messageSize);
+			MEMORY_read(readData, spiReadAddress, messageSize);
 			uint16_t readSum = checksum(readData, messageSize);
 			if(sum != readSum) {
 				break;

@@ -1,0 +1,5 @@
+glitches:
+  - High CPU usage > 80%: Codec In DMA Overrun
+  - Start/Stop arecord in loop: ISO IN feedback of first out lost (feedback desync / ISO IN Incomplete)
+
+Mute interrupt USB to host: mute changes are not notified to alsamixer

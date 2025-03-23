@@ -2,15 +2,12 @@
 #include "OscSerialClient.h"
 #include "TimeMeasure.h"
 #include <CodecAudio.h>
-#include <map>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <vector>
 
 #include <spdlog/spdlog.h>
 
-#include <stm32f7xx_hal.h>
 #include <usbd_conf.h>
 
 using namespace std::literals;  // for std::strinv_view literal ""sv
@@ -276,7 +273,7 @@ extern "C" uint8_t _end;              // end of static data in RAM (start of hea
 extern "C" uint8_t _estack;           // start of RAM (end of RAM as stack grows backward)
 extern "C" uint8_t _sheap;            // start of PSRAM (heap)
 extern "C" uint8_t _eheap;            // end of PSRAM (heap)
-extern "C" uint8_t _Min_Stack_Size;   // minimal stack size
+extern "C" uint32_t _Min_Stack_Size;  // minimal stack size
 void AudioProcessor::onSlowTimer(uv_timer_t* handle) {
 	AudioProcessor* thisInstance = (AudioProcessor*) handle->data;
 

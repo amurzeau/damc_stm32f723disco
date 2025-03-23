@@ -1,7 +1,6 @@
 #pragma once
+#include <stddef.h>
 #include <stdint.h>
-#include <stm32f7xx.h>
-#include <stm32f7xx_hal_sai.h>
 
 extern "C" {
 void DMA2_Stream3_IRQHandler(void);

@@ -245,7 +245,7 @@ SAI_HandleTypeDef  haudio_out_sai = {NULL};
 
 /* Record  */
 SAI_HandleTypeDef  haudio_in_sai = {NULL};
-MDF_HandleTypeDef  haudio_in_mdf = {NULL};
+//MDF_HandleTypeDef  haudio_in_mdf = {NULL};
 
 /* Audio in and out DMA handles used by SAI and MDF */
 DMA_HandleTypeDef  hDmaSaiTx = {NULL}, hDmaSaiRx = {NULL}, hDmaMdf = {NULL};
@@ -257,13 +257,13 @@ DMA_HandleTypeDef  hDmaSaiTx = {NULL}, hDmaSaiRx = {NULL}, hDmaMdf = {NULL};
   * @{
   */
 /* Queue variables declaration */
-static DMA_QListTypeDef SAITxQueue, SAIRxQueue, MdfRxQueue;
+static DMA_QListTypeDef SAITxQueue, SAIRxQueue;
 
 /* Audio MDF filter configuration */
-static MDF_FilterConfigTypeDef Audio_MdfFilterConfig;
+//static MDF_FilterConfigTypeDef Audio_MdfFilterConfig;
 
 /* Audio in MDF internal buffer */
-static int32_t Audio_DigMicRecBuff[DEFAULT_AUDIO_IN_BUFFER_SIZE];
+//static int32_t Audio_DigMicRecBuff[DEFAULT_AUDIO_IN_BUFFER_SIZE];
 /**
   * @}
   */
@@ -289,8 +289,8 @@ static void    SAI_RxHalfCpltCallback(SAI_HandleTypeDef *hsai);
 static void    SAI_RxCpltCallback(SAI_HandleTypeDef *hsai);
 #endif /* (USE_HAL_SAI_REGISTER_CALLBACKS == 1) */
 
-static void    MDF_MspInit(MDF_HandleTypeDef *hmdf);
-static void    MDF_MspDeInit(MDF_HandleTypeDef *hmdf);
+// static void    MDF_MspInit(MDF_HandleTypeDef *hmdf);
+// static void    MDF_MspDeInit(MDF_HandleTypeDef *hmdf);
 #if (USE_HAL_MDF_REGISTER_CALLBACKS == 1)
 static void    MDF_AcqCpltCallback(MDF_HandleTypeDef *hmdf);
 static void    MDF_AcqHalfCpltCallback(MDF_HandleTypeDef *hmdf);
@@ -316,11 +316,6 @@ int32_t BSP_AUDIO_OUT_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
   if (Instance >= AUDIO_OUT_INSTANCES_NBR)
   {
     status = BSP_ERROR_WRONG_PARAM;
-  }
-  else if ((AudioInit->BitsPerSample == AUDIO_RESOLUTION_32B)
-           || (AudioInit->BitsPerSample == AUDIO_RESOLUTION_8B))
-  {
-    status = BSP_ERROR_FEATURE_NOT_SUPPORTED;
   }
   else if ((Audio_In_Ctx[0].State != AUDIO_IN_STATE_RESET) &&
            ((Audio_In_Ctx[0].SampleRate != AudioInit->SampleRate) ||
@@ -393,7 +388,13 @@ int32_t BSP_AUDIO_OUT_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
         mxSaiInit.AudioMode         = SAI_MODEMASTER_TX;
         mxSaiInit.ClockStrobing     = SAI_CLOCKSTROBING_FALLINGEDGE;
         mxSaiInit.MonoStereoMode    = (AudioInit->ChannelsNbr == 1U) ? SAI_MONOMODE : SAI_STEREOMODE;
-        if (AudioInit->BitsPerSample == AUDIO_RESOLUTION_24B)
+        if (AudioInit->BitsPerSample == AUDIO_RESOLUTION_32B)
+        {
+          mxSaiInit.DataSize = SAI_DATASIZE_32;
+          mxSaiInit.FrameLength = 64;
+          mxSaiInit.ActiveFrameLength = 32;
+        }
+        else if (AudioInit->BitsPerSample == AUDIO_RESOLUTION_24B)
         {
           mxSaiInit.DataSize          = SAI_DATASIZE_24;
           mxSaiInit.FrameLength       = 64;
@@ -1005,10 +1006,6 @@ int32_t BSP_AUDIO_OUT_SetBitsPerSample(uint32_t Instance, uint32_t BitsPerSample
   {
     status = BSP_ERROR_WRONG_PARAM;
   }
-  else if ((BitsPerSample == AUDIO_RESOLUTION_32B) || (BitsPerSample == AUDIO_RESOLUTION_8B))
-  {
-    status = BSP_ERROR_FEATURE_NOT_SUPPORTED;
-  }
   else if ((Audio_In_Ctx[0].State != AUDIO_IN_STATE_RESET) &&
            (Audio_In_Ctx[0].BitsPerSample != BitsPerSample))
   {
@@ -1025,7 +1022,13 @@ int32_t BSP_AUDIO_OUT_SetBitsPerSample(uint32_t Instance, uint32_t BitsPerSample
     Audio_Out_Ctx[Instance].BitsPerSample = BitsPerSample;
 
     /* Update data size, frame length and active frame length parameters of SAI handle */
-    if (BitsPerSample == AUDIO_RESOLUTION_24B)
+    if (BitsPerSample == AUDIO_RESOLUTION_32B)
+    {
+      haudio_out_sai.Init.DataSize = SAI_DATASIZE_32;
+      haudio_out_sai.FrameInit.FrameLength = 64;
+      haudio_out_sai.FrameInit.ActiveFrameLength = 32;
+    }
+    else if (BitsPerSample == AUDIO_RESOLUTION_24B)
     {
       haudio_out_sai.Init.DataSize               = SAI_DATASIZE_24;
       haudio_out_sai.FrameInit.FrameLength       = 64;
@@ -1544,10 +1547,6 @@ int32_t BSP_AUDIO_IN_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
   {
     ret = BSP_ERROR_BUSY;
   }
-  else if (AudioInit->BitsPerSample != AUDIO_RESOLUTION_16B)
-  {
-    ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
-  }
   else if (AudioInit->ChannelsNbr != 1U)
   {
     ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
@@ -1572,6 +1571,11 @@ int32_t BSP_AUDIO_IN_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
       /* Un-reset audio codec if not currently used by audio out instances */
       if (Audio_Out_Ctx[0].State == AUDIO_OUT_STATE_RESET)
       {
+        Audio_Out_Ctx[Instance].Device = Audio_In_Ctx[Instance].Device;
+        Audio_Out_Ctx[Instance].ChannelsNbr = Audio_In_Ctx[Instance].ChannelsNbr;
+        Audio_Out_Ctx[Instance].SampleRate = Audio_In_Ctx[Instance].SampleRate;
+        Audio_Out_Ctx[Instance].BitsPerSample = Audio_In_Ctx[Instance].BitsPerSample;
+        Audio_Out_Ctx[Instance].Volume = Audio_In_Ctx[Instance].Volume;
 #if defined(USE_AUDIO_CODEC_CS42L51)
         (void)CS42L51_PowerUp();
 
@@ -1639,9 +1643,26 @@ int32_t BSP_AUDIO_IN_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
           mx_config.AudioMode             = SAI_MODESLAVE_RX;
           mx_config.ClockStrobing         = SAI_CLOCKSTROBING_FALLINGEDGE;
           mx_config.MonoStereoMode        = SAI_MONOMODE;
-          mx_config.DataSize              = SAI_DATASIZE_16;
-          mx_config.FrameLength           = 32;
-          mx_config.ActiveFrameLength     = 16;
+
+          if (Audio_In_Ctx[0].BitsPerSample == AUDIO_RESOLUTION_32B)
+          {
+            mx_config.DataSize = SAI_DATASIZE_32;
+            mx_config.FrameLength = 64;
+            mx_config.ActiveFrameLength = 32;
+          }
+          else if (Audio_In_Ctx[0].BitsPerSample == AUDIO_RESOLUTION_24B)
+          {
+            mx_config.DataSize = SAI_DATASIZE_24;
+            mx_config.FrameLength = 64;
+            mx_config.ActiveFrameLength = 32;
+          }
+          else
+          {
+            mx_config.DataSize = SAI_DATASIZE_16;
+            mx_config.FrameLength = 32;
+            mx_config.ActiveFrameLength = 16;
+          }
+
           mx_config.OutputDrive           = SAI_OUTPUTDRIVE_ENABLE;
           mx_config.Synchro               = SAI_SYNCHRONOUS;
           mx_config.SynchroExt            = SAI_SYNCEXT_DISABLE;
@@ -1660,8 +1681,6 @@ int32_t BSP_AUDIO_IN_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
               mx_config.AudioMode         = SAI_MODEMASTER_TX;
               mx_config.Synchro           = SAI_ASYNCHRONOUS;
               mx_config.SlotActive        = SAI_SLOTACTIVE_0 | SAI_SLOTACTIVE_1;
-
-              Audio_Out_Ctx[0].BitsPerSample = AUDIO_RESOLUTION_16B;
 
               if (MX_SAI1_Init(&haudio_out_sai, &mx_config) != HAL_OK)
               {
@@ -1701,6 +1720,19 @@ int32_t BSP_AUDIO_IN_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
             codec_init.OutputDevice = (Audio_Out_Ctx[0].State == AUDIO_OUT_STATE_RESET) ? WM8904_OUT_NONE :
                                       WM8904_OUT_HEADPHONE;
             codec_init.Resolution   = WM8904_RESOLUTION_16B; /* Not used */
+
+            if (Audio_In_Ctx[0].BitsPerSample == AUDIO_RESOLUTION_32B)
+            {
+              codec_init.Resolution = WM8904_RESOLUTION_32B;
+            }
+            else if (Audio_In_Ctx[0].BitsPerSample == AUDIO_RESOLUTION_24B)
+            {
+              codec_init.Resolution = WM8904_RESOLUTION_24B;
+            }
+            else
+            {
+              codec_init.Resolution = WM8904_RESOLUTION_16B;
+            }
 #else /* USE_AUDIO_CODEC_WM8904 */
             CS42L51_Init_t codec_init;
             codec_init.InputDevice  = CS42L51_IN_MIC1;
@@ -1727,73 +1759,6 @@ int32_t BSP_AUDIO_IN_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
     }
     else /* (Instance == 1U) */
     {
-      /* Set MDF instances */
-      haudio_in_mdf.Instance = MDF1_Filter0;
-
-      /* Configure MDF clock according to the requested audio frequency */
-      if (MX_MDF1_ClockConfig(&haudio_in_mdf, AudioInit->SampleRate) != HAL_OK)
-      {
-        ret = BSP_ERROR_CLOCK_FAILURE;
-      }
-      else
-      {
-#if (USE_HAL_MDF_REGISTER_CALLBACKS == 0)
-        MDF_MspInit(&haudio_in_mdf);
-#else /* (USE_HAL_MDF_REGISTER_CALLBACKS == 0) */
-        /* Register the MDF MSP Callbacks */
-        if (Audio_In_Ctx[Instance].IsMspCallbacksValid == 0U)
-        {
-          if(BSP_AUDIO_IN_RegisterDefaultMspCallbacks(Instance) != BSP_ERROR_NONE)
-          {
-            ret = BSP_ERROR_PERIPH_FAILURE;
-          }
-        }
-        if (ret == BSP_ERROR_NONE)
-        {
-#endif /* (USE_HAL_MDF_REGISTER_CALLBACKS == 0) */
-          /* Prepare MDF peripheral initialization */
-          MX_MDF_Config_t mxMdfInit;
-          mxMdfInit.Gain               = MDF_GAIN(AudioInit->SampleRate);
-          mxMdfInit.DecimationRatio    = MDF_DECIMATION_RATIO(AudioInit->SampleRate);
-          mxMdfInit.CicMode            = MDF_CIC_MODE(AudioInit->SampleRate);
-          mxMdfInit.ProcClockDivider   = MDF_PROC_CLOCK_DIVIDER(AudioInit->SampleRate);
-          mxMdfInit.OutputClockDivider = MDF_OUTPUT_CLOCK_DIVIDER(AudioInit->SampleRate);
-
-          if (MX_MDF1_Init(&haudio_in_mdf, &mxMdfInit) != HAL_OK)
-          {
-            ret = BSP_ERROR_PERIPH_FAILURE;
-          }
-#if (USE_HAL_MDF_REGISTER_CALLBACKS == 1)
-          if (ret == BSP_ERROR_NONE)
-          {
-            /* Register MDF filter TC, HT and Error callbacks */
-            if (HAL_MDF_RegisterCallback(&haudio_in_mdf, HAL_MDF_ACQ_COMPLETE_CB_ID, MDF_AcqCpltCallback) != HAL_OK)
-            {
-              ret = BSP_ERROR_PERIPH_FAILURE;
-            }
-            else if (HAL_MDF_RegisterCallback(&haudio_in_mdf, HAL_MDF_ACQ_HALFCOMPLETE_CB_ID, MDF_AcqHalfCpltCallback)
-                     != HAL_OK)
-            {
-              ret = BSP_ERROR_PERIPH_FAILURE;
-            }
-            else
-            {
-              if (HAL_MDF_RegisterCallback(&haudio_in_mdf, HAL_MDF_ERROR_CB_ID, MDF_ErrorCallback) != HAL_OK)
-              {
-                ret = BSP_ERROR_PERIPH_FAILURE;
-              }
-            }
-          }
-#endif /* (USE_HAL_MDF_REGISTER_CALLBACKS == 1) */
-          if (ret == BSP_ERROR_NONE)
-          {
-            /* Update audio in context state */
-            Audio_In_Ctx[Instance].State = AUDIO_IN_STATE_STOP;
-          }
-#if (USE_HAL_MDF_REGISTER_CALLBACKS == 1)
-        }
-#endif /* (USE_HAL_MDF_REGISTER_CALLBACKS == 1) */
-      }
     }
   }
 
@@ -1852,23 +1817,6 @@ int32_t BSP_AUDIO_IN_DeInit(uint32_t Instance)
     }
     else /* (Instance == 1U) */
     {
-      /* MDF peripheral de-initialization */
-      if (HAL_MDF_DeInit(&haudio_in_mdf) != HAL_OK)
-      {
-        ret = BSP_ERROR_PERIPH_FAILURE;
-      }
-      else
-      {
-#if (USE_HAL_MDF_REGISTER_CALLBACKS == 0)
-        MDF_MspDeInit(&haudio_in_mdf);
-#endif /* (USE_HAL_MDF_REGISTER_CALLBACKS == 0) */
-      }
-
-      if (ret == BSP_ERROR_NONE)
-      {
-        /* Update audio in context */
-        Audio_In_Ctx[Instance].State = AUDIO_IN_STATE_RESET;
-      }
     }
   }
   else
@@ -1939,19 +1887,6 @@ int32_t BSP_AUDIO_IN_Record(uint32_t Instance, uint8_t *pBuf, uint32_t NbrOfByte
     }
     else /* Instance = 1 */
     {
-      MDF_DmaConfigTypeDef dmaConfig;
-
-      Audio_In_Ctx[Instance].pBuff = pBuf;
-      Audio_In_Ctx[Instance].Size  = NbrOfBytes;
-
-      /* Call the MDF acquisition start function */
-      dmaConfig.Address    = (uint32_t) Audio_DigMicRecBuff;
-      dmaConfig.DataLength = 2U*NbrOfBytes;
-      dmaConfig.MsbOnly    = DISABLE;
-      if (HAL_MDF_AcqStart_DMA(&haudio_in_mdf, &Audio_MdfFilterConfig, &dmaConfig) != HAL_OK)
-      {
-        ret = BSP_ERROR_PERIPH_FAILURE;
-      }
     }
 
     if (ret == BSP_ERROR_NONE)
@@ -2011,11 +1946,6 @@ int32_t BSP_AUDIO_IN_Stop(uint32_t Instance)
     }
     else /* Instance = 1 */
     {
-      /* Call the MDF acquisition stop function */
-      if (HAL_MDF_AcqStop_DMA(&haudio_in_mdf) != HAL_OK)
-      {
-        ret = BSP_ERROR_PERIPH_FAILURE;
-      }
     }
 
     if (ret == BSP_ERROR_NONE)
@@ -2066,11 +1996,6 @@ int32_t BSP_AUDIO_IN_Pause(uint32_t Instance)
     }
     else /* Instance = 1 */
     {
-      /* Call the MDF acquisition stop function */
-      if (HAL_MDF_AcqStop_DMA(&haudio_in_mdf) != HAL_OK)
-      {
-        ret = BSP_ERROR_PERIPH_FAILURE;
-      }
     }
 
     if (ret == BSP_ERROR_NONE)
@@ -2121,16 +2046,6 @@ int32_t BSP_AUDIO_IN_Resume(uint32_t Instance)
     }
     else /* Instance = 1 */
     {
-      MDF_DmaConfigTypeDef dmaConfig;
-
-      /* Call the MDF acquisition start function */
-      dmaConfig.Address    = (uint32_t) Audio_DigMicRecBuff;
-      dmaConfig.DataLength = 2U*Audio_In_Ctx[Instance].Size;
-      dmaConfig.MsbOnly    = DISABLE;
-      if (HAL_MDF_AcqStart_DMA(&haudio_in_mdf, &Audio_MdfFilterConfig, &dmaConfig) != HAL_OK)
-      {
-        ret = BSP_ERROR_PERIPH_FAILURE;
-      }
     }
 
     if (ret == BSP_ERROR_NONE)
@@ -2257,59 +2172,6 @@ int32_t BSP_AUDIO_IN_SetSampleRate(uint32_t Instance, uint32_t  SampleRate)
     }
     else /* (Instance == 1U) */
     {
-      /* Update MDF1 clock config */
-      if (MX_MDF1_ClockConfig(&haudio_in_mdf, SampleRate) != HAL_OK)
-      {
-        ret = BSP_ERROR_CLOCK_FAILURE;
-      }
-      /* Re-initialize MDF1 with new sample rate */
-      else if (HAL_MDF_DeInit(&haudio_in_mdf) != HAL_OK)
-      {
-        ret = BSP_ERROR_PERIPH_FAILURE;
-      }
-      else
-      {
-        MX_MDF_Config_t mxMdfInit;
-        mxMdfInit.Gain               = MDF_GAIN(SampleRate);
-        mxMdfInit.DecimationRatio    = MDF_DECIMATION_RATIO(SampleRate);
-        mxMdfInit.CicMode            = MDF_CIC_MODE(SampleRate);
-        mxMdfInit.ProcClockDivider   = MDF_PROC_CLOCK_DIVIDER(SampleRate);
-        mxMdfInit.OutputClockDivider = MDF_OUTPUT_CLOCK_DIVIDER(SampleRate);
-
-#if (USE_HAL_MDF_REGISTER_CALLBACKS == 0)
-        MDF_MspInit(&haudio_in_mdf);
-#endif /* (USE_HAL_MDF_REGISTER_CALLBACKS == 0) */
-        if (MX_MDF1_Init(&haudio_in_mdf, &mxMdfInit) != HAL_OK)
-        {
-          ret = BSP_ERROR_PERIPH_FAILURE;
-        }
-      }
-#if (USE_HAL_MDF_REGISTER_CALLBACKS == 1)
-      if (ret == BSP_ERROR_NONE)
-      {
-        /* Register MDF filter TC, HT and Error callbacks */
-        if (HAL_MDF_RegisterCallback(&haudio_in_mdf, HAL_MDF_ACQ_COMPLETE_CB_ID, MDF_AcqCpltCallback) != HAL_OK)
-        {
-          ret = BSP_ERROR_PERIPH_FAILURE;
-        }
-        else if (HAL_MDF_RegisterCallback(&haudio_in_mdf, HAL_MDF_ACQ_HALFCOMPLETE_CB_ID, MDF_AcqHalfCpltCallback) != HAL_OK)
-        {
-          ret = BSP_ERROR_PERIPH_FAILURE;
-        }
-        else
-        {
-          if (HAL_MDF_RegisterCallback(&haudio_in_mdf, HAL_MDF_ERROR_CB_ID, MDF_ErrorCallback) != HAL_OK)
-          {
-            ret = BSP_ERROR_PERIPH_FAILURE;
-          }
-        }
-      }
-#endif /* (USE_HAL_MDF_REGISTER_CALLBACKS == 1) */
-      /* Store new sample rate on audio in context */
-      if (ret == BSP_ERROR_NONE)
-      {
-        Audio_In_Ctx[Instance].SampleRate = SampleRate;
-      }
     }
   }
 
@@ -2657,7 +2519,6 @@ void BSP_AUDIO_IN_IRQHandler(uint32_t Instance, uint32_t InputDevice)
   }
   else
   {
-    HAL_DMA_IRQHandler(haudio_in_mdf.hdma);
   }
 }
 
@@ -2700,124 +2561,6 @@ __weak void BSP_AUDIO_IN_Error_CallBack(uint32_t Instance)
 
   /* This function is called when an Interrupt due to transfer error on or peripheral
      error occurs. */
-}
-
-/**
-  * @brief  MDF1 clock Config.
-  * @param  hmdf MDF handle.
-  * @param  SampleRate Audio sample rate used to record the audio stream.
-  * @retval HAL status.
-  */
-__weak HAL_StatusTypeDef MX_MDF1_ClockConfig(MDF_HandleTypeDef *hmdf, uint32_t SampleRate)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(hmdf);
-
-  HAL_StatusTypeDef         status = HAL_OK;
-  RCC_OscInitTypeDef        RCC_OscInitStruct;
-  RCC_PeriphCLKInitTypeDef  PeriphClkInitStruct;
-
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_NONE;
-  RCC_OscInitStruct.PLL1.PLLState = RCC_PLL_NONE;
-  RCC_OscInitStruct.PLL2.PLLState = RCC_PLL_NONE;
-  RCC_OscInitStruct.PLL3.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL3.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL3.PLLFractional = 0;
-  RCC_OscInitStruct.PLL3.PLLM = 6;  /* 48/6 = 8MHz */
-  if ((SampleRate == AUDIO_FREQUENCY_11K) || (SampleRate == AUDIO_FREQUENCY_22K) || (SampleRate == AUDIO_FREQUENCY_44K))
-  {
-    RCC_OscInitStruct.PLL3.PLLN = 192; /* 8*192 = 1536MHz */
-    RCC_OscInitStruct.PLL3.PLLP1 = 4;
-    RCC_OscInitStruct.PLL3.PLLP2 = 2; /* 1536/8 = 192 MHZ */
-  }
-  else if (SampleRate == AUDIO_FREQUENCY_96K)
-  {
-    RCC_OscInitStruct.PLL3.PLLN = 172; /* 8*172 = 1376MHz */
-    RCC_OscInitStruct.PLL3.PLLP1 = 2;
-    RCC_OscInitStruct.PLL3.PLLP2 = 1; /* 1376/2 = 688MHz */
-  }
-  else /* AUDIO_FREQUENCY_8K, AUDIO_FREQUENCY_16K, AUDIO_FREQUENCY_32K, AUDIO_FREQUENCY_48K */
-  {
-    RCC_OscInitStruct.PLL3.PLLN = 172; /* 8*172 = 1376MHz */
-    RCC_OscInitStruct.PLL3.PLLP1 = 7;
-    RCC_OscInitStruct.PLL3.PLLP2 = 4; /* 1376/28 = 49.142MHz */
-  }
-  RCC_OscInitStruct.PLL4.PLLState = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    status = HAL_ERROR;
-  }
-
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_MDF1;
-  PeriphClkInitStruct.Mdf1ClockSelection = RCC_MDF1CLKSOURCE_IC8;
-  PeriphClkInitStruct.ICSelection[RCC_IC8].ClockSelection = RCC_ICCLKSOURCE_PLL3;
-  if ((SampleRate == AUDIO_FREQUENCY_11K) || (SampleRate == AUDIO_FREQUENCY_22K) || (SampleRate == AUDIO_FREQUENCY_44K))
-  {
-    PeriphClkInitStruct.ICSelection[RCC_IC8].ClockDivider = 17;
-  }
-  else if (SampleRate == AUDIO_FREQUENCY_96K)
-  {
-    PeriphClkInitStruct.ICSelection[RCC_IC8].ClockDivider = 7;
-  }
-  else /* AUDIO_FREQUENCY_8K, AUDIO_FREQUENCY_16K, AUDIO_FREQUENCY_32K, AUDIO_FREQUENCY_48K */
-  {
-    PeriphClkInitStruct.ICSelection[RCC_IC8].ClockDivider = 1;
-  }
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-  {
-    status = HAL_ERROR;
-  }
-
-  return status;
-}
-
-/**
-  * @brief  Initialize MDF1.
-  * @param  hmdf  MDF handle.
-  * @param  MXInit MDF configuration structure.
-  * @retval HAL_status.
-  */
-__weak HAL_StatusTypeDef MX_MDF1_Init(MDF_HandleTypeDef *hmdf, MX_MDF_Config_t *MXInit)
-{
-  HAL_StatusTypeDef status = HAL_OK;
-
-  /* MDF peripheral initialization */
-  hmdf->Init.CommonParam.ProcClockDivider = MXInit->ProcClockDivider;
-  hmdf->Init.CommonParam.OutputClock.Activation = ENABLE;
-  hmdf->Init.CommonParam.OutputClock.Pins = MDF_OUTPUT_CLOCK_0;
-  hmdf->Init.CommonParam.OutputClock.Divider = MXInit->OutputClockDivider;
-  hmdf->Init.CommonParam.OutputClock.Trigger.Activation = DISABLE;
-  hmdf->Init.SerialInterface.Activation = ENABLE;
-  hmdf->Init.SerialInterface.Mode = MDF_SITF_NORMAL_SPI_MODE;
-  hmdf->Init.SerialInterface.ClockSource = MDF_SITF_CCK0_SOURCE;
-  hmdf->Init.SerialInterface.Threshold = 31U;
-  hmdf->Init.FilterBistream = MDF_BITSTREAM0_FALLING;
-
-  if (HAL_MDF_Init(hmdf) != HAL_OK)
-  {
-    status = HAL_ERROR;
-  }
-
-  /* Prepare MDF filter configuration parameters */
-  Audio_MdfFilterConfig.DataSource                = MDF_DATA_SOURCE_BSMX;
-  Audio_MdfFilterConfig.Delay                     = 0U;
-  Audio_MdfFilterConfig.CicMode                   = MXInit->CicMode;
-  Audio_MdfFilterConfig.DecimationRatio           = MXInit->DecimationRatio;
-  Audio_MdfFilterConfig.Offset                    = 0;
-  Audio_MdfFilterConfig.Gain                      = MXInit->Gain;
-  Audio_MdfFilterConfig.ReshapeFilter.Activation  = ENABLE;
-  Audio_MdfFilterConfig.ReshapeFilter.DecimationRatio = MDF_RSF_DECIMATION_RATIO_4;
-
-  Audio_MdfFilterConfig.HighPassFilter.Activation = ENABLE;
-  Audio_MdfFilterConfig.HighPassFilter.CutOffFrequency = MDF_HPF_CUTOFF_0_000625FPCM;
-
-  Audio_MdfFilterConfig.Integrator.Activation     = DISABLE;
-
-  Audio_MdfFilterConfig.AcquisitionMode           = MDF_MODE_ASYNC_CONT;
-  Audio_MdfFilterConfig.FifoThreshold             = MDF_FIFO_THRESHOLD_NOT_EMPTY;
-  Audio_MdfFilterConfig.DiscardSamples            = 0U;
-
-  return status;
 }
 /**
   * @}
@@ -2942,68 +2685,7 @@ static void MDF_ErrorCallback(MDF_HandleTypeDef *hmdf)
 
   BSP_AUDIO_IN_Error_CallBack(1);
 }
-#else /* (USE_HAL_MDF_REGISTER_CALLBACKS == 1) */
-/**
-  * @brief  MDF acquisition complete callback.
-  * @param  hmdf MDF handle.
-  * @retval None.
-  */
-void HAL_MDF_AcqCpltCallback(MDF_HandleTypeDef *hmdf)
-{
-  uint32_t     index;
-  uint32_t     recbufsize = Audio_In_Ctx[1].Size / 2U;
-  __IO int32_t tmp;
-
-  UNUSED(hmdf);
-
-  for (index = (recbufsize / 2U); index < recbufsize; index++)
-  {
-    tmp = Audio_DigMicRecBuff[index] / 256;
-    tmp = SaturaLH(tmp, -32768, 32767);
-    Audio_In_Ctx[1].pBuff[2U * index]        = (uint8_t) tmp;
-    Audio_In_Ctx[1].pBuff[(2U * index) + 1U] = (uint8_t) ((uint32_t) tmp >> 8);
-  }
-
-  /* Invoke 'TransferCompete' callback function */
-  BSP_AUDIO_IN_TransferComplete_CallBack(1);
-}
-
-/**
-  * @brief  MDF acquisition half complete callback.
-  * @param  hmdf MDF handle.
-  * @retval None.
-  */
-void HAL_MDF_AcqHalfCpltCallback(MDF_HandleTypeDef *hmdf)
-{
-  uint32_t     index;
-  uint32_t     recbufsize = Audio_In_Ctx[1].Size / 2U;
-  __IO int32_t tmp;
-
-  UNUSED(hmdf);
-
-  for (index = 0; index < (recbufsize / 2U); index++)
-  {
-    tmp = Audio_DigMicRecBuff[index] / 256;
-    tmp = SaturaLH(tmp, -32768, 32767);
-    Audio_In_Ctx[1].pBuff[2U * index]        = (uint8_t) tmp;
-    Audio_In_Ctx[1].pBuff[(2U * index) + 1U] = (uint8_t) ((uint32_t) tmp >> 8);
-  }
-
-  /* Invoke the 'HalfTransfer' callback function */
-  BSP_AUDIO_IN_HalfTransfer_CallBack(1);
-}
-
-/**
-  * @brief  MDF error callback.
-  * @param  hmdf MDF handle.
-  * @retval None.
-  */
-void HAL_MDF_ErrorCallback(MDF_HandleTypeDef *hmdf)
-{
-  UNUSED(hmdf);
-
-  BSP_AUDIO_IN_Error_CallBack(1);
-}
+#else  /* (USE_HAL_MDF_REGISTER_CALLBACKS == 1) */
 #endif /* (USE_HAL_MDF_REGISTER_CALLBACKS == 1) */
 /**
   * @}
@@ -3453,146 +3135,6 @@ static void SAI_MspDeInit(SAI_HandleTypeDef *hsai)
   }
 }
 
-/**
-  * @brief  Initialize MDF MSP.
-  * @param  hmdf handle.
-  * @retval None.
-  */
-static void MDF_MspInit(MDF_HandleTypeDef *hmdf)
-{
-  GPIO_InitTypeDef           GPIO_InitStruct;
-  static DMA_NodeTypeDef     RxNode;
-  static DMA_NodeConfTypeDef dmaNodeConfig;
-
-  /* Enable MDF1 clock */
-  AUDIO_MDF1_CLK_ENABLE();
-
-  /* MDF pins configuration: DATIN0 and CCK0 pins */
-  AUDIO_MDF1_DATIN0_GPIO_CLK_ENABLE();
-  GPIO_InitStruct.Mode      = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull      = GPIO_NOPULL;
-  GPIO_InitStruct.Speed     = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = AUDIO_MDF1_DATIN0_GPIO_AF;
-  GPIO_InitStruct.Pin       = AUDIO_MDF1_DATIN0_GPIO_PIN;
-  HAL_GPIO_Init(AUDIO_MDF1_DATIN0_GPIO_PORT, &GPIO_InitStruct);
-
-  AUDIO_MDF1_CCK0_GPIO_CLK_ENABLE();
-  GPIO_InitStruct.Alternate = AUDIO_MDF1_CCK0_GPIO_AF;
-  GPIO_InitStruct.Pin       = AUDIO_MDF1_CCK0_GPIO_PIN;
-  HAL_GPIO_Init(AUDIO_MDF1_CCK0_GPIO_PORT, &GPIO_InitStruct);
-
-  /* DMA configuration */
-  if (MdfRxQueue.Head == NULL)
-  {
-    AUDIO_IN_MDF1_DMA_CLK_ENABLE();
-
-    hDmaMdf.Instance = AUDIO_IN_MDF1_DMA_CHANNEL;
-
-    /* Set node type */
-    dmaNodeConfig.NodeType                            = DMA_GPDMA_LINEAR_NODE;
-    /* Set common node parameters */
-    dmaNodeConfig.Init.Request                        = AUDIO_IN_MDF1_DMA_REQUEST;
-    dmaNodeConfig.Init.BlkHWRequest                   = DMA_BREQ_SINGLE_BURST;
-    dmaNodeConfig.Init.Direction                      = DMA_PERIPH_TO_MEMORY;
-    dmaNodeConfig.Init.SrcInc                         = DMA_SINC_FIXED;
-    dmaNodeConfig.Init.DestInc                        = DMA_DINC_INCREMENTED;
-    dmaNodeConfig.Init.SrcDataWidth                   = DMA_SRC_DATAWIDTH_WORD;
-    dmaNodeConfig.Init.DestDataWidth                  = DMA_DEST_DATAWIDTH_WORD;
-    dmaNodeConfig.Init.SrcBurstLength                 = 1;
-    dmaNodeConfig.Init.DestBurstLength                = 1;
-    dmaNodeConfig.Init.Priority                       = DMA_HIGH_PRIORITY;
-    dmaNodeConfig.Init.TransferEventMode              = DMA_TCEM_BLOCK_TRANSFER;
-    dmaNodeConfig.Init.TransferAllocatedPort          = DMA_SRC_ALLOCATED_PORT0 | DMA_DEST_ALLOCATED_PORT1;
-    /* Set node data handling parameters */
-    dmaNodeConfig.DataHandlingConfig.DataExchange     = DMA_EXCHANGE_NONE;
-    dmaNodeConfig.DataHandlingConfig.DataAlignment    = DMA_DATA_RIGHTALIGN_ZEROPADDED;
-    /* Set node trigger parameters */
-    dmaNodeConfig.TriggerConfig.TriggerPolarity       = DMA_TRIG_POLARITY_MASKED;
-    dmaNodeConfig.SrcSecure                           = DMA_CHANNEL_SRC_SEC;
-    dmaNodeConfig.DestSecure                          = DMA_CHANNEL_DEST_SEC;
-
-    if (HAL_DMA_ConfigChannelAttributes(&hDmaMdf, (DMA_CHANNEL_PRIV | DMA_CHANNEL_SEC | DMA_CHANNEL_SRC_SEC
-                                                   | DMA_CHANNEL_DEST_SEC)) != HAL_OK)
-    {
-      BSP_AUDIO_IN_Error_CallBack(1);
-    }
-
-    /* Build NodeRx */
-    if (HAL_DMAEx_List_BuildNode(&dmaNodeConfig, &RxNode) != HAL_OK)
-    {
-      BSP_AUDIO_IN_Error_CallBack(1);
-    }
-
-    /* Insert NodeRx to ADF queue */
-    if (HAL_DMAEx_List_InsertNode_Tail(&MdfRxQueue, &RxNode) != HAL_OK)
-    {
-      BSP_AUDIO_IN_Error_CallBack(1);
-    }
-
-    /* Set queue circular mode for ADF queue */
-    if (HAL_DMAEx_List_SetCircularMode(&MdfRxQueue) != HAL_OK)
-    {
-      BSP_AUDIO_IN_Error_CallBack(1);
-    }
-
-    hDmaMdf.InitLinkedList.Priority          = DMA_HIGH_PRIORITY;
-    hDmaMdf.InitLinkedList.LinkStepMode      = DMA_LSM_FULL_EXECUTION;
-    hDmaMdf.InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT1;
-    hDmaMdf.InitLinkedList.TransferEventMode = DMA_TCEM_LAST_LL_ITEM_TRANSFER;
-    hDmaMdf.InitLinkedList.LinkedListMode    = DMA_LINKEDLIST_CIRCULAR;
-
-    /* DMA linked list init */
-    if (HAL_DMAEx_List_Init(&hDmaMdf) != HAL_OK)
-    {
-      BSP_AUDIO_IN_Error_CallBack(1);
-    }
-
-    /* Link MDF queue to DMA channel */
-    if (HAL_DMAEx_List_LinkQ(&hDmaMdf, &MdfRxQueue) != HAL_OK)
-    {
-      BSP_AUDIO_IN_Error_CallBack(1);
-    }
-
-    /* Associate the DMA handle */
-    __HAL_LINKDMA(hmdf, hdma, hDmaMdf);
-
-    /* MDF DMA IRQ Channel configuration */
-    HAL_NVIC_SetPriority(AUDIO_IN_MDF1_DMA_IRQ, BSP_AUDIO_OUT_IT_PRIORITY, 0);
-    HAL_NVIC_EnableIRQ(AUDIO_IN_MDF1_DMA_IRQ);
-  }
-}
-
-/**
-  * @brief  DeInitialize MDF MSP.
-  * @param  hmdf MDF handle.
-  * @retval None.
-  */
-static void MDF_MspDeInit(MDF_HandleTypeDef *hmdf)
-{
-  UNUSED(hmdf);
-
-  /* Disable MDF DMA Channel IRQ */
-  HAL_NVIC_DisableIRQ(AUDIO_IN_MDF1_DMA_IRQ);
-
-  /* Reset the DMA Channel configuration*/
-  if (HAL_DMAEx_List_DeInit(&hDmaMdf) != HAL_OK)
-  {
-    BSP_AUDIO_IN_Error_CallBack(1);
-  }
-
-  /* Reset RxQueue */
-  if (HAL_DMAEx_List_ResetQ(&MdfRxQueue) != HAL_OK)
-  {
-    BSP_AUDIO_IN_Error_CallBack(1);
-  }
-
-  /* De-initialize DATIN0 and CCK0 pins */
-  HAL_GPIO_DeInit(AUDIO_MDF1_DATIN0_GPIO_PORT, AUDIO_MDF1_DATIN0_GPIO_PIN);
-  HAL_GPIO_DeInit(AUDIO_MDF1_CCK0_GPIO_PORT, AUDIO_MDF1_CCK0_GPIO_PIN);
-
-  /* Disable MDF clock */
-  AUDIO_MDF1_CLK_DISABLE();
-}
 /**
   * @}
   */
