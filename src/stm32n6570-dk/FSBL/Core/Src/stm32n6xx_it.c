@@ -22,6 +22,9 @@
 #include "stm32n6xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "AudioCApi.h"
+#include <stm32n6570_discovery_ts.h>
+#include <stm32n6570_discovery_audio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -241,16 +244,79 @@ void SAI1_B_IRQHandler(void)
 
 /* USER CODE BEGIN 1 */
 
+extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
+
+uint32_t original_program_pointer;
+void USB1_OTG_HS_IRQHandler_real(uint32_t original_msp)
+{
+  // Stack when interrupt happen
+  // 0x2FF4 preempted task's stack data
+  // 0x2FF0 xPSR
+  // 0x2FEC PC
+  // 0x2FE8 LR
+  // 0x2FE4 R12
+  // 0x2FE0 R3
+  // 0x2FDC R2
+  // 0x2FD8 R1
+  // 0x2FD4 R0  <--- Thread Stack Pointer when interrupt happened (R13)
+  const uint32_t *sp = (const uint32_t *)original_msp;
+  original_program_pointer = sp[6];
+  __DMB();
+
+  /* USER CODE BEGIN OTG_HS_IRQn 0 */
+  DAMC_beginMeasure(TMI_UsbInterrupt);
+
+  /* USER CODE END OTG_HS_IRQn 0 */
+  HAL_PCD_IRQHandler(&hpcd_USB_OTG_HS);
+  /* USER CODE BEGIN OTG_HS_IRQn 1 */
+  DAMC_endMeasure(TMI_UsbInterrupt);
+
+  __DMB();
+  original_program_pointer = 0;
+
+  /* USER CODE END OTG_HS_IRQn 1 */
+}
+
+__attribute__((naked)) void USB1_OTG_HS_IRQHandler(void)
+{
+  // Find the original stack pointer in a naked function to ensure the compiler doesn't use the stack for local variables.
+  // The real ISR handle is then called with the stack pointer value as argument
+  asm("tst lr, #4\n"                                                    // Test for MSP or PSP
+      "ite eq\n"                                                        // If equal
+      "mrseq r0, msp\n"                                                 //  r0 = msp
+      "mrsne r0, psp\n"                                                 // else r0 = psp
+      "b %[USB1_OTG_HS_IRQHandler_real]\n"                              // Call real handler
+      :                                                                 // output
+      : [USB1_OTG_HS_IRQHandler_real] "i"(USB1_OTG_HS_IRQHandler_real)  // input
+      : "r0"                                                            // clobber
+  );
+}
+
+
 void GPDMA1_Channel2_IRQHandler(void)
 {
   // TX
+  // Only monitor cpu usage on TX DMA interrupt
+  DAMC_beginMeasure(TMI_AudioProcessing);
+  // Reset buffer processed flags before the DMA interrupt is cleared.
+  DAMC_resetBufferProcessedFlags();
+  __DMB();
   BSP_AUDIO_OUT_IRQHandler(0, 0);
+  DAMC_endMeasure(TMI_AudioProcessing);
 }
 
 void GPDMA1_Channel1_IRQHandler(void)
 {
   // RX
   BSP_AUDIO_IN_IRQHandler(0, 0);
+}
+
+// TS_INT IRQ
+void EXTI4_IRQHandler()
+{
+  DAMC_beginMeasure(TMI_OtherIRQ);
+  BSP_TS_IRQHandler(0);
+  DAMC_endMeasure(TMI_OtherIRQ);
 }
 
 /* USER CODE END 1 */

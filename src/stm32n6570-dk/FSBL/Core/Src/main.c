@@ -21,6 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <usb_device.h>
+#include "AudioCApi.h"
+#include "Tracing.h"
 
 /* USER CODE END Includes */
 
@@ -43,8 +46,6 @@
 
 TIM_HandleTypeDef htim2;
 
-PCD_HandleTypeDef hpcd_USB_OTG_HS1;
-
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -53,7 +54,6 @@ PCD_HandleTypeDef hpcd_USB_OTG_HS1;
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_USB1_OTG_HS_PCD_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -105,6 +105,15 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
+  TRACING_init();
+  FPU->FPDSCR |= FPU_FPDSCR_FZ_Msk;
+  DAMC_init();
+
+  DAMC_start();
+
+  // Start USB after to ensure audio processing IRQ is running
+  MX_USB_DEVICE_Init();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -114,6 +123,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    DAMC_mainLoop();
   }
   /* USER CODE END 3 */
 }
@@ -284,41 +294,6 @@ static void MX_TIM2_Init(void)
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
-
-}
-
-/**
-  * @brief USB1_OTG_HS Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USB1_OTG_HS_PCD_Init(void)
-{
-
-  /* USER CODE BEGIN USB1_OTG_HS_Init 0 */
-
-  /* USER CODE END USB1_OTG_HS_Init 0 */
-
-  /* USER CODE BEGIN USB1_OTG_HS_Init 1 */
-
-  /* USER CODE END USB1_OTG_HS_Init 1 */
-  hpcd_USB_OTG_HS1.Instance = USB1_OTG_HS;
-  hpcd_USB_OTG_HS1.Init.dev_endpoints = 9;
-  hpcd_USB_OTG_HS1.Init.speed = PCD_SPEED_HIGH;
-  hpcd_USB_OTG_HS1.Init.phy_itface = USB_OTG_HS_EMBEDDED_PHY;
-  hpcd_USB_OTG_HS1.Init.Sof_enable = DISABLE;
-  hpcd_USB_OTG_HS1.Init.low_power_enable = DISABLE;
-  hpcd_USB_OTG_HS1.Init.lpm_enable = DISABLE;
-  hpcd_USB_OTG_HS1.Init.use_dedicated_ep1 = DISABLE;
-  hpcd_USB_OTG_HS1.Init.vbus_sensing_enable = DISABLE;
-  hpcd_USB_OTG_HS1.Init.dma_enable = DISABLE;
-  if (HAL_PCD_Init(&hpcd_USB_OTG_HS1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USB1_OTG_HS_Init 2 */
-
-  /* USER CODE END USB1_OTG_HS_Init 2 */
 
 }
 
