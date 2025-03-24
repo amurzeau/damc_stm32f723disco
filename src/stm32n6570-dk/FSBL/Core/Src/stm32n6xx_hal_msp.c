@@ -64,6 +64,8 @@ void HAL_MspInit(void)
 {
 
   /* USER CODE BEGIN MspInit 0 */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_RCC_SYSCFG_CLK_ENABLE();
 
   /* USER CODE END MspInit 0 */
 
@@ -140,6 +142,23 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* hpcd)
   {
     /* USER CODE BEGIN USB1_OTG_HS_MspInit 0 */
 
+    __HAL_RCC_PWR_CLK_ENABLE();
+
+    /* Enable the VDD33USB independent USB 33 voltage monitor */
+    HAL_PWREx_EnableVddUSBVMEN();
+
+    while (__HAL_PWR_GET_FLAG(PWR_FLAG_USB33RDY) == 0U)
+      ;
+
+    /* Enable VDDUSB */
+    HAL_PWREx_EnableVddUSB();
+
+
+    /* Enable the GPIOA clock */
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    __HAL_RCC_USB1_OTG_HS_PHY_FORCE_RESET();
+
     /* USER CODE END USB1_OTG_HS_MspInit 0 */
 
   /** Initializes the peripherals clock
@@ -167,6 +186,17 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* hpcd)
     __HAL_RCC_USB1_OTG_HS_CLK_ENABLE();
     /* USER CODE BEGIN USB1_OTG_HS_MspInit 1 */
 
+    USB1_HS_PHYC->USBPHYC_CR &= ~(0x7U << 0x4U);
+    USB1_HS_PHYC->USBPHYC_CR |= (0x2U << 0x4U);
+
+    __HAL_RCC_USB1_OTG_HS_PHY_RELEASE_RESET();
+
+    HAL_Delay(1);
+
+    __HAL_RCC_USB1_OTG_HS_RELEASE_RESET();
+
+    /* Peripheral PHY clock enable */
+    __HAL_RCC_USB1_OTG_HS_PHY_CLK_ENABLE();
 
     /* Peripheral interrupt init */
     HAL_NVIC_SetPriority(USB1_OTG_HS_IRQn, 1, 0);

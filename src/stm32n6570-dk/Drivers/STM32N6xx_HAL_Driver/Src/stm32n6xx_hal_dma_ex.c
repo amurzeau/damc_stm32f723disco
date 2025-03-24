@@ -934,6 +934,8 @@ HAL_StatusTypeDef HAL_DMAEx_List_Start_IT(DMA_HandleTypeDef *const hdma)
       hdma->Instance->CLLR  = ((uint32_t)hdma->LinkedListQueue->Head & DMA_CLLR_LA) | cllr_mask;
     }
 
+    SCB_CleanDCache();
+
     /* Enable DMA channel */
     __HAL_DMA_ENABLE(hdma);
   }

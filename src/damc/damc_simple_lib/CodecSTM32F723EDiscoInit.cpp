@@ -176,11 +176,11 @@ void CodecSTM32F723EDiscoInit::startRxDMA(void* buffer, size_t nframes) {
 }
 
 uint16_t CodecSTM32F723EDiscoInit::getTxRemainingCount(void) {
-	return __HAL_DMA_GET_COUNTER(haudio_out_sai.hdmatx);
+	return (__HAL_DMA_GET_COUNTER(haudio_out_sai.hdmatx) + 3) / 4;
 }
 
 uint16_t CodecSTM32F723EDiscoInit::getRxRemainingCount(void) {
-	return __HAL_DMA_GET_COUNTER(haudio_in_sai.hdmarx);
+	return (__HAL_DMA_GET_COUNTER(haudio_in_sai.hdmarx) + 3) / 4;
 }
 
 bool CodecSTM32F723EDiscoInit::isDMAIsrFlagSet(bool insertWaitStates) {

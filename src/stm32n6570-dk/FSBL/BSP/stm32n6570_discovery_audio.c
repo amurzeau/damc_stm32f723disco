@@ -440,7 +440,20 @@ int32_t BSP_AUDIO_OUT_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
           codec_init.InputDevice  = (Audio_In_Ctx[0].State != AUDIO_IN_STATE_RESET)
                                     ? WM8904_IN_MIC1 : WM8904_IN_NONE;
           codec_init.OutputDevice = WM8904_OUT_HEADPHONE;
-          codec_init.Resolution   = WM8904_RESOLUTION_16B;
+          codec_init.Resolution = WM8904_RESOLUTION_32B;
+
+          if (Audio_In_Ctx[0].BitsPerSample == AUDIO_RESOLUTION_32B)
+          {
+            codec_init.Resolution = WM8904_RESOLUTION_32B;
+          }
+          else if (Audio_In_Ctx[0].BitsPerSample == AUDIO_RESOLUTION_24B)
+          {
+            codec_init.Resolution = WM8904_RESOLUTION_24B;
+          }
+          else
+          {
+            codec_init.Resolution = WM8904_RESOLUTION_16B;
+          }
 #else /* USE_AUDIO_CODEC_WM8904 */
           CS42L51_Init_t codec_init;
           codec_init.InputDevice  = (Audio_In_Ctx[0].State != AUDIO_IN_STATE_RESET)
@@ -1305,6 +1318,8 @@ __weak void BSP_AUDIO_OUT_Error_CallBack(uint32_t Instance)
 {
   /* Prevent unused argument(s) compilation warning */
   UNUSED(Instance);
+  while (1)
+    ;
 }
 
 /**
@@ -1547,10 +1562,6 @@ int32_t BSP_AUDIO_IN_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
   {
     ret = BSP_ERROR_BUSY;
   }
-  else if (AudioInit->ChannelsNbr != 1U)
-  {
-    ret = BSP_ERROR_FEATURE_NOT_SUPPORTED;
-  }
   else if ((Instance == 0U) && (Audio_Out_Ctx[0].State != AUDIO_OUT_STATE_RESET) &&
            ((Audio_Out_Ctx[0].SampleRate != AudioInit->SampleRate) ||
             (Audio_Out_Ctx[0].BitsPerSample != AudioInit->BitsPerSample)))
@@ -1642,7 +1653,7 @@ int32_t BSP_AUDIO_IN_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
           mx_config.AudioFrequency        = Audio_In_Ctx[Instance].SampleRate;
           mx_config.AudioMode             = SAI_MODESLAVE_RX;
           mx_config.ClockStrobing         = SAI_CLOCKSTROBING_FALLINGEDGE;
-          mx_config.MonoStereoMode        = SAI_MONOMODE;
+          mx_config.MonoStereoMode = (AudioInit->ChannelsNbr == 1U) ? SAI_MONOMODE : SAI_STEREOMODE;
 
           if (Audio_In_Ctx[0].BitsPerSample == AUDIO_RESOLUTION_32B)
           {
@@ -1666,7 +1677,7 @@ int32_t BSP_AUDIO_IN_Init(uint32_t Instance, BSP_AUDIO_Init_t *AudioInit)
           mx_config.OutputDrive           = SAI_OUTPUTDRIVE_ENABLE;
           mx_config.Synchro               = SAI_SYNCHRONOUS;
           mx_config.SynchroExt            = SAI_SYNCEXT_DISABLE;
-          mx_config.SlotActive            = SAI_SLOTACTIVE_0;
+          mx_config.SlotActive = SAI_SLOTACTIVE_0 | SAI_SLOTACTIVE_1;
 
           if (MX_SAI1_Init(&haudio_in_sai, &mx_config) != HAL_OK)
           {
@@ -1844,7 +1855,7 @@ int32_t BSP_AUDIO_IN_Record(uint32_t Instance, uint8_t *pBuf, uint32_t NbrOfByte
     ret = BSP_ERROR_WRONG_PARAM;
   }
   /* Check the internal buffer size */
-  else if ((Instance == 1U) && ((NbrOfBytes / 2U) > DEFAULT_AUDIO_IN_BUFFER_SIZE))
+  else if ((Instance == 1U) && ((NbrOfBytes / 4U) > DEFAULT_AUDIO_IN_BUFFER_SIZE))
   {
     ret = BSP_ERROR_WRONG_PARAM;
   }
@@ -1876,9 +1887,19 @@ int32_t BSP_AUDIO_IN_Record(uint32_t Instance, uint8_t *pBuf, uint32_t NbrOfByte
         }
         else
         {
+          uint16_t NbrOfDmaDatas;
+          /* Compute number of DMA data to tranfser according resolution */
+          if (Audio_Out_Ctx[Instance].BitsPerSample == AUDIO_RESOLUTION_16B)
+          {
+            NbrOfDmaDatas = (uint16_t)(NbrOfBytes / 2U);
+          }
+          else /* AUDIO_RESOLUTION_24b */
+          {
+            NbrOfDmaDatas = (uint16_t)(NbrOfBytes / 4U);
+          }
           /* Initiate a DMA transfer of audio samples from the serial audio interface */
           /* Because only 16 bits per sample is supported, DMA transfer is in halfword size */
-          if (HAL_SAI_Receive_DMA(&haudio_in_sai, (uint8_t *) pBuf, (uint16_t) NbrOfBytes / 2U) != HAL_OK)
+          if (HAL_SAI_Receive_DMA(&haudio_in_sai, (uint8_t *)pBuf, NbrOfDmaDatas) != HAL_OK)
           {
             ret = BSP_ERROR_PERIPH_FAILURE;
           }

@@ -27,6 +27,16 @@
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/CMSIS-DSP</locationURI>
 		</link>
 		<link>
+			<name>src/Fonts</name>
+			<type>2</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Fonts</locationURI>
+		</link>
+		<link>
+			<name>src/USBClass</name>
+			<type>2</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/USBClass</locationURI>
+		</link>
+		<link>
 			<name>src/cmake</name>
 			<type>2</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/cmake</locationURI>
