@@ -9,6 +9,8 @@
 				<language-scope id="org.eclipse.cdt.core.gcc"/>
 				<language-scope id="org.eclipse.cdt.core.g++"/>
 			</provider>
+			<provider copy-of="extension" id="org.eclipse.cdt.managedbuilder.core.GCCBuildCommandParser"/>
+			<provider build-parser-id="org.eclipse.cdt.managedbuilder.core.GCCBuildCommandParser" cdb-modified-time="" cdb-path="${workspace_loc:/stm32n6570-dk_FSBL/build}/stm32cubeide-arm-stm32n6570-dk-eabi-Debug/compile_commands.json" class="org.eclipse.cdt.managedbuilder.internal.language.settings.providers.CompilationDatabaseParser" exclude-files="true" id="org.eclipse.cdt.managedbuilder.core.CompilationDatabaseParser" name="Compilation Database Parser" prefer-non-shared="true"/>
 		</extension>
 	</configuration>
 	<configuration id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.release.2034189292" name="Release">
@@ -20,6 +22,8 @@
 				<language-scope id="org.eclipse.cdt.core.gcc"/>
 				<language-scope id="org.eclipse.cdt.core.g++"/>
 			</provider>
+			<provider copy-of="extension" id="org.eclipse.cdt.managedbuilder.core.GCCBuildCommandParser"/>
+			<provider build-parser-id="org.eclipse.cdt.managedbuilder.core.GCCBuildCommandParser" cdb-modified-time="1742857518823" cdb-path="${workspace_loc:/stm32n6570-dk_FSBL/build}/stm32cubeide-arm-stm32n6570-dk-eabi-Release/compile_commands.json" class="org.eclipse.cdt.managedbuilder.internal.language.settings.providers.CompilationDatabaseParser" exclude-files="true" id="org.eclipse.cdt.managedbuilder.core.CompilationDatabaseParser" name="Compilation Database Parser" prefer-non-shared="true"/>
 		</extension>
 	</configuration>
 </project>
