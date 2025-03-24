@@ -24,6 +24,7 @@ static void MEMORY_read(uint8_t* data, size_t address, size_t size) {
 #include <stm32n6570_discovery_xspi.h>
 
 static void MEMORY_init() {
+	return;
 	BSP_XSPI_NOR_Init_t init = {
 	    .InterfaceMode = MX66UW1G45G_SPI_MODE,
 	    .TransferRate = MX66UW1G45G_STR_TRANSFER,
@@ -33,14 +34,18 @@ static void MEMORY_init() {
 
 // 0x4000000: 128MB offset
 static void MEMORY_erase_block(size_t address) {
+	return;
 	BSP_XSPI_NOR_Erase_Block(0, address + 0x4000000, MX66UW1G45G_ERASE_4K);
 }
 
 static void MEMORY_write(uint8_t* data, size_t address, size_t size) {
+	return;
 	BSP_XSPI_NOR_Write(0, data, address + 0x4000000, size);
 }
 
 static void MEMORY_read(uint8_t* data, size_t address, size_t size) {
+	memset(data, 0xFF, size);
+	return;
 	BSP_XSPI_NOR_Read(0, data, address + 0x4000000, size);
 }
 #endif
