@@ -84,6 +84,10 @@ uint32_t CodecAudio::getDMAOutPos() {
 		dma_pos = codecSTM32F723EDiscoInit.getTxRemainingCount();
 	}
 
+	if(dma_pos == 0) {
+		return 0;
+	}
+
 	uint16_t dma_read_offset = codecBuffers.out_buffer.getCount() - ((dma_pos + 1) / 2);
 	return dma_read_offset;
 }
@@ -95,6 +99,10 @@ uint32_t CodecAudio::getDMAInPos() {
 		dma_pos = codecDamcHATInit.getRxRemainingCount();
 	} else {
 		dma_pos = codecSTM32F723EDiscoInit.getRxRemainingCount();
+	}
+
+	if(dma_pos == 0) {
+		return 0;
 	}
 
 	uint16_t dma_write_offset = codecBuffers.in_buffer.getCount() - ((dma_pos + 1) / 2);

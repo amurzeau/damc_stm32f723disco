@@ -188,7 +188,7 @@ bool CodecSTM32F723EDiscoInit::isDMAIsrFlagSet(bool insertWaitStates) {
 		// Do a dummy read from the SAI peripheral
 		(void) haudio_out_sai.Instance->SR;
 	}
-	uint32_t ISR = *(volatile uint32_t*) haudio_out_sai.hdmatx->Instance->CSR;
+	uint32_t ISR = haudio_out_sai.hdmatx->Instance->CSR;
 
 	return (ISR & (DMA_FLAG_HT | DMA_FLAG_TC)) != 0;
 }

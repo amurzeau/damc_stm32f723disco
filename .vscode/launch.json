@@ -12,7 +12,7 @@
 		{
 			"cwd": "${workspaceFolder}",
 			"executable": "${command:cmake.launchTargetPath}",
-			"name": "Debug with ST-Link",
+			"name": "Debug STM32F723 with ST-Link",
 			"request": "launch",
 			"type": "cortex-debug",
 			"showDevDebugOutput": "none",
@@ -26,7 +26,7 @@
 		{
 			"cwd": "${workspaceFolder}",
 			"executable": "${command:cmake.launchTargetPath}",
-			"name": "Attach with ST-Link",
+			"name": "Attach STM32F723 with ST-Link",
 			"request": "attach",
 			"type": "cortex-debug",
 			"showDevDebugOutput": "none",
@@ -36,6 +36,42 @@
 				"samplesPerSecond": 1
 			},
 			"svdPath": "STM32F723.svd"
+		},
+		{
+			"cwd": "${workspaceFolder}",
+			"executable": "${command:cmake.launchTargetPath}",
+			"name": "Debug STM32N657 with ST-Link",
+			"request": "launch",
+			"type": "cortex-debug",
+			"showDevDebugOutput": "none",
+			"servertype": "stlink",
+			"liveWatch": {
+				"enabled": true,
+				"samplesPerSecond": 1
+			},
+			"svdPath": "STM32N657.svd",
+			"serverArgs": [
+				"-m",
+				"1"
+			],
+			"overrideLaunchCommands": [
+				"-target-download",
+				"-interpreter-exec console \"monitor halt\""
+			]
+		},
+		{
+			"cwd": "${workspaceFolder}",
+			"executable": "${command:cmake.launchTargetPath}",
+			"name": "Attach STM32N657 with ST-Link",
+			"request": "attach",
+			"type": "cortex-debug",
+			"showDevDebugOutput": "none",
+			"servertype": "stlink",
+			"liveWatch": {
+				"enabled": true,
+				"samplesPerSecond": 1
+			},
+			"svdPath": "STM32N657.svd"
 		}
 	]
 }

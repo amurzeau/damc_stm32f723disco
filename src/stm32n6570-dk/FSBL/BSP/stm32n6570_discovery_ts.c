@@ -52,6 +52,7 @@
 #include "stm32n6570_discovery_ts.h"
 #include "stm32n6570_discovery_bus.h"
 #include "../Components/Common/ts.h"
+#include "stm32n6xx_hal.h"
 
 /** @addtogroup BSP
   * @{
@@ -144,6 +145,8 @@ int32_t BSP_TS_Init(uint32_t Instance, TS_Init_t *TS_Init)
     HAL_GPIO_Init(TS_NRST_GPIO_PORT, &gpio_init_structure);
 
     /* Disable GT911 reset */
+    HAL_GPIO_WritePin(TS_NRST_GPIO_PORT, TS_NRST_PIN, GPIO_PIN_RESET);
+    HAL_Delay(1);
     HAL_GPIO_WritePin(TS_NRST_GPIO_PORT, TS_NRST_PIN, GPIO_PIN_SET);
 
     if(GT911_Probe(Instance) != BSP_ERROR_NONE)
@@ -657,6 +660,8 @@ static int32_t GT911_Probe(uint32_t Instance)
   IOCtx.WriteReg    = BSP_I2C2_WriteReg16;
   IOCtx.GetTick     = BSP_GetTick;
 
+  Ts_Drv = (TS_Drv_t *)&GT911_TS_Driver;
+
   if(GT911_RegisterBusIO (&GT911Obj, &IOCtx) != GT911_OK)
   {
     ret = BSP_ERROR_BUS_FAILURE;
@@ -672,7 +677,6 @@ static int32_t GT911_Probe(uint32_t Instance)
   else
   {
     Ts_CompObj[Instance] = &GT911Obj;
-    Ts_Drv = (TS_Drv_t *) &GT911_TS_Driver;
 
     if(Ts_Drv->Init(Ts_CompObj[Instance]) != GT911_OK)
     {

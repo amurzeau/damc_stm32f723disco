@@ -97,10 +97,10 @@ void LCDInit() {
 	    .Orientation = LCD_ORIENTATION_LANDSCAPE,
 	    .Accuracy = 10,
 	};
-	BSP_TS_Init(0, &tsInit);
-
-	// Enable interrupt mode
-	BSP_TS_EnableIT(0);
+	if(BSP_TS_Init(0, &tsInit) == BSP_ERROR_NONE) {
+		// Enable interrupt mode
+		BSP_TS_EnableIT(0);
+	}
 
 	// Initialize ST7789H2-G4 LCD controller
 	BSP_LCD_Init(0, LCD_ORIENTATION_LANDSCAPE);
