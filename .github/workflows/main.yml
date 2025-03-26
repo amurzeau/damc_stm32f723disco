@@ -38,9 +38,10 @@ jobs:
       - name: Build
         run: |
           git submodule -q update --init --recursive
-          mkdir build
-          cmake -S . -B build -GNinja -DCMAKE_TOOLCHAIN_FILE=src/cmake/gcc-arm-none-eabi.cmake
-          cmake --build build --target package --config Release
+          cmake -S . -B build_stm32f723disco -GNinja -DCMAKE_TOOLCHAIN_FILE=src/cmake/toolchain_stm32f723disco.cmake
+          cmake --build build_stm32f723disco --target package --config Release
+          cmake -S . -B build_stm32n6570-dk -GNinja -DCMAKE_TOOLCHAIN_FILE=src/cmake/toolchain_stm32n6570-dk.cmake
+          cmake --build build_stm32n6570-dk --target package --config Release
 
       - name: Download damc-gui assets
         uses: robinraju/release-downloader@v1
@@ -58,9 +59,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           # Artifact name
-          name: "damc_stm32f723disco" # optional, default is artifact
+          name: "damc_stm32" # optional, default is artifact
           # A file, directory or wildcard pattern that describes what to upload
-          path: build/*.zip
+          path: build_*/*.zip
 
       - name: Upload damc-gui artifact
         uses: actions/upload-artifact@v4
@@ -75,5 +76,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            build/*.zip
+            build_*/*.zip
             build/damc-gui/damc-gui-*.*

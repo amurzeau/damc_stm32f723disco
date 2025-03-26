@@ -10,5 +10,6 @@
 		"**/include/c++/**": "cpp",
 	},
 	"editor.formatOnSave": true,
-	"editor.formatOnSaveMode": "modificationsIfAvailable"
+	"editor.formatOnSaveMode": "modificationsIfAvailable",
+	"cortex-debug.variableUseNaturalFormat": false
 }
