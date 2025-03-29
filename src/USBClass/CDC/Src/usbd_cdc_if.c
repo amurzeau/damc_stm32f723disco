@@ -121,6 +121,12 @@ static void USB_CDC_IF_receiveIfReady()
     rxBuffer.usb_busy = 1;
     USBD_CDC_ReceivePacket(usb_pdev);
   }
+  else
+  {
+    // Application didn't read enough data, execute data ready callback again so it reads more data later
+    if (userDataReadyCallback)
+      userDataReadyCallback(userDataReadyCallbackArg);
+  }
 }
 
 static void USB_CDC_IF_sendPending()
