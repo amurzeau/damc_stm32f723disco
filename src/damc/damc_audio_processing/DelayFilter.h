@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stddef.h>
-#include <vector>
 
 class DelayFilter {
 public:

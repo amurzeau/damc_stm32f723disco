@@ -1,6 +1,7 @@
 #include "CPUFrequencyScaling.h"
 #include "AudioCApi.h"
 #include "TimeMeasure.h"
+#include <atomic>
 
 #ifdef STM32F723xx
 #include <stm32f7xx_hal.h>
@@ -156,8 +157,8 @@ void CPUFrequencyScaling::updateCpuUsage() {
 		return;
 	}
 
-	// Ensure previous code is not reordered after the measure
-	__DSB();
+	// Ensure previous code calling updateCpuUsage() is not reordered after the measure
+	std::atomic_signal_fence(std::memory_order_seq_cst);
 
 	// CPU time in realtime interrupts
 	uint32_t cpu_usage_ratio_us = TimeMeasure::timeMeasure[TMI_UsbInterrupt].getMaxTimeUs() +

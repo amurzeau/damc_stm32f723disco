@@ -1,6 +1,7 @@
 #include "USBAudioBuffers.h"
 #include "CodecAudio.h"
 #include "Tracing.h"
+#include <atomic>
 #include <stdint.h>
 
 UsbAudioBuffer usbBuffers[3] = {
@@ -405,13 +406,17 @@ size_t UsbAudioBuffer::writeAudioSample(bool fromAudioISR, const void* data, siz
 	BufferOwner expected_value;
 
 	if(fromAudioISR) {
-		// Ensure atomic read of usb pos with usb_available_write_lock.
+		// Ensure atomic read of usb pos with processingByAudioISR.
 		// If USB interrupt occurs in-between and cause a usbBuffers reset, retry to read the position.
-		// If USB interrupt occurs after having set usb_available_write_lock, it will assume we won't see the reset.
+		// If USB interrupt occurs after having set processingByAudioISR, it will assume we won't see the reset.
 		do {
 			expected_value = OwnerUnused;
 			processingByAudioISR.store(OwnerUnused, std::memory_order_relaxed);
-			__DMB();
+
+			// Ensure buffer.getReadPos is read while processingByAudioISR is set to OwnerUnused
+			// So compare_exchange_strong will fail if an interrupt happens while doing buffer.getReadPos().
+			std::atomic_signal_fence(std::memory_order_seq_cst);
+
 			usb_read_pos = buffer.getReadPos();
 		} while(!processingByAudioISR.compare_exchange_strong(
 		    expected_value, OwnerUsedByAudioProcess, std::memory_order_acquire, std::memory_order_relaxed));
@@ -437,13 +442,17 @@ size_t UsbAudioBuffer::readAudioSample(bool fromAudioISR, void* data, size_t siz
 	BufferOwner expected_value;
 
 	if(fromAudioISR) {
-		// Ensure atomic read of usb pos with usb_available_read_lock.
+		// Ensure atomic read of usb pos with processingByAudioISR.
 		// If USB interrupt occurs in-between and cause a usbBuffers reset, retry to read the position.
-		// If USB interrupt occurs after having set usb_available_read_lock, it will assume we won't see the reset.
+		// If USB interrupt occurs after having set processingByAudioISR, it will assume we won't see the reset.
 		do {
 			expected_value = OwnerUnused;
 			processingByAudioISR.store(OwnerUnused, std::memory_order_relaxed);
-			__DMB();
+
+			// Ensure buffer.getWritePos is read while processingByAudioISR is set to OwnerUnused
+			// So compare_exchange_strong will fail if an interrupt happens while doing buffer.getWritePos().
+			std::atomic_signal_fence(std::memory_order_seq_cst);
+
 			usb_write_pos = buffer.getWritePos();
 		} while(!processingByAudioISR.compare_exchange_strong(
 		    expected_value, OwnerUsedByAudioProcess, std::memory_order_acquire, std::memory_order_relaxed));

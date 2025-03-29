@@ -1,13 +1,8 @@
 #include "uv.h"
 #include "queue.h"
 #include <AudioCApi.h>
+#include <stdatomic.h>
 #include <string.h>
-
-#ifdef STM32F723xx
-#include <stm32f7xx_hal.h>
-#elif defined(STM32N657xx)
-#include <stm32n6xx_hal.h>
-#endif
 
 enum {
 	UV__HANDLE_INTERNAL = 0x8000,
@@ -95,14 +90,21 @@ static void uv__run_async(uv_loop_t* loop) {
 	}
 
 	loop->async_pending = 0;
-	__DMB();
+
+	// Ensure async_pending is set to 0 before checking async_queue
+	// So if a new async become pending while checking the queue, we will recheck it
+	atomic_signal_fence(memory_order_seq_cst);
 
 	QUEUE* q;
 	QUEUE_FOREACH(q, &loop->async_queue) {
 		uv_async_t* handle = QUEUE_DATA(q, uv_async_t, async_queue);
 		if(handle->pending) {
 			handle->pending = 0;
-			__DMB();
+
+			// Ensure pending is set to 0 before checking async_queue
+			// So if a new async become pending while executing the callback, we will re-run it
+			atomic_signal_fence(memory_order_seq_cst);
+
 			DAMC_beginMeasure(TMI_MainLoop);
 			handle->callback(handle);
 			DAMC_endMeasure(TMI_MainLoop);
@@ -226,10 +228,9 @@ UV_EXTERN int uv_async_init(uv_loop_t* loop, uv_async_t* handle, uv_async_cb asy
 }
 
 UV_EXTERN int uv_async_send(uv_async_t* handle) {
+	// Any order allowed here as the code checking them is run outside interrupts.
 	handle->pending = 1;
-	__DMB();
 	handle->loop->async_pending = 1;
-	__DMB();
 
 	return 0;
 }

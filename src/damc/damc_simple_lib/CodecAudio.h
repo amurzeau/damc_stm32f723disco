@@ -3,9 +3,7 @@
 #include "CircularBuffer.h"
 #include "CodecDamcHATInit.h"
 #include "CodecSTM32F723EDiscoInit.h"
-#include <array>
 #include <stdint.h>
-#include <vector>
 
 class CodecAudio {
 public:

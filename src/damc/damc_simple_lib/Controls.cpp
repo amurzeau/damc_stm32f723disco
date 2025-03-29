@@ -1,6 +1,7 @@
 #include "Controls.h"
 #include "usbd_audio.h"
 #include <OscRoot.h>
+#include <atomic>
 
 Controls* Controls::instance;
 
@@ -112,14 +113,20 @@ void Controls::onControlChanged() {
 	for(size_t i = 0; i < controlsMapping.size(); i++) {
 		if(controlsMapping[i].volumeToSet.isChanged) {
 			controlsMapping[i].volumeToSet.isChanged = false;
-			__DMB();
+
+			// Ensure isChanged is set to false before reading value
+			std::atomic_signal_fence(std::memory_order_seq_cst);
+
 			processUsbControlChange = true;
 			controlsMapping[i].volumeControl->setFromOsc(controlsMapping[i].volumeToSet.value);
 			processUsbControlChange = false;
 		}
 		if(controlsMapping[i].muteToSet.isChanged) {
 			controlsMapping[i].muteToSet.isChanged = false;
-			__DMB();
+
+			// Ensure isChanged is set to false before reading value
+			std::atomic_signal_fence(std::memory_order_seq_cst);
+
 			processUsbControlChange = true;
 			controlsMapping[i].muteControl->setFromOsc(controlsMapping[i].muteToSet.value);
 			processUsbControlChange = false;

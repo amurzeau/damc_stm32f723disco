@@ -1,6 +1,5 @@
 #include "DelayFilter.h"
-#include PLATFORM_HEADER
-
+#include <atomic>
 #include <math.h>
 #include <string.h>
 
@@ -39,7 +38,9 @@ void DelayFilter::setParameters(unsigned int delay) {
 
 	// Disable delay processing while we are readjusting buffers and indexes
 	this->delay = 0;
-	__DSB();
+
+	// Ensure delayedSamples, power2Size, inputIndex, outputIndex are modified only after setting delay to 0
+	std::atomic_signal_fence(std::memory_order_seq_cst);
 
 	if(this->delayedSamples) {
 		free(this->delayedSamples);
@@ -59,6 +60,7 @@ void DelayFilter::setParameters(unsigned int delay) {
 	this->power2Size = powerOfTwo;
 	this->outputIndex = (this->inputIndex + arraySize - targetDelay) & (arraySize - 1);
 
-	__DSB();
+	// Ensure delayedSamples, power2Size, inputIndex, outputIndex are modified only before restoring delay
+	std::atomic_signal_fence(std::memory_order_seq_cst);
 	this->delay = delay;
 }
